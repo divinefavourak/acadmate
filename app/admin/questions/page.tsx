@@ -109,7 +109,7 @@ export default function QuestionsPage() {
         if (field === "isCorrect") {
           return { ...opt, isCorrect: i === idx };
         }
-        return i === idx ? { ...opt, [field]: value } : opt;
+        return i === idx ? { ...opt, text: value as string } : opt;
       }),
     }));
   }
