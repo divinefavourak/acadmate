@@ -1,0 +1,446 @@
+// Prisma schema for Acadmate UTME CBT Practice Platform
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ─── Auth (NextAuth v5 required models) ──────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  passwordHash  String?
+  role          Role      @default(STUDENT)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts       Account[]
+  sessions       Session[]
+  studentProfile StudentProfile?
+  examSessions   ExamSession[]
+  imports        Import[]
+  reviewedContent Question[] @relation("ReviewedBy")
+
+  @@index([email])
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ─── Student Profile ──────────────────────────────────────────────────────────
+
+model StudentProfile {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  targetYear   Int?
+  courseChoice String?
+  institution  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user                    User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseSubjectCombinations CourseSubjectCombination[]
+
+  @@map("student_profiles")
+}
+
+// ─── Subject & Topic ─────────────────────────────────────────────────────────
+
+model Subject {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  code        String   @unique
+  description String?
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  topics                    Topic[]
+  questions                 Question[]
+  examTemplateSubjects      ExamTemplateSubject[]
+  courseSubjectCombinations CourseSubjectCombination[]
+
+  @@index([isActive])
+  @@map("subjects")
+}
+
+model Topic {
+  id          String   @id @default(cuid())
+  subjectId   String
+  name        String
+  description String?
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  subject   Subject    @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  questions Question[]
+
+  @@unique([subjectId, name])
+  @@index([subjectId])
+  @@index([isActive])
+  @@map("topics")
+}
+
+// ─── Questions ────────────────────────────────────────────────────────────────
+
+model Question {
+  id               String           @id @default(cuid())
+  subjectId        String
+  topicId          String?
+  proseTextId      String?
+  text             String           @db.Text
+  year             Int?
+  difficulty       Difficulty       @default(MEDIUM)
+  sourceType       SourceType       @default(MANUAL)
+  sourceRef        String?
+  isPublished      Boolean          @default(false)
+  aiAssisted       Boolean          @default(false)
+  reviewedAt       DateTime?
+  reviewedById     String?
+  importId         String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  subject              Subject                @relation(fields: [subjectId], references: [id])
+  topic                Topic?                 @relation(fields: [topicId], references: [id])
+  proseText            ProseText?             @relation(fields: [proseTextId], references: [id])
+  reviewedBy           User?                  @relation("ReviewedBy", fields: [reviewedById], references: [id])
+  import               Import?                @relation(fields: [importId], references: [id])
+  options              QuestionOption[]
+  explanation          Explanation?
+  examSessionQuestions ExamSessionQuestion[]
+  userAnswers          UserAnswer[]
+
+  @@index([subjectId])
+  @@index([topicId])
+  @@index([isPublished])
+  @@index([subjectId, isPublished])
+  @@index([topicId, isPublished])
+  @@map("questions")
+}
+
+model QuestionOption {
+  id         String   @id @default(cuid())
+  questionId String
+  label      String   // A, B, C, D
+  text       String   @db.Text
+  isCorrect  Boolean  @default(false)
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  question    Question     @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  userAnswers UserAnswer[]
+
+  @@index([questionId])
+  @@map("question_options")
+}
+
+model Explanation {
+  id          String   @id @default(cuid())
+  questionId  String   @unique
+  text        String   @db.Text
+  aiAssisted  Boolean  @default(false)
+  reviewed    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@map("explanations")
+}
+
+// ─── Prose ───────────────────────────────────────────────────────────────────
+
+model ProseText {
+  id          String   @id @default(cuid())
+  title       String   @unique
+  author      String?
+  year        Int?
+  summary     String?  @db.Text
+  themes      String?  @db.Text
+  isPublished Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  sections  ProseSection[]
+  questions Question[]
+
+  @@map("prose_texts")
+}
+
+model ProseSection {
+  id          String   @id @default(cuid())
+  proseTextId String
+  title       String
+  content     String   @db.Text
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  proseText ProseText @relation(fields: [proseTextId], references: [id], onDelete: Cascade)
+
+  @@index([proseTextId])
+  @@map("prose_sections")
+}
+
+// ─── Exam Templates & Sessions ───────────────────────────────────────────────
+
+model ExamTemplate {
+  id              String   @id @default(cuid())
+  name            String
+  description     String?
+  durationMinutes Int      @default(120)
+  totalQuestions  Int      @default(40)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  subjects     ExamTemplateSubject[]
+  examSessions ExamSession[]
+
+  @@map("exam_templates")
+}
+
+model ExamTemplateSubject {
+  id             String @id @default(cuid())
+  examTemplateId String
+  subjectId      String
+  questionCount  Int    @default(10)
+
+  examTemplate ExamTemplate @relation(fields: [examTemplateId], references: [id], onDelete: Cascade)
+  subject      Subject      @relation(fields: [subjectId], references: [id])
+
+  @@unique([examTemplateId, subjectId])
+  @@map("exam_template_subjects")
+}
+
+model ExamSession {
+  id               String            @id @default(cuid())
+  userId           String
+  examTemplateId   String?
+  mode             ExamMode          @default(MOCK)
+  subjectId        String?
+  topicId          String?
+  status           ExamStatus        @default(IN_PROGRESS)
+  startedAt        DateTime          @default(now())
+  submittedAt      DateTime?
+  expiresAt        DateTime?
+  durationMinutes  Int               @default(120)
+  totalQuestions   Int
+  currentQuestion  Int               @default(0)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  user          User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  examTemplate  ExamTemplate?         @relation(fields: [examTemplateId], references: [id])
+  questions     ExamSessionQuestion[]
+  userAnswers   UserAnswer[]
+  result        Result?
+
+  @@index([userId])
+  @@index([userId, status])
+  @@map("exam_sessions")
+}
+
+model ExamSessionQuestion {
+  id            String   @id @default(cuid())
+  examSessionId String
+  questionId    String
+  position      Int
+  markedReview  Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  examSession ExamSession @relation(fields: [examSessionId], references: [id], onDelete: Cascade)
+  question    Question    @relation(fields: [questionId], references: [id])
+
+  @@unique([examSessionId, questionId])
+  @@index([examSessionId])
+  @@map("exam_session_questions")
+}
+
+model UserAnswer {
+  id            String   @id @default(cuid())
+  examSessionId String
+  questionId    String
+  optionId      String?
+  isCorrect     Boolean?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  examSession ExamSession    @relation(fields: [examSessionId], references: [id], onDelete: Cascade)
+  question    Question       @relation(fields: [questionId], references: [id])
+  option      QuestionOption? @relation(fields: [optionId], references: [id])
+
+  @@unique([examSessionId, questionId])
+  @@index([examSessionId])
+  @@map("user_answers")
+}
+
+// ─── Results ─────────────────────────────────────────────────────────────────
+
+model Result {
+  id              String   @id @default(cuid())
+  examSessionId   String   @unique
+  userId          String
+  totalQuestions  Int
+  correct         Int
+  incorrect       Int
+  unanswered      Int
+  score           Float    // percentage
+  subjectBreakdown Json
+  topicBreakdown   Json
+  createdAt       DateTime @default(now())
+
+  examSession ExamSession @relation(fields: [examSessionId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, createdAt])
+  @@map("results")
+}
+
+// ─── Course/Subject Combinations ─────────────────────────────────────────────
+
+model CourseSubjectCombination {
+  id               String @id @default(cuid())
+  studentProfileId String
+  subjectId        String
+
+  studentProfile StudentProfile @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+  subject        Subject        @relation(fields: [subjectId], references: [id])
+
+  @@unique([studentProfileId, subjectId])
+  @@map("course_subject_combinations")
+}
+
+// ─── Imports ─────────────────────────────────────────────────────────────────
+
+model Import {
+  id            String       @id @default(cuid())
+  uploadedById  String
+  filename      String
+  format        ImportFormat @default(CSV)
+  status        ImportStatus @default(PENDING)
+  totalRows     Int          @default(0)
+  validRows     Int          @default(0)
+  invalidRows   Int          @default(0)
+  publishedRows Int          @default(0)
+  errorLog      Json?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  uploadedBy User       @relation(fields: [uploadedById], references: [id])
+  questions  Question[]
+
+  @@index([uploadedById])
+  @@map("imports")
+}
+
+// ─── Admin Activity ───────────────────────────────────────────────────────────
+
+model AdminActivityLog {
+  id         String   @id @default(cuid())
+  adminId    String
+  action     String
+  entityType String?
+  entityId   String?
+  details    Json?
+  createdAt  DateTime @default(now())
+
+  @@index([adminId])
+  @@index([createdAt])
+  @@map("admin_activity_logs")
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum Role {
+  STUDENT
+  ADMIN
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum SourceType {
+  MANUAL
+  IMPORTED
+  AI_ASSISTED
+}
+
+enum ExamMode {
+  MOCK
+  PRACTICE
+  TOPIC
+}
+
+enum ExamStatus {
+  IN_PROGRESS
+  SUBMITTED
+  TIMED_OUT
+  ABANDONED
+}
+
+enum ImportFormat {
+  CSV
+  JSON
+}
+
+enum ImportStatus {
+  PENDING
+  PROCESSING
+  DONE
+  FAILED
+}
