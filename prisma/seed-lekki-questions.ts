@@ -8,17 +8,16 @@
  * Safe to re-run: deletes old questions linked to the prose text first, then re-creates.
  */
 
-import { config } from "dotenv";
 import { PrismaClient } from "@prisma/client";
 
-config(); // load .env
-
-// Allow DIRECT_URL to override DATABASE_URL (bypasses PgBouncer for seeding)
-if (process.env.DIRECT_URL) {
-  process.env.DATABASE_URL = process.env.DIRECT_URL;
+if (!process.env.DATABASE_URL) {
+  console.error("ERROR: DATABASE_URL is not set. Set it before running this script.");
+  process.exit(1);
 }
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({
+  datasources: { db: { url: process.env.DATABASE_URL } },
+});
 
 const questions = [
   // ─── Characters ──────────────────────────────────────────────────────────────
