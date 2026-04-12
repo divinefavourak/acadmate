@@ -8,16 +8,17 @@
  * Safe to re-run: deletes old questions linked to the prose text first, then re-creates.
  */
 
+import { config } from "dotenv";
 import { PrismaClient } from "@prisma/client";
 
-// Seeds should use the direct (non-pooler) URL to avoid PgBouncer limitations
-const prisma = new PrismaClient({
-  datasources: {
-    db: {
-      url: process.env.DIRECT_URL ?? process.env.DATABASE_URL,
-    },
-  },
-});
+config(); // load .env
+
+// Allow DIRECT_URL to override DATABASE_URL (bypasses PgBouncer for seeding)
+if (process.env.DIRECT_URL) {
+  process.env.DATABASE_URL = process.env.DIRECT_URL;
+}
+
+const prisma = new PrismaClient();
 
 const questions = [
   // ─── Characters ──────────────────────────────────────────────────────────────

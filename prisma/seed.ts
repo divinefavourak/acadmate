@@ -1,9 +1,15 @@
+import { config } from "dotenv";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
-const prisma = new PrismaClient({
-  datasources: { db: { url: process.env.DIRECT_URL ?? process.env.DATABASE_URL } },
-});
+config(); // load .env
+
+// Allow DIRECT_URL to override DATABASE_URL (bypasses PgBouncer for seeding)
+if (process.env.DIRECT_URL) {
+  process.env.DATABASE_URL = process.env.DIRECT_URL;
+}
+
+const prisma = new PrismaClient();
 
 async function main() {
   console.log("Seeding database...");
