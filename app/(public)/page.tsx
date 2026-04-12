@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { Analytics } from "@vercel/analytics/next"
 import Image from 'next/image';
 import MobileNav from '../components/layout/MobileNav';
 
@@ -16,6 +17,7 @@ export default function Home() {
 
   return (
     <div className="flex flex-col min-h-screen relative overflow-hidden">
+      <Analytics />
       {/* Background Orbs for Dynamic Design */}
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[50%] bg-blue-500 rounded-full mix-blend-multiply filter blur-[100px] opacity-20 animate-blob"></div>
       <div className="absolute top-[20%] right-[-10%] w-[40%] h-[50%] bg-purple-500 rounded-full mix-blend-multiply filter blur-[100px] opacity-20 animate-blob animation-delay-2000"></div>
