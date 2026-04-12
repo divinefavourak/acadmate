@@ -1,12 +1,14 @@
-import { auth } from "@/lib/auth/auth";
+import NextAuth from "next-auth";
+import { authConfig } from "@/lib/auth/auth.config";
 import { NextResponse } from "next/server";
+
+const { auth } = NextAuth(authConfig);
 
 const publicRoutes = ["/", "/login", "/register", "/api/auth"];
 
 export default auth((req) => {
   const { pathname } = req.nextUrl;
 
-  // Allow public routes and static assets
   const isPublic =
     publicRoutes.some((r) => pathname.startsWith(r)) ||
     pathname.startsWith("/_next") ||
@@ -21,7 +23,6 @@ export default auth((req) => {
     return NextResponse.redirect(loginUrl);
   }
 
-  // Admin-only routes
   if (pathname.startsWith("/admin") || pathname.startsWith("/api/admin")) {
     const role = (session.user as { role?: string }).role;
     if (role !== "ADMIN") {
