@@ -37,7 +37,8 @@ export default function ProseDetailPage({ params }: { params: Promise<{ id: stri
   const [questions, setQuestions] = useState<ProseQuestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [activeTab, setActiveTab] = useState<"overview" | "sections" | "questions">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "read" | "questions">("overview");
+  const [activeChapter, setActiveChapter] = useState(0);
   const [starting, setStarting] = useState(false);
 
   useEffect(() => {
@@ -70,6 +71,7 @@ export default function ProseDetailPage({ params }: { params: Promise<{ id: stri
   }
 
   const themes = prose?.themes ? prose.themes.split(",").map((t) => t.trim()).filter(Boolean) : [];
+  const sortedSections = prose?.sections.slice().sort((a, b) => a.sortOrder - b.sortOrder) ?? [];
 
   if (loading) {
     return (
@@ -118,7 +120,7 @@ export default function ProseDetailPage({ params }: { params: Promise<{ id: stri
               </div>
             )}
             <div className="flex gap-4 text-sm text-slate-500 dark:text-slate-400">
-              <span>{prose.sections.length} section{prose.sections.length !== 1 ? "s" : ""}</span>
+              <span>{sortedSections.length} chapter{sortedSections.length !== 1 ? "s" : ""}</span>
               <span>·</span>
               <span>{questions.length} practice question{questions.length !== 1 ? "s" : ""}</span>
             </div>
@@ -140,7 +142,7 @@ export default function ProseDetailPage({ params }: { params: Promise<{ id: stri
       <div className="flex gap-1 border-b border-slate-200 dark:border-slate-800">
         {([
           { key: "overview", label: "Overview" },
-          { key: "sections", label: `Sections (${prose.sections.length})` },
+          { key: "read", label: `Read (${sortedSections.length} chapters)` },
           { key: "questions", label: `Questions (${questions.length})` },
         ] as const).map(({ key, label }) => (
           <button
@@ -181,28 +183,95 @@ export default function ProseDetailPage({ params }: { params: Promise<{ id: stri
               </ul>
             </div>
           )}
+          {sortedSections.length > 0 && (
+            <div className="glass-panel p-6 rounded-2xl">
+              <h2 className="font-bold text-lg mb-4">Chapters</h2>
+              <ol className="space-y-2">
+                {sortedSections.map((s, i) => (
+                  <li key={s.id}>
+                    <button
+                      onClick={() => { setActiveTab("read"); setActiveChapter(i); }}
+                      className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline text-left"
+                    >
+                      {s.title}
+                    </button>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
         </div>
       )}
 
-      {activeTab === "sections" && (
-        <div className="space-y-4">
-          {prose.sections.length === 0 ? (
-            <p className="text-slate-500 text-sm">No sections have been added yet.</p>
-          ) : (
-            prose.sections.map((section, i) => (
-              <div key={section.id} className="glass-panel p-6 rounded-2xl">
-                <h3 className="font-bold text-lg mb-3 flex items-center gap-3">
-                  <span className="w-7 h-7 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-sm font-bold flex items-center justify-center flex-shrink-0">
-                    {i + 1}
-                  </span>
-                  {section.title}
-                </h3>
-                <p className="text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-line text-sm">
-                  {section.content}
-                </p>
+      {activeTab === "read" && (
+        <div className="flex gap-6">
+          {/* Chapter sidebar */}
+          {sortedSections.length > 1 && (
+            <aside className="hidden md:block w-52 flex-shrink-0">
+              <div className="sticky top-6 space-y-1">
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 px-2">Chapters</p>
+                {sortedSections.map((s, i) => (
+                  <button
+                    key={s.id}
+                    onClick={() => setActiveChapter(i)}
+                    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
+                      activeChapter === i
+                        ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 font-medium"
+                        : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                    }`}
+                  >
+                    {s.title}
+                  </button>
+                ))}
               </div>
-            ))
+            </aside>
           )}
+
+          {/* Reader */}
+          <div className="flex-1 min-w-0">
+            {sortedSections.length === 0 ? (
+              <p className="text-slate-500 text-sm">No chapters have been loaded yet.</p>
+            ) : (
+              <div className="glass-panel p-8 rounded-2xl">
+                <h2 className="text-2xl font-bold mb-6 text-slate-800 dark:text-slate-100">
+                  {sortedSections[activeChapter]?.title}
+                </h2>
+                <div className="prose prose-slate dark:prose-invert max-w-none">
+                  {sortedSections[activeChapter]?.content
+                    .split("\n\n")
+                    .filter(Boolean)
+                    .map((para, i) => (
+                      <p key={i} className="text-base leading-8 text-slate-700 dark:text-slate-300 mb-5">
+                        {para.trim()}
+                      </p>
+                    ))}
+                </div>
+
+                {/* Chapter navigation */}
+                <div className="flex items-center justify-between mt-10 pt-6 border-t border-slate-200 dark:border-slate-700">
+                  <button
+                    onClick={() => setActiveChapter((c) => Math.max(0, c - 1))}
+                    disabled={activeChapter === 0}
+                    className="flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-indigo-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                    Previous
+                  </button>
+                  <span className="text-xs text-slate-400">
+                    {activeChapter + 1} / {sortedSections.length}
+                  </span>
+                  <button
+                    onClick={() => setActiveChapter((c) => Math.min(sortedSections.length - 1, c + 1))}
+                    disabled={activeChapter === sortedSections.length - 1}
+                    className="flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-indigo-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Next
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
 

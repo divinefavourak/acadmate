@@ -2,6 +2,7 @@
 
 import { useEffect, useState, use } from "react";
 import Link from "next/link";
+import MathText from "@/app/components/MathText";
 import { useSearchParams } from "next/navigation";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -117,7 +118,7 @@ function QuestionCard({ qa, index }: { qa: QuestionAnswer; index: number }) {
               {statusLabel}
             </span>
           </div>
-          <p className="text-sm font-medium text-slate-800 dark:text-slate-100 line-clamp-2">{qa.question.text}</p>
+          <p className="text-sm font-medium text-slate-800 dark:text-slate-100 line-clamp-2"><MathText text={qa.question.text} /></p>
         </div>
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -138,7 +139,7 @@ function QuestionCard({ qa, index }: { qa: QuestionAnswer; index: number }) {
       {open && (
         <div className="px-5 pb-5 space-y-4 border-t border-inherit">
           {/* Full question text */}
-          <p className="pt-4 text-slate-800 dark:text-slate-100 font-medium leading-relaxed">{qa.question.text}</p>
+          <p className="pt-4 text-slate-800 dark:text-slate-100 font-medium leading-relaxed"><MathText text={qa.question.text} /></p>
 
           {/* Options */}
           <div className="space-y-2">
@@ -166,7 +167,7 @@ function QuestionCard({ qa, index }: { qa: QuestionAnswer; index: number }) {
                   >
                     {opt.label}
                   </span>
-                  <span className="flex-1">{opt.text}</span>
+                  <span className="flex-1"><MathText text={opt.text} /></span>
                   {isCorrectOpt && <span className="text-emerald-600 dark:text-emerald-400 font-semibold text-xs">✓ Correct</span>}
                   {isStudentAnswer && !isCorrectOpt && <span className="text-red-600 dark:text-red-400 font-semibold text-xs">Your answer</span>}
                 </div>

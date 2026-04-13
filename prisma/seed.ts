@@ -41,6 +41,7 @@ async function main() {
     { name: "Agricultural Science", code: "AGR", description: "Agricultural Science", sortOrder: 10 },
     { name: "Commerce", code: "COM", description: "Commerce", sortOrder: 11 },
     { name: "Accounts", code: "ACC", description: "Financial Accounting", sortOrder: 12 },
+    { name: "Christian Religious Knowledge", code: "CRK", description: "Christian Religious Knowledge", sortOrder: 13 },
   ];
 
   const subjects: Record<string, string> = {};

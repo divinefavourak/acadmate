@@ -11,15 +11,20 @@
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
+    "db:seed:jamb": "tsx prisma/seed-jamb-questions.ts",
+    "db:seed:lekki-text": "tsx prisma/seed-lekki-text.ts",
     "db:studio": "prisma studio"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.88.0",
     "@auth/prisma-adapter": "^2.7.4",
     "@prisma/client": "^6.6.0",
+    "@vercel/analytics": "^2.0.1",
     "bcryptjs": "^3.0.2",
+    "katex": "^0.16.45",
     "next": "16.2.3",
     "next-auth": "^5.0.0-beta.25",
     "react": "19.2.4",

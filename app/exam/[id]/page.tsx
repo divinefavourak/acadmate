@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Timer from "../components/Timer";
 import QuestionGrid from "../components/QuestionGrid";
+import MathText from "@/app/components/MathText";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -249,7 +250,7 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
               </button>
             </div>
             <h2 className="text-2xl font-medium leading-relaxed text-slate-800 dark:text-slate-100">
-              {currentQ.text}
+              <MathText text={currentQ.text} />
             </h2>
           </div>
 
@@ -288,7 +289,7 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
                         : "text-slate-700 dark:text-slate-300"
                     }`}
                   >
-                    {option.text}
+                    <MathText text={option.text} />
                   </span>
                 </label>
               );
