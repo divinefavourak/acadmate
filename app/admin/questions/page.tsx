@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import MathText from "@/app/components/MathText";
 import MiniBarChart from "@/app/admin/components/MiniBarChart";
 
@@ -100,6 +101,22 @@ export default function QuestionsPage() {
   const [loadingFlagged, setLoadingFlagged] = useState(false);
   const [analyticsData, setAnalyticsData] = useState<{ subject: string; questions: number; flagged: number }[]>([]);
   const [loadingAnalytics, setLoadingAnalytics] = useState(false);
+
+  const searchParams = useSearchParams();
+  const highlightId = searchParams.get("highlight");
+  const highlightRef = useRef<HTMLDivElement | null>(null);
+
+  // If a highlight param is present (from notification click), open flagged tab
+  useEffect(() => {
+    if (highlightId) setActiveTab("flagged");
+  }, [highlightId]);
+
+  // Scroll to highlighted question once flagged tab is loaded
+  useEffect(() => {
+    if (highlightId && activeTab === "flagged" && highlightRef.current) {
+      highlightRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [highlightId, activeTab, flaggedQuestions]);
 
   const [uploadingImage, setUploadingImage] = useState(false);
   const [editUploadingImage, setEditUploadingImage] = useState(false);
@@ -842,7 +859,13 @@ export default function QuestionsPage() {
                 </div>
                 <div className="divide-y divide-slate-800">
                   {qs.map((q) => (
-                    <div key={q.id} className="px-5 py-3 flex items-start gap-4">
+                    <div
+                      key={q.id}
+                      ref={highlightId === q.id ? highlightRef : null}
+                      className={`px-5 py-3 flex items-start gap-4 transition-colors ${
+                        highlightId === q.id ? "bg-indigo-900/30 ring-1 ring-indigo-500/50" : ""
+                      }`}
+                    >
                       <div className="flex-1 min-w-0">
                         <p className="text-sm text-white truncate">{q.text}</p>
                         <div className="flex items-center gap-3 mt-1">

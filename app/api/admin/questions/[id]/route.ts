@@ -3,6 +3,32 @@ import { prisma } from "@/lib/db/prisma";
 import { requireAdmin } from "@/lib/auth/helpers";
 import { updateQuestionSchema } from "@/lib/validation/questions";
 
+async function autoValidateQuestion(questionId: string) {
+  const [correctOption, optionCount] = await Promise.all([
+    prisma.questionOption.findFirst({ where: { questionId, isCorrect: true }, select: { id: true } }),
+    prisma.questionOption.count({ where: { questionId } }),
+  ]);
+
+  const issues: string[] = [];
+  if (!correctOption) issues.push("no correct answer set");
+  if (optionCount > 5) issues.push(`too many options (${optionCount})`);
+
+  if (issues.length > 0) {
+    const question = await prisma.question.findUnique({
+      where: { id: questionId },
+      select: { text: true, subject: { select: { name: true } } },
+    });
+    const preview = (question?.text ?? "").substring(0, 80);
+    const type = !correctOption ? "NO_CORRECT_ANSWER" : "TOO_MANY_OPTIONS";
+    const message = `[${question?.subject.name ?? "Unknown"}] ${issues.join(", ")}: "${preview}…"`;
+
+    await prisma.$transaction([
+      prisma.question.update({ where: { id: questionId }, data: { isFlagged: true } }),
+      prisma.adminNotification.create({ data: { type, questionId, message } }),
+    ]);
+  }
+}
+
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -48,6 +74,14 @@ export async function PATCH(
     const adminId = session!.user!.id!;
     const imageUrl = rawImageUrl === "" ? null : rawImageUrl;
 
+    // If admin is clearing the flag, resolve all student QuestionFlags for this question
+    if (questionData.isFlagged === false) {
+      await prisma.questionFlag.updateMany({
+        where: { questionId: id, resolved: false },
+        data: { resolved: true, resolvedAt: new Date() },
+      });
+    }
+
     const question = await prisma.question.update({
       where: { id },
       data: {
@@ -79,6 +113,11 @@ export async function PATCH(
     await prisma.adminActivityLog.create({
       data: { adminId, action: "UPDATE_QUESTION", entityType: "question", entityId: id },
     });
+
+    // If options were updated, re-validate
+    if (parsed.data.options) {
+      await autoValidateQuestion(id);
+    }
 
     return NextResponse.json({ question });
   } catch {

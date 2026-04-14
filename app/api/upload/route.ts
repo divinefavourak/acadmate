@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { put } from "@vercel/blob";
+import { v2 as cloudinary } from "cloudinary";
 import { requireAdmin } from "@/lib/auth/helpers";
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 export async function POST(req: NextRequest) {
   const { error } = await requireAdmin();
@@ -22,10 +28,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Image must be under 5 MB" }, { status: 400 });
   }
 
-  const ext = file.name.split(".").pop() ?? "jpg";
-  const filename = `questions/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+  const buffer = Buffer.from(await file.arrayBuffer());
 
-  const blob = await put(filename, file, { access: "public" });
+  const result = await new Promise<{ secure_url: string }>((resolve, reject) => {
+    cloudinary.uploader.upload_stream(
+      { folder: "acadmate/questions", resource_type: "image" },
+      (err, res) => {
+        if (err || !res) reject(err ?? new Error("Upload failed"));
+        else resolve(res as { secure_url: string });
+      }
+    ).end(buffer);
+  });
 
-  return NextResponse.json({ url: blob.url });
+  return NextResponse.json({ url: result.secure_url });
 }

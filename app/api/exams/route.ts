@@ -72,21 +72,29 @@ export async function POST(req: NextRequest) {
         proseId = randomProse?.id ?? null;
       }
 
-      // Fetch all question batches in parallel
+      // Fetch all question batches in parallel (only questions with a correct option)
       const [engRows, proseRows] = await Promise.all([
         prisma.$queryRaw<{ id: string }[]>`
-          SELECT id FROM questions
-          WHERE "subjectId" = ${english.id}
-            AND "isPublished" = true
-            AND "proseTextId" IS NULL
+          SELECT q.id FROM questions q
+          WHERE q."subjectId" = ${english.id}
+            AND q."isPublished" = true
+            AND q."proseTextId" IS NULL
+            AND EXISTS (
+              SELECT 1 FROM question_options qo
+              WHERE qo."questionId" = q.id AND qo."isCorrect" = true
+            )
           ORDER BY RANDOM()
           LIMIT ${UTME_ENGLISH_QUESTIONS}
         `,
         proseId
           ? prisma.$queryRaw<{ id: string }[]>`
-              SELECT id FROM questions
-              WHERE "proseTextId" = ${proseId}
-                AND "isPublished" = true
+              SELECT q.id FROM questions q
+              WHERE q."proseTextId" = ${proseId}
+                AND q."isPublished" = true
+                AND EXISTS (
+                  SELECT 1 FROM question_options qo
+                  WHERE qo."questionId" = q.id AND qo."isCorrect" = true
+                )
               ORDER BY RANDOM()
               LIMIT ${UTME_PROSE_QUESTIONS}
             `
@@ -96,9 +104,13 @@ export async function POST(req: NextRequest) {
       const subjectRowBatches = await Promise.all(
         subjectIds.map((sid) =>
           prisma.$queryRaw<{ id: string }[]>`
-            SELECT id FROM questions
-            WHERE "subjectId" = ${sid}
-              AND "isPublished" = true
+            SELECT q.id FROM questions q
+            WHERE q."subjectId" = ${sid}
+              AND q."isPublished" = true
+              AND EXISTS (
+                SELECT 1 FROM question_options qo
+                WHERE qo."questionId" = q.id AND qo."isCorrect" = true
+              )
             ORDER BY RANDOM()
             LIMIT ${UTME_SUBJECT_QUESTIONS}
           `
@@ -153,16 +165,26 @@ export async function POST(req: NextRequest) {
 
     if (mode === "TOPIC" && topicId) {
       const rows = await prisma.$queryRaw<{ id: string }[]>`
-        SELECT id FROM questions
-        WHERE "topicId" = ${topicId} AND "isPublished" = true
+        SELECT q.id FROM questions q
+        WHERE q."topicId" = ${topicId}
+          AND q."isPublished" = true
+          AND EXISTS (
+            SELECT 1 FROM question_options qo
+            WHERE qo."questionId" = q.id AND qo."isCorrect" = true
+          )
         ORDER BY RANDOM()
         LIMIT ${questionCount}
       `;
       questionIds = rows.map((r) => r.id);
     } else {
       const rows = await prisma.$queryRaw<{ id: string }[]>`
-        SELECT id FROM questions
-        WHERE "subjectId" = ${subjectId} AND "isPublished" = true
+        SELECT q.id FROM questions q
+        WHERE q."subjectId" = ${subjectId}
+          AND q."isPublished" = true
+          AND EXISTS (
+            SELECT 1 FROM question_options qo
+            WHERE qo."questionId" = q.id AND qo."isCorrect" = true
+          )
         ORDER BY RANDOM()
         LIMIT ${questionCount}
       `;

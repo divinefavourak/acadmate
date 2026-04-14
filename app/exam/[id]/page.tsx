@@ -59,6 +59,7 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
   const [submitting, setSubmitting] = useState(false);
   const [showCalculator, setShowCalculator] = useState(false);
   const [showMobileNav, setShowMobileNav] = useState(false);
+  const [reportedQuestions, setReportedQuestions] = useState<Set<string>>(new Set());
 
   // Fetch exam session
   useEffect(() => {
@@ -137,6 +138,15 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
       setSubmitting(false);
     }
   };
+
+  const handleReportQuestion = useCallback(
+    async (questionId: string) => {
+      if (reportedQuestions.has(questionId)) return;
+      setReportedQuestions((prev) => new Set(prev).add(questionId));
+      await fetch(`/api/questions/${questionId}/flag`, { method: "POST" });
+    },
+    [reportedQuestions]
+  );
 
   const handleExpire = async () => {
     const res = await fetch(`/api/exams/${id}/submit`, { method: "POST" });
@@ -272,31 +282,40 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
                     {currentQ.topic.name}
                   </span>
                 )}
-                {/* Mark for Review button */}
-                <button
-                  onClick={() => toggleMarkReview(currentQ.id)}
-                  className={`ml-auto inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all border ${
-                    isCurrentMarked
-                      ? "bg-amber-100 border-amber-400 text-amber-700 dark:bg-amber-900/30 dark:border-amber-600 dark:text-amber-400"
-                      : "bg-slate-100 border-slate-300 text-slate-500 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-400 hover:border-amber-400 hover:text-amber-600"
-                  }`}
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="12"
-                    height="12"
-                    viewBox="0 0 24 24"
-                    fill={isCurrentMarked ? "currentColor" : "none"}
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
+                <div className="ml-auto flex items-center gap-2">
+                  {/* Bookmark — mark for review */}
+                  <button
+                    onClick={() => toggleMarkReview(currentQ.id)}
+                    title={isCurrentMarked ? "Remove bookmark" : "Bookmark for review"}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all border ${
+                      isCurrentMarked
+                        ? "bg-amber-100 border-amber-400 text-amber-700 dark:bg-amber-900/30 dark:border-amber-600 dark:text-amber-400"
+                        : "bg-slate-100 border-slate-300 text-slate-500 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-400 hover:border-amber-400 hover:text-amber-600"
+                    }`}
                   >
-                    <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
-                    <line x1="4" x2="4" y1="22" y2="15" />
-                  </svg>
-                  {isCurrentMarked ? "Flagged" : "Flag"}
-                </button>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill={isCurrentMarked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>
+                    </svg>
+                    {isCurrentMarked ? "Saved" : "Save"}
+                  </button>
+                  {/* Flag — report bad question */}
+                  <button
+                    onClick={() => handleReportQuestion(currentQ.id)}
+                    disabled={reportedQuestions.has(currentQ.id)}
+                    title="Report an issue with this question"
+                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all border ${
+                      reportedQuestions.has(currentQ.id)
+                        ? "bg-red-100 border-red-300 text-red-500 dark:bg-red-900/30 dark:border-red-700 dark:text-red-400 opacity-70 cursor-not-allowed"
+                        : "bg-slate-100 border-slate-300 text-slate-500 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-400 hover:border-red-400 hover:text-red-500"
+                    }`}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill={reportedQuestions.has(currentQ.id) ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
+                      <line x1="4" x2="4" y1="22" y2="15"/>
+                    </svg>
+                    {reportedQuestions.has(currentQ.id) ? "Reported" : "Report"}
+                  </button>
+                </div>
               </div>
               <h2 className="text-lg sm:text-2xl font-medium leading-relaxed text-slate-800 dark:text-slate-100">
                 <MathText text={currentQ.text} />

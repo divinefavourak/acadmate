@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
+import NotificationBell from "./NotificationBell";
 
 export const navItems = [
   {
@@ -86,6 +87,7 @@ export default function AdminSidebar() {
             </Link>
           );
         })}
+        <NotificationBell />
       </nav>
 
       <div className="p-4 mt-auto border-t border-slate-800">

@@ -29,6 +29,8 @@ model User {
   examSessions   ExamSession[]
   imports        Import[]
   reviewedContent Question[] @relation("ReviewedBy")
+  questionFlags   QuestionFlag[]
+  triggeredNotifications AdminNotification[] @relation("NotificationTriggeredBy")
 
   @@index([email])
   @@map("users")
@@ -163,6 +165,8 @@ model Question {
   explanation          Explanation?
   examSessionQuestions ExamSessionQuestion[]
   userAnswers          UserAnswer[]
+  questionFlags        QuestionFlag[]
+  adminNotifications   AdminNotification[]
 
   @@index([subjectId])
   @@index([topicId])
@@ -406,6 +410,44 @@ model AdminActivityLog {
   @@index([adminId])
   @@index([createdAt])
   @@map("admin_activity_logs")
+}
+
+// ─── Question Flags (per-user, tracks resolved status) ───────────────────────
+
+model QuestionFlag {
+  id         String    @id @default(cuid())
+  questionId String
+  userId     String
+  resolved   Boolean   @default(false)
+  resolvedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([questionId, userId])
+  @@index([userId])
+  @@index([questionId])
+  @@map("question_flags")
+}
+
+// ─── Admin Notifications ──────────────────────────────────────────────────────
+
+model AdminNotification {
+  id           String   @id @default(cuid())
+  type         String   // "QUESTION_FLAGGED"
+  questionId   String?
+  triggeredById String?
+  message      String
+  read         Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  question    Question? @relation(fields: [questionId], references: [id], onDelete: SetNull)
+  triggeredBy User?     @relation("NotificationTriggeredBy", fields: [triggeredById], references: [id], onDelete: SetNull)
+
+  @@index([read])
+  @@index([createdAt])
+  @@map("admin_notifications")
 }
 
 // ─── Enums ───────────────────────────────────────────────────────────────────

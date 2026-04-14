@@ -34,25 +34,40 @@ export async function POST(
     const isTimedOut =
       examSession.expiresAt && new Date() > examSession.expiresAt;
 
-    // Fetch all answers with question/subject/topic info
-    const answers = await prisma.userAnswer.findMany({
-      where: { examSessionId: id },
-      select: {
-        questionId: true,
-        isCorrect: true,
-        question: {
-          select: {
-            subjectId: true,
-            topicId: true,
-            subject: { select: { id: true, name: true } },
-            topic: { select: { id: true, name: true } },
+    // Fetch answers + questions flagged by this user (flagged questions don't count)
+    const [answers, userFlags] = await Promise.all([
+      prisma.userAnswer.findMany({
+        where: { examSessionId: id },
+        select: {
+          questionId: true,
+          isCorrect: true,
+          question: {
+            select: {
+              subjectId: true,
+              topicId: true,
+              subject: { select: { id: true, name: true } },
+              topic: { select: { id: true, name: true } },
+            },
           },
         },
-      },
-    });
+      }),
+      prisma.questionFlag.findMany({
+        where: {
+          userId,
+          question: {
+            examSessionQuestions: { some: { examSessionId: id } },
+          },
+        },
+        select: { questionId: true },
+      }),
+    ]);
+
+    const flaggedIds = new Set(userFlags.map((f) => f.questionId));
+    const scorableAnswers = answers.filter((a) => !flaggedIds.has(a.questionId));
+    const effectiveTotal = examSession.totalQuestions - flaggedIds.size;
 
     const { correct, incorrect, unanswered, score, subjectBreakdown, topicBreakdown } =
-      computeScore(answers, examSession.totalQuestions);
+      computeScore(scorableAnswers, Math.max(effectiveTotal, 0));
 
     const [, result] = await prisma.$transaction([
       prisma.examSession.update({

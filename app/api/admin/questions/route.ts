@@ -4,6 +4,33 @@ import { prisma } from "@/lib/db/prisma";
 import { requireAdmin } from "@/lib/auth/helpers";
 import { questionQuerySchema, createQuestionSchema } from "@/lib/validation/questions";
 
+// Auto-flag a question if it has no correct option or too many options
+async function autoValidateQuestion(questionId: string) {
+  const [correctOption, optionCount] = await Promise.all([
+    prisma.questionOption.findFirst({ where: { questionId, isCorrect: true }, select: { id: true } }),
+    prisma.questionOption.count({ where: { questionId } }),
+  ]);
+
+  const issues: string[] = [];
+  if (!correctOption) issues.push("no correct answer set");
+  if (optionCount > 5) issues.push(`too many options (${optionCount})`);
+
+  if (issues.length > 0) {
+    const question = await prisma.question.findUnique({
+      where: { id: questionId },
+      select: { text: true, subject: { select: { name: true } } },
+    });
+    const preview = (question?.text ?? "").substring(0, 80);
+    const type = !correctOption ? "NO_CORRECT_ANSWER" : "TOO_MANY_OPTIONS";
+    const message = `[${question?.subject.name ?? "Unknown"}] ${issues.join(", ")}: "${preview}…"`;
+
+    await prisma.$transaction([
+      prisma.question.update({ where: { id: questionId }, data: { isFlagged: true } }),
+      prisma.adminNotification.create({ data: { type, questionId, message } }),
+    ]);
+  }
+}
+
 export async function GET(req: NextRequest) {
   const { error } = await requireAdmin();
   if (error) return error;
@@ -117,6 +144,9 @@ export async function POST(req: NextRequest) {
         entityId: question.id,
       },
     });
+
+    // Auto-flag if no correct answer or too many options
+    await autoValidateQuestion(question.id);
 
     return NextResponse.json({ question }, { status: 201 });
   } catch {
