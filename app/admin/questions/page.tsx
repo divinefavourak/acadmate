@@ -182,27 +182,22 @@ export default function QuestionsPage() {
       .finally(() => setLoadingFlagged(false));
   }, [activeTab]); // re-fetch every time the user opens the tab
 
+  // Analytics data is derived from already-loaded subjects + flaggedQuestions — no extra fetches needed
   useEffect(() => {
-    if (activeTab !== "analytics") return;
-    setLoadingAnalytics(true);
-    Promise.all([
-      fetch("/api/admin/subjects").then((r) => r.ok ? r.json() : { subjects: [] }),
-      fetch("/api/admin/questions?flagged=true&limit=500").then((r) => r.ok ? r.json() : { questions: [] }),
-    ]).then(([subjectsData, flaggedData]) => {
-      const subs: SubjectOption[] = subjectsData.subjects ?? [];
-      const flaggedBySubject: Record<string, number> = {};
-      for (const q of (flaggedData.questions ?? []) as QuestionEntry[]) {
-        flaggedBySubject[q.subject.name] = (flaggedBySubject[q.subject.name] ?? 0) + 1;
-      }
-      setAnalyticsData(
-        subs.map((s) => ({
-          subject: s.name,
-          questions: s._count?.questions ?? 0,
-          flagged: flaggedBySubject[s.name] ?? 0,
-        }))
-      );
-    }).finally(() => setLoadingAnalytics(false));
-  }, [activeTab]);
+    if (subjects.length === 0) return;
+    const flaggedCount: Record<string, number> = {};
+    for (const q of flaggedQuestions) {
+      flaggedCount[q.subject.name] = (flaggedCount[q.subject.name] ?? 0) + 1;
+    }
+    setAnalyticsData(
+      subjects.map((s) => ({
+        subject: s.name,
+        questions: s._count?.questions ?? 0,
+        flagged: flaggedCount[s.name] ?? 0,
+      }))
+    );
+    setLoadingAnalytics(false);
+  }, [subjects, flaggedQuestions]);
 
   // grouped flagged questions by subject
   const flaggedBySubject = flaggedQuestions.reduce<Record<string, QuestionEntry[]>>((acc, q) => {
