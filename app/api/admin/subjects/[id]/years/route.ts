@@ -12,7 +12,7 @@ export async function GET(
   try {
     const { id: subjectId } = await params;
     
-    // Group questions by year for this subject
+    // Group questions by year for this subject (uses [subjectId, year] index)
     const yearGroups = await prisma.question.groupBy({
       by: ["year"],
       where: { subjectId },
@@ -25,7 +25,9 @@ export async function GET(
       count: g._count._all,
     }));
 
-    return NextResponse.json({ years });
+    return NextResponse.json({ years }, {
+      headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300" },
+    });
   } catch {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }

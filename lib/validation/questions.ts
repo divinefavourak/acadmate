@@ -26,12 +26,14 @@ export const createQuestionSchema = z.object({
 
 export const updateQuestionSchema = createQuestionSchema.partial().extend({
   isPublished: z.boolean().optional(),
+  isFlagged: z.boolean().optional(),
 });
 
 export const questionQuerySchema = z.object({
   subjectId: z.string().cuid().optional(),
   topicId: z.string().cuid().optional(),
   difficulty: z.enum(["EASY", "MEDIUM", "HARD"]).optional(),
+  year: z.coerce.number().int().min(1978).max(2030).optional(),
   limit: z.coerce.number().int().min(1).max(100).default(20),
   offset: z.coerce.number().int().min(0).default(0),
 });

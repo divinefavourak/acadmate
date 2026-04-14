@@ -8,6 +8,8 @@ interface QuestionEntry {
   difficulty: string;
   year: number | null;
   isPublished: boolean;
+  isFlagged: boolean;
+  flagCount: number;
   aiAssisted: boolean;
   sourceType: string;
   subject: { id: string; name: string };
@@ -62,6 +64,7 @@ export default function QuestionsPage() {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const [publishedFilter, setPublishedFilter] = useState<string>("");
+  const [flaggedFilter, setFlaggedFilter] = useState(false);
   const limit = 20;
 
   const [showForm, setShowForm] = useState(false);
@@ -81,6 +84,12 @@ export default function QuestionsPage() {
   const [loadingPreview, setLoadingPreview] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  const [editQuestion, setEditQuestion] = useState<FullQuestionEntry | null>(null);
+  const [loadingEdit, setLoadingEdit] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState(emptyForm);
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState("");
 
   useEffect(() => {
     fetch("/api/admin/subjects")
@@ -111,6 +120,7 @@ export default function QuestionsPage() {
     });
     if (activeYear !== "unknown") params.set("year", String(activeYear));
     if (publishedFilter !== "") params.set("isPublished", publishedFilter);
+    if (flaggedFilter) params.set("flagged", "true");
 
     fetch(`/api/admin/questions?${params}`)
       .then((r) => r.ok ? r.json() : { questions: [], total: 0 })
@@ -119,7 +129,7 @@ export default function QuestionsPage() {
         setTotal(data.total ?? 0);
       })
       .finally(() => setLoading(false));
-  }, [page, publishedFilter, activeSubject, activeYear]);
+  }, [page, publishedFilter, flaggedFilter, activeSubject, activeYear]);
 
   useEffect(() => {
     if (!form.subjectId) { setTopics([]); return; }
@@ -176,6 +186,87 @@ export default function QuestionsPage() {
         if (field === "isCorrect") {
           return { ...opt, isCorrect: i === idx };
         }
+        return i === idx ? { ...opt, text: value as string } : opt;
+      }),
+    }));
+  }
+
+  async function handleOpenEdit(id: string) {
+    setLoadingEdit(id);
+    try {
+      const res = await fetch(`/api/admin/questions/${id}`);
+      if (res.ok) {
+        const data = await res.json();
+        const q: FullQuestionEntry = data.question;
+        setEditQuestion(q);
+        setEditForm({
+          subjectId: q.subject.id,
+          topicId: q.topic?.id ?? "",
+          text: q.text,
+          year: q.year ? String(q.year) : "",
+          difficulty: q.difficulty,
+          options: OPTION_LABELS.map((label) => {
+            const opt = q.options.find((o) => o.label === label);
+            return { label, text: opt?.text ?? "", isCorrect: opt?.isCorrect ?? false };
+          }),
+          explanation: q.explanation?.text ?? "",
+        });
+        setEditError("");
+      }
+    } finally {
+      setLoadingEdit(null);
+    }
+  }
+
+  async function handleClearFlag(id: string) {
+    await fetch(`/api/admin/questions/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ isFlagged: false }),
+    });
+    setQuestions((prev) => prev.map((q) => q.id === id ? { ...q, isFlagged: false, flagCount: 0 } : q));
+  }
+
+  async function handleSaveEdit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editQuestion) return;
+    setEditError("");
+
+    const correctCount = editForm.options.filter((o) => o.isCorrect).length;
+    if (correctCount !== 1) { setEditError("Select exactly one correct answer."); return; }
+    if (editForm.options.some((o) => !o.text.trim())) { setEditError("All option texts are required."); return; }
+
+    setEditSaving(true);
+    const payload: Record<string, unknown> = {
+      text: editForm.text.trim(),
+      difficulty: editForm.difficulty,
+      options: editForm.options.map((o, i) => ({ label: o.label, text: o.text.trim(), isCorrect: o.isCorrect, sortOrder: i })),
+    };
+    if (editForm.topicId) payload.topicId = editForm.topicId;
+    if (editForm.year) payload.year = Number(editForm.year);
+    if (editForm.explanation.trim()) payload.explanation = editForm.explanation.trim();
+
+    const res = await fetch(`/api/admin/questions/${editQuestion.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    setEditSaving(false);
+    if (!res.ok) {
+      const d = await res.json();
+      setEditError(d.error ?? "Failed to save.");
+      return;
+    }
+    setEditQuestion(null);
+    // Refresh list
+    setPage(0);
+  }
+
+  function setEditOption(idx: number, field: "text" | "isCorrect", value: string | boolean) {
+    setEditForm((prev) => ({
+      ...prev,
+      options: prev.options.map((opt, i) => {
+        if (field === "isCorrect") return { ...opt, isCorrect: i === idx };
         return i === idx ? { ...opt, text: value as string } : opt;
       }),
     }));
@@ -274,15 +365,27 @@ export default function QuestionsPage() {
         </div>
         <div className="flex items-center gap-3">
           {activeSubject && activeYear !== null && (
-            <select
-              value={publishedFilter}
-              onChange={(e) => { setPublishedFilter(e.target.value); setPage(0); }}
-              className="px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
-            >
-              <option value="">All Questions</option>
-              <option value="true">Published</option>
-              <option value="false">Unpublished</option>
-            </select>
+            <>
+              <select
+                value={publishedFilter}
+                onChange={(e) => { setPublishedFilter(e.target.value); setPage(0); }}
+                className="px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+              >
+                <option value="">All Questions</option>
+                <option value="true">Published</option>
+                <option value="false">Unpublished</option>
+              </select>
+              <button
+                onClick={() => { setFlaggedFilter((f) => !f); setPage(0); }}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-sm font-medium transition-colors ${
+                  flaggedFilter
+                    ? "bg-red-900/30 border-red-700 text-red-400"
+                    : "bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                🚩 Flagged
+              </button>
+            </>
           )}
           <button
             onClick={() => {
@@ -513,31 +616,53 @@ export default function QuestionsPage() {
                         </td>
                         <td className="py-3 text-slate-400">{q.year ?? "—"}</td>
                         <td className="py-3 text-right">
-                          <button
-                            onClick={() => togglePublish(q.id, q.isPublished)}
-                            className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
-                              q.isPublished
-                                ? "bg-emerald-900/30 text-emerald-400 hover:bg-emerald-900/50"
-                                : "bg-slate-700 text-slate-400 hover:bg-slate-600"
-                            }`}
-                          >
-                            {q.isPublished ? "Published" : "Unpublished"}
-                          </button>
+                          <div className="flex items-center justify-end gap-1">
+                            {q.isFlagged && (
+                              <span title={`Flagged ${q.flagCount}x`} className="text-xs text-red-400 mr-1">🚩{q.flagCount > 1 ? q.flagCount : ""}</span>
+                            )}
+                            <button
+                              onClick={() => togglePublish(q.id, q.isPublished)}
+                              className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                                q.isPublished
+                                  ? "bg-emerald-900/30 text-emerald-400 hover:bg-emerald-900/50"
+                                  : "bg-slate-700 text-slate-400 hover:bg-slate-600"
+                              }`}
+                            >
+                              {q.isPublished ? "Published" : "Unpublished"}
+                            </button>
+                          </div>
                         </td>
-                        <td className="py-3 text-right space-x-2">
-                          <button
-                            onClick={() => handlePreview(q.id)}
-                            disabled={loadingPreview === q.id}
-                            className="inline-flex items-center px-2.5 py-1 rounded bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs font-medium transition-colors disabled:opacity-50"
-                          >
-                            {loadingPreview === q.id ? "..." : "Preview"}
-                          </button>
-                          <button
-                            onClick={() => setDeleteId(q.id)}
-                            className="inline-flex items-center px-2.5 py-1 rounded bg-red-900/30 text-red-400 hover:bg-red-900/50 hover:text-red-300 text-xs font-medium transition-colors"
-                          >
-                            Delete
-                          </button>
+                        <td className="py-3 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              onClick={() => handleOpenEdit(q.id)}
+                              disabled={loadingEdit === q.id}
+                              className="inline-flex items-center px-2.5 py-1 rounded bg-indigo-900/30 text-indigo-400 hover:bg-indigo-900/50 text-xs font-medium transition-colors disabled:opacity-50"
+                            >
+                              {loadingEdit === q.id ? "…" : "Edit"}
+                            </button>
+                            <button
+                              onClick={() => handlePreview(q.id)}
+                              disabled={loadingPreview === q.id}
+                              className="inline-flex items-center px-2.5 py-1 rounded bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs font-medium transition-colors disabled:opacity-50"
+                            >
+                              {loadingPreview === q.id ? "..." : "Preview"}
+                            </button>
+                            {q.isFlagged && (
+                              <button
+                                onClick={() => handleClearFlag(q.id)}
+                                className="inline-flex items-center px-2.5 py-1 rounded bg-red-900/30 text-red-400 hover:bg-red-900/50 text-xs font-medium transition-colors"
+                              >
+                                Unflag
+                              </button>
+                            )}
+                            <button
+                              onClick={() => setDeleteId(q.id)}
+                              className="inline-flex items-center px-2.5 py-1 rounded bg-red-900/30 text-red-400 hover:bg-red-900/50 hover:text-red-300 text-xs font-medium transition-colors"
+                            >
+                              Del
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -570,6 +695,75 @@ export default function QuestionsPage() {
               )}
             </>
           )}
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      {editQuestion && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="p-5 border-b border-slate-700 flex justify-between items-center shrink-0">
+              <h3 className="text-lg font-bold text-white">Edit Question</h3>
+              <button onClick={() => setEditQuestion(null)} className="text-slate-400 hover:text-white transition-colors">✕</button>
+            </div>
+            <form onSubmit={handleSaveEdit} className="p-5 overflow-y-auto space-y-4">
+              {editError && (
+                <p className="text-red-400 text-sm bg-red-900/20 border border-red-800 rounded-lg px-4 py-2">{editError}</p>
+              )}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-slate-400 mb-1">Difficulty</label>
+                  <select value={editForm.difficulty} onChange={(e) => setEditForm((f) => ({ ...f, difficulty: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50">
+                    <option value="EASY">Easy</option>
+                    <option value="MEDIUM">Medium</option>
+                    <option value="HARD">Hard</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-400 mb-1">Year</label>
+                  <input type="number" min={1978} max={2030} placeholder="e.g. 2023" value={editForm.year}
+                    onChange={(e) => setEditForm((f) => ({ ...f, year: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-400 mb-1">Question Text *</label>
+                <textarea required rows={3} value={editForm.text} onChange={(e) => setEditForm((f) => ({ ...f, text: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 resize-none" />
+              </div>
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-slate-400">Options — select correct answer *</p>
+                {editForm.options.map((opt, i) => (
+                  <div key={opt.label} className="flex items-center gap-3">
+                    <label className="flex items-center gap-2 cursor-pointer shrink-0">
+                      <input type="radio" name="editCorrect" checked={opt.isCorrect} onChange={() => setEditOption(i, "isCorrect", true)} className="accent-indigo-500" />
+                      <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${opt.isCorrect ? "bg-indigo-600 text-white" : "bg-slate-700 text-slate-300"}`}>{opt.label}</span>
+                    </label>
+                    <input type="text" required placeholder={`Option ${opt.label}`} value={opt.text}
+                      onChange={(e) => setEditOption(i, "text", e.target.value)}
+                      className="flex-1 px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50" />
+                  </div>
+                ))}
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-400 mb-1">Explanation</label>
+                <textarea rows={2} value={editForm.explanation} onChange={(e) => setEditForm((f) => ({ ...f, explanation: e.target.value }))}
+                  placeholder="Why is the correct answer correct?"
+                  className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 resize-none" />
+              </div>
+              <div className="flex gap-3 pt-1">
+                <button type="submit" disabled={editSaving}
+                  className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-colors disabled:opacity-60">
+                  {editSaving ? "Saving…" : "Save Changes"}
+                </button>
+                <button type="button" onClick={() => setEditQuestion(null)}
+                  className="px-5 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium transition-colors">
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 

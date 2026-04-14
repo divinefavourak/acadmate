@@ -10,6 +10,11 @@ const outfit = Outfit({
 export const metadata: Metadata = {
   title: "Acadmate UTME CBT Practice",
   description: "Advanced UTME CBT Rock-Solid Practice Platform",
+  icons: {
+    icon: "/images/logo.jpg",
+    apple: "/images/logo.jpg",
+    shortcut: "/images/logo.jpg",
+  },
 };
 
 export default function RootLayout({

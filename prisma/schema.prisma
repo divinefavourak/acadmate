@@ -144,6 +144,8 @@ model Question {
   sourceType       SourceType       @default(MANUAL)
   sourceRef        String?
   isPublished      Boolean          @default(false)
+  isFlagged        Boolean          @default(false)
+  flagCount        Int              @default(0)
   aiAssisted       Boolean          @default(false)
   reviewedAt       DateTime?
   reviewedById     String?
@@ -164,7 +166,11 @@ model Question {
   @@index([subjectId])
   @@index([topicId])
   @@index([isPublished])
+  @@index([isFlagged])
+  @@index([year])
+  @@index([subjectId, year])
   @@index([subjectId, isPublished])
+  @@index([subjectId, year, isPublished])
   @@index([topicId, isPublished])
   @@map("questions")
 }

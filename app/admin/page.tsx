@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import StatCard from "../dashboard/components/StatCard";
+import MiniBarChart from "./components/MiniBarChart";
 
 interface AdminStats {
   totalStudents: number;
@@ -10,6 +11,8 @@ interface AdminStats {
   totalExams: number;
   totalImports: number;
   dailyExamActivity: { label: string; count: number }[];
+  questionsBySubject: { subject: string; questions: number }[];
+  scoreDistribution: { label: string; count: number }[];
 }
 
 export default function AdminDashboard() {
@@ -22,8 +25,6 @@ export default function AdminDashboard() {
       .then((data) => { if (data) setStats(data); })
       .finally(() => setLoading(false));
   }, []);
-
-  const maxCount = stats ? Math.max(...stats.dailyExamActivity.map((d) => d.count), 1) : 1;
 
   return (
     <div className="space-y-8">
@@ -67,25 +68,19 @@ export default function AdminDashboard() {
         />
       </div>
 
-      {/* Activity Chart */}
+      {/* Row 1: Activity + Question Bank */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 glass-panel border border-slate-200 dark:border-slate-800 p-6 rounded-2xl">
           <h2 className="text-xl font-bold mb-6">Exam Activity (Last 7 Days)</h2>
           {loading ? (
             <div className="h-64 flex items-center justify-center text-slate-500 text-sm">Loading…</div>
           ) : (
-            <div className="h-64 flex items-end justify-between gap-2 px-4">
-              {(stats?.dailyExamActivity ?? []).map((day, i) => (
-                <div key={i} className="w-full flex flex-col items-center gap-2">
-                  <span className="text-xs font-medium text-slate-500">{day.count > 0 ? day.count : ""}</span>
-                  <div
-                    className="w-full bg-indigo-500 rounded-t-sm transition-all"
-                    style={{ height: `${Math.max((day.count / maxCount) * 100, day.count > 0 ? 4 : 0)}%`, minHeight: day.count > 0 ? "4px" : "0" }}
-                  />
-                  <span className="text-xs text-slate-500 font-medium">{day.label}</span>
-                </div>
-              ))}
-            </div>
+            <MiniBarChart
+              data={stats?.dailyExamActivity ?? []}
+              valueKey="count"
+              color="indigo"
+              emptyMessage="No exams completed in the last 7 days"
+            />
           )}
         </div>
 
@@ -127,6 +122,39 @@ export default function AdminDashboard() {
               </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Row 2: Questions per Subject + Score Distribution */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="glass-panel border border-slate-200 dark:border-slate-800 p-6 rounded-2xl">
+          <h2 className="text-xl font-bold mb-2">Questions per Subject</h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">Published questions in the question bank</p>
+          {loading ? (
+            <div className="h-64 flex items-center justify-center text-slate-500 text-sm">Loading…</div>
+          ) : (
+            <MiniBarChart
+              data={stats?.questionsBySubject ?? []}
+              valueKey="questions"
+              color="emerald"
+              emptyMessage="No subjects found"
+            />
+          )}
+        </div>
+
+        <div className="glass-panel border border-slate-200 dark:border-slate-800 p-6 rounded-2xl">
+          <h2 className="text-xl font-bold mb-2">Score Distribution</h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">How students score across all completed exams</p>
+          {loading ? (
+            <div className="h-64 flex items-center justify-center text-slate-500 text-sm">Loading…</div>
+          ) : (
+            <MiniBarChart
+              data={stats?.scoreDistribution ?? []}
+              valueKey="count"
+              color="violet"
+              emptyMessage="No exam results yet"
+            />
+          )}
         </div>
       </div>
     </div>

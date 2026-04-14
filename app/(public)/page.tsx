@@ -16,224 +16,275 @@ export default function Home() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (
-    <div className="flex flex-col min-h-screen relative overflow-hidden">
+    <div className="flex flex-col min-h-screen bg-[#09090b] text-white relative overflow-hidden">
       <Analytics />
-      {/* Background Orbs for Dynamic Design */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[50%] bg-blue-500 rounded-full mix-blend-multiply filter blur-[100px] opacity-20 animate-blob"></div>
-      <div className="absolute top-[20%] right-[-10%] w-[40%] h-[50%] bg-purple-500 rounded-full mix-blend-multiply filter blur-[100px] opacity-20 animate-blob animation-delay-2000"></div>
-      <div className="absolute bottom-[-20%] left-[20%] w-[40%] h-[50%] bg-indigo-500 rounded-full mix-blend-multiply filter blur-[100px] opacity-20 animate-blob animation-delay-4000"></div>
 
-      {/* Header Navigation */}
-      <header className="glass-panel sticky top-0 z-50 px-4 md:px-6 py-4 flex items-center justify-between mx-auto w-[95%] max-w-7xl mt-4 rounded-2xl">
-        <div className="text-xl md:text-2xl font-bold flex items-center gap-2">
-          <Image src="/images/logo.jpg" alt="Acadmate Logo" width={32} height={32} className="rounded-lg shadow-md object-cover" />
-          <span className="tracking-tight">Acadmate</span>
-        </div>
-        
-        <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
-          {landingNavItems.map(item => (
-            <Link key={item.href} href={item.href} className="hover:text-indigo-500 transition-colors">{item.label}</Link>
-          ))}
-        </nav>
+      {/* Subtle background gradient */}
+      <div className="pointer-events-none fixed inset-0 z-0">
+        <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-indigo-600/10 rounded-full blur-[120px]" />
+        <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-purple-600/10 rounded-full blur-[100px]" />
+      </div>
 
-        <div className="flex items-center gap-2 md:gap-3">
-          <Link href="/login" className="hidden sm:inline-flex btn-secondary text-sm px-5 py-2">Sign In</Link>
-          <Link href="/register" className="btn-primary text-sm px-4 md:px-5 py-2">Start Practicing</Link>
-          
-          <button 
-            className="md:hidden p-2 text-slate-600 dark:text-slate-400"
-            onClick={() => setIsMenuOpen(true)}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
-          </button>
+      {/* Nav */}
+      <header className="sticky top-0 z-50 border-b border-white/5 bg-[#09090b]/80 backdrop-blur-xl">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2.5">
+            <Image src="/images/logo.jpg" alt="Acadmate" width={32} height={32} className="rounded-lg" />
+            <span className="text-lg font-bold tracking-tight">Acadmate</span>
+          </Link>
+
+          <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-400">
+            {landingNavItems.map(item => (
+              <Link key={item.href} href={item.href} className="hover:text-white transition-colors">{item.label}</Link>
+            ))}
+          </nav>
+
+          <div className="flex items-center gap-3">
+            <Link href="/login" className="hidden sm:inline-flex text-sm font-medium text-slate-400 hover:text-white transition-colors px-4 py-2">
+              Sign In
+            </Link>
+            <Link href="/register" className="text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl transition-colors">
+              Start Free
+            </Link>
+            <button className="md:hidden p-2 text-slate-400" onClick={() => setIsMenuOpen(true)}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+            </button>
+          </div>
         </div>
       </header>
 
-      <MobileNav 
-        isOpen={isMenuOpen}
-        onClose={() => setIsMenuOpen(false)}
-        navItems={landingNavItems}
-      />
+      <MobileNav isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} navItems={landingNavItems} />
 
-      {/* Hero Section */}
-      <main className="flex-1 flex flex-col items-center justify-center text-center px-4 relative z-10 my-12 md:my-20">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-500 text-xs font-semibold uppercase tracking-wider mb-6 md:mb-8 border border-indigo-500/20">
-          <span>🚀 The Lekki Headmaster Now Available</span>
-        </div>
-        
-        <h1 className="text-4xl md:text-7xl font-extrabold tracking-tight max-w-4xl leading-tight mb-6">
-          Master the UTME with <br/>
-          <span className="text-gradient">Laser Precision</span>
-        </h1>
-        
-        <p className="text-base md:text-xl text-slate-500 dark:text-slate-400 max-w-2xl mb-8 md:mb-10 leading-relaxed">
-          The most advanced Mock Exam simulator. Practice with timed CBT sessions, detailed explanations, and deep analytics to guarantee your admission success.
-        </p>
-        
-        <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto px-4 sm:px-0">
-          <Link href="/register" className="w-full sm:w-auto btn-primary text-lg px-8 py-3.5 flex items-center justify-center gap-2">
-            Get Started Free
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-          </Link>
-          <Link href="#demo" className="w-full sm:w-auto btn-secondary text-lg px-8 py-3.5">
-            Take a Demo Test
-          </Link>
-        </div>
+      {/* ── HERO ── */}
+      <section className="relative z-10 max-w-7xl mx-auto px-4 md:px-6 pt-16 pb-8 md:pt-24 md:pb-16">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
 
-        {/* Target Institutions */}
-        <div className="mt-12 md:mt-16 flex flex-col items-center gap-4">
-           <span className="text-xs md:text-sm text-slate-400 dark:text-slate-500 font-semibold uppercase tracking-widest">Targeting Top Universities Like</span>
-           <div className="bg-white/50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
-             <Image 
-               src="/images/1001542112_aa529c02f858ea12b09c99ce04c93aa4-1_18_2026, 9_52_57 AM.png" 
-               alt="UNILAG Logo" 
-               width={60} 
-               height={60} 
-               className="md:w-20 md:h-20 object-contain opacity-80 hover:opacity-100 transition-opacity"
-             />
-           </div>
-        </div>
+          {/* Left: copy */}
+          <div>
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-semibold uppercase tracking-wider mb-6">
+              🎓 Nigeria&apos;s #1 JAMB CBT Practice Platform
+            </div>
 
-        {/* Floating Demo Cards / Visuals */}
-        <div className="mt-16 md:mt-20 w-full max-w-5xl grid grid-cols-1 md:grid-cols-3 gap-6 relative px-4 md:px-0">
-          <div className="glass-panel p-6 rounded-2xl text-left transform md:-rotate-2 hover:rotate-0 transition-transform duration-300">
-             <div className="relative w-full h-32 mb-4 rounded-xl overflow-hidden hidden md:block">
-               <Image src="/images/images.jfif" alt="Economics Masterclass" fill className="object-cover" />
-             </div>
-             <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mb-4 text-blue-600 dark:text-blue-400">
-               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-             </div>
-             <h3 className="font-bold text-lg mb-2">Economics Masterclass</h3>
-             <p className="text-sm text-slate-500 dark:text-slate-400">Tackle complex supply & demand curves with ease through our deep-dive explanations.</p>
-          </div>
-          
-          <div className="glass-panel p-6 rounded-2xl text-left transform md:hover:-translate-y-2 transition-transform duration-300 border-indigo-500/30 ring-1 ring-indigo-500/20">
-             <div className="relative w-full h-32 mb-4 rounded-xl overflow-hidden hidden md:block">
-               <Image src="/images/520231975_1062352099320762_1989502761018549539_n.jpg" alt="CBT Engine" fill className="object-cover" />
-             </div>
-             <div className="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center mb-4 text-purple-600 dark:text-purple-400">
-               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-             </div>
-             <h3 className="font-bold text-lg mb-2">Timed CBT Engine</h3>
-             <p className="text-sm text-slate-500 dark:text-slate-400">Experience the exact timing and pressure of the real JAMB exam with our smart simulator.</p>
+            <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight leading-[1.08] mb-6">
+              Ace your UTME.<br />
+              <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+                No guesswork.
+              </span>
+            </h1>
+
+            <p className="text-lg text-slate-400 mb-8 leading-relaxed max-w-xl">
+              Practice with real JAMB past questions, timed CBT simulations, and AI-powered explanations. The smartest way to hit 300+.
+            </p>
+
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-10">
+              <Link href="/register" className="flex-1 sm:flex-none text-center bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-8 py-4 rounded-2xl transition-all hover:shadow-lg hover:shadow-indigo-500/25 text-base">
+                Start Practicing Free
+              </Link>
+              <Link href="#features" className="flex-1 sm:flex-none text-center border border-white/10 hover:border-white/20 text-slate-300 hover:text-white font-medium px-8 py-4 rounded-2xl transition-all text-base bg-white/5">
+                See Features
+              </Link>
+            </div>
+
+            {/* Social proof numbers */}
+            <div className="flex flex-wrap gap-8 pt-4 border-t border-white/5">
+              {[
+                { val: "8,600+", label: "Past Questions" },
+                { val: "11", label: "Subjects" },
+                { val: "300+", label: "Target Score" },
+              ].map((s) => (
+                <div key={s.label}>
+                  <p className="text-2xl font-extrabold text-white">{s.val}</p>
+                  <p className="text-xs text-slate-500 mt-0.5">{s.label}</p>
+                </div>
+              ))}
+            </div>
           </div>
 
-          <div className="glass-panel p-6 rounded-2xl text-left transform md:rotate-2 hover:rotate-0 transition-transform duration-300">
-             <div className="relative w-full h-32 mb-4 rounded-xl overflow-hidden hidden md:block">
-               <Image src="/images/520596414_739489019062965_5923685459460735498_n.jpg" alt="Literature Analysis" fill className="object-cover" />
-             </div>
-             <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center mb-4 text-emerald-600 dark:text-emerald-400">
-               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
-             </div>
-             <h3 className="font-bold text-lg mb-2">The Lekki Headmaster</h3>
-             <p className="text-sm text-slate-500 dark:text-slate-400">Exclusive prose summaries, character analysis, and predicted questions.</p>
+          {/* Right: real photos */}
+          <div className="relative">
+            {/* Main photo — exam hall */}
+            <div className="relative rounded-2xl overflow-hidden border border-white/10 shadow-2xl shadow-black/40 aspect-[4/3]">
+              <Image
+                src="/images/520596414_739489019062965_5923685459460735498_n.jpg"
+                alt="Students taking JAMB CBT exam"
+                fill
+                className="object-cover"
+                priority
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+              <div className="absolute bottom-4 left-4 right-4">
+                <div className="flex items-center gap-2 bg-black/60 backdrop-blur-sm rounded-xl px-4 py-2.5 border border-white/10 w-fit">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                  <span className="text-xs font-medium text-white">Real CBT exam conditions</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Floating card — focused student */}
+            <div className="absolute -bottom-6 -left-6 w-44 md:w-52 rounded-xl overflow-hidden border-2 border-indigo-500/50 shadow-xl shadow-indigo-500/10 hidden sm:block">
+              <Image
+                src="/images/520231975_1062352099320762_1989502761018549539_n.jpg"
+                alt="Student focused on practice"
+                width={208}
+                height={156}
+                className="object-cover w-full h-full"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+              <div className="absolute bottom-2 left-2 right-2 text-xs font-semibold text-white drop-shadow">
+                Practice → Confidence
+              </div>
+            </div>
+
+            {/* Score badge */}
+            <div className="absolute -top-4 -right-4 bg-[#09090b] border border-white/10 rounded-2xl px-4 py-3 shadow-xl hidden md:block">
+              <p className="text-xs text-slate-400 mb-0.5">Average Score Gain</p>
+              <p className="text-2xl font-extrabold text-emerald-400">+47pts</p>
+            </div>
           </div>
         </div>
+      </section>
 
-        {/* Sections */}
-        <section id="features" className="mt-20 md:mt-32 w-full max-w-6xl px-4 md:px-6 py-12 md:py-20">
-          <div className="flex flex-col items-center text-center mb-10 md:mb-16">
-            <h2 className="text-3xl md:text-5xl font-bold mb-4">Powerful Features</h2>
-            <p className="text-sm md:text-base text-slate-500 max-w-2xl px-4">Everything you need to score 300+ in your JAMB UTME.</p>
+      {/* ── FEATURES ── */}
+      <section id="features" className="relative z-10 max-w-7xl mx-auto px-4 md:px-6 py-20 md:py-32">
+        <div className="text-center mb-14">
+          <h2 className="text-3xl md:text-5xl font-bold mb-4">Everything to score 300+</h2>
+          <p className="text-slate-400 max-w-xl mx-auto">Built specifically for JAMB UTME — not generic study tools.</p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {[
+            { icon: "⏱️", title: "Timed CBT Engine", desc: "Simulate the exact timing and pressure of the real JAMB exam. 2-hour mock tests, subject-by-subject practice, topic drills.", accent: "indigo" },
+            { icon: "📚", title: "Real Past Questions", desc: "8,600+ curated JAMB questions from 1978–2024. Every subject, every year — all with verified answers.", accent: "purple" },
+            { icon: "💡", title: "Step-by-Step Solutions", desc: "Instant, detailed explanations for every question. Understand why, not just what.", accent: "emerald" },
+            { icon: "📊", title: "Deep Analytics", desc: "Spot your weak topics before exam day. Track your score trend and subject accuracy over time.", accent: "amber" },
+            { icon: "🎯", title: "Topic Mastery", desc: "Drill specific topics until they're perfect. Identify gaps and close them systematically.", accent: "pink" },
+            { icon: "📖", title: "Literature Guide", desc: "Full summaries, character breakdowns and predicted questions for The Lekki Headmaster and other UTME prose.", accent: "cyan" },
+          ].map((f, i) => (
+            <div key={i} className="group relative bg-white/[0.03] border border-white/8 hover:border-white/15 rounded-2xl p-6 transition-all hover:bg-white/[0.06]">
+              <div className="text-3xl mb-4">{f.icon}</div>
+              <h4 className="text-lg font-bold mb-2">{f.title}</h4>
+              <p className="text-sm text-slate-400 leading-relaxed">{f.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── SUBJECTS ── */}
+      <section id="subjects" className="relative z-10 max-w-7xl mx-auto px-4 md:px-6 py-20 md:py-32">
+        <div className="rounded-[2.5rem] bg-indigo-500/5 border border-indigo-500/10 p-10 md:p-16">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-5xl font-bold mb-4">All Major JAMB Subjects</h2>
+            <p className="text-slate-400">Comprehensive question banks across every department combination.</p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {[
-              { title: "Timed Simulations", desc: "Practice under real exam conditions with our high-performance CBT engine.", icon: "⏱️" },
-              { title: "Topic Mastery", desc: "Break down your preparation into specific topics to address your weak points.", icon: "🎯" },
-              { title: "Instant Explanations", desc: "Get detailed step-by-step solutions for every question immediately after your test.", icon: "💡" },
-              { title: "Performance Analytics", desc: "Track your progress with deep insights into your subject and topic proficiency.", icon: "📊" },
-              { title: "Mobile Optimized", desc: "Study on the go with a platform designed for a seamless mobile experience.", icon: "📱" },
-              { title: "Up-to-Date Content", desc: "Our question bank is constantly updated with the latest UTME standards.", icon: "✨" },
-            ].map((f, i) => (
-              <div key={i} className="glass-panel p-6 md:p-8 rounded-2xl border-slate-200/50 dark:border-slate-800/50 hover:border-indigo-500/50 transition-all text-left group">
-                <div className="text-2xl md:text-3xl mb-4 group-hover:scale-110 transition-transform">{f.icon}</div>
-                <h4 className="text-lg md:text-xl font-bold mb-2">{f.title}</h4>
-                <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">{f.desc}</p>
+              { name: "Mathematics", icon: "📐" },
+              { name: "English Language", icon: "✏️" },
+              { name: "Biology", icon: "🧬" },
+              { name: "Chemistry", icon: "⚗️" },
+              { name: "Physics", icon: "⚡" },
+              { name: "Economics", icon: "📈" },
+              { name: "Government", icon: "🏛️" },
+              { name: "Literature", icon: "📖" },
+              { name: "Commerce", icon: "💼" },
+              { name: "Accounts", icon: "🧾" },
+              { name: "CRK", icon: "✝️" },
+              { name: "More soon…", icon: "🔜" },
+            ].map((s, i) => (
+              <div key={i} className="flex items-center gap-3 bg-white/[0.03] border border-white/8 rounded-xl p-4 hover:border-indigo-500/30 transition-colors group">
+                <span className="text-xl">{s.icon}</span>
+                <span className="text-sm font-semibold text-slate-200 group-hover:text-white transition-colors">{s.name}</span>
               </div>
             ))}
           </div>
-        </section>
+        </div>
+      </section>
 
-        <section id="subjects" className="mt-12 md:mt-20 w-full max-w-6xl px-4 md:px-6 py-12 md:py-20 bg-indigo-500/5 rounded-[2rem] md:rounded-[3rem] border border-indigo-500/10 mb-12 md:mb-20">
-          <div className="flex flex-col items-center text-center mb-10 md:mb-16">
-            <h2 className="text-3xl md:text-5xl font-bold mb-4">Supported Subjects</h2>
-            <p className="text-sm md:text-base text-slate-500 max-w-2xl px-4">Comprehensive coverage across all major departments.</p>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-            {["English Language", "Mathematics", "Biology", "Chemistry", "Physics", "Economics", "Government", "Literature"].map((s, i) => (
-              <div key={i} className="bg-white dark:bg-slate-900 p-4 md:p-6 rounded-2xl border border-slate-200 dark:border-slate-800 text-center font-bold shadow-sm hover:shadow-md hover:border-indigo-500/30 transition-all">
-                {s}
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section id="prose" className="mt-12 md:mt-20 w-full max-w-6xl px-4 md:px-6 py-12 md:py-20 flex flex-col md:flex-row items-center gap-10 md:gap-16">
-          <div className="flex-1 text-left order-2 md:order-1">
-            <div className="inline-block px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-500 text-xs font-semibold uppercase tracking-wider mb-6 border border-emerald-500/20">
+      {/* ── LITERATURE SPOTLIGHT ── */}
+      <section id="prose" className="relative z-10 max-w-7xl mx-auto px-4 md:px-6 py-20 md:py-32">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+          <div>
+            <div className="inline-block px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-6">
               Literature Spotlight
             </div>
-            <h2 className="text-3xl md:text-5xl font-bold mb-6 leading-tight">Master The Lekki Headmaster</h2>
-            <p className="text-base md:text-lg text-slate-500 dark:text-slate-400 mb-8 leading-relaxed">
-              Don't lose marks on your literature section. Our platform includes the most comprehensive guide to "The Lekki Headmaster" and other UTME prose texts.
+            <h2 className="text-3xl md:text-5xl font-bold mb-6 leading-tight">Master<br />The Lekki Headmaster</h2>
+            <p className="text-slate-400 mb-8 leading-relaxed text-lg">
+              Don&apos;t lose marks on prose. Our platform has the most comprehensive guide to every UTME literature text.
             </p>
-            <ul className="space-y-4 mb-10">
-              {["Full plot summaries & chapter breakdowns", "In-depth character analysis", "Thematic explorations", "Likely exam questions & predictions"].map((l, i) => (
-                <li key={i} className="flex items-center gap-3 font-medium text-sm md:text-base">
-                  <span className="flex-shrink-0 w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-500 flex items-center justify-center text-xs">✓</span>
+            <ul className="space-y-3 mb-10">
+              {[
+                "Full plot summaries & chapter breakdowns",
+                "In-depth character analysis",
+                "Thematic explorations",
+                "Predicted exam questions with answers",
+              ].map((l, i) => (
+                <li key={i} className="flex items-center gap-3 text-sm text-slate-300">
+                  <span className="w-5 h-5 shrink-0 rounded-full bg-emerald-500/15 text-emerald-400 flex items-center justify-center text-xs">✓</span>
                   {l}
                 </li>
               ))}
             </ul>
-            <Link href="/register" className="w-full md:w-auto text-center inline-block btn-primary px-8 py-3.5">Get Literature Guide</Link>
+            <Link href="/register" className="inline-block bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-8 py-3.5 rounded-2xl transition-colors">
+              Get Literature Guide
+            </Link>
           </div>
-          <div className="flex-1 relative order-1 md:order-2 w-full max-w-md md:max-w-none mx-auto">
-            <div className="relative w-full aspect-square rounded-[1.5rem] md:rounded-[2.5rem] overflow-hidden shadow-2xl rotate-2 md:rotate-3">
-              <Image src="/images/520596414_739489019062965_5923685459460735498_n.jpg" alt="Lekki Headmaster" fill className="object-cover" />
-            </div>
-            <div className="absolute -bottom-4 md:-bottom-6 -left-4 md:-left-6 glass-panel p-4 md:p-6 rounded-xl md:rounded-2xl shadow-xl max-w-[200px] md:max-w-xs -rotate-2 md:-rotate-3 border-indigo-500/30">
-              <p className="font-bold text-sm md:text-lg mb-1">Predicting Questions</p>
-              <p className="text-[10px] md:text-xs text-slate-500">Over 90% accuracy in predicting literature questions based on current JAMB trends.</p>
-            </div>
-          </div>
-        </section>
 
-        <section id="demo" className="mt-20 md:mt-32 w-full max-w-5xl px-4 md:px-6 py-12 md:py-24 mb-12 md:mb-32 rounded-[2rem] md:rounded-[3rem] bg-indigo-600 text-white text-center relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32 blur-3xl group-hover:bg-white/20 transition-all"></div>
-          <div className="absolute bottom-0 left-0 w-64 h-64 bg-indigo-400/20 rounded-full -ml-32 -mb-32 blur-3xl group-hover:bg-indigo-400/30 transition-all"></div>
-          
-          <div className="relative z-10 px-4">
-            <h2 className="text-3xl md:text-5xl font-bold mb-6">Ready to crush your JAMB?</h2>
-            <p className="text-base md:text-lg text-indigo-100 max-w-2xl mx-auto mb-10">
-              Join thousands of students who are currently using Acadmate to secure their university admission.
+          <div className="relative">
+            <div className="relative aspect-[4/3] rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
+              <Image
+                src="/images/520596414_739489019062965_5923685459460735498_n.jpg"
+                alt="Students in CBT exam hall"
+                fill
+                className="object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/40 to-transparent" />
+            </div>
+            <div className="absolute -bottom-5 -right-5 bg-[#09090b] border border-white/10 rounded-2xl p-5 shadow-xl max-w-[220px] hidden md:block">
+              <p className="text-sm font-bold text-white mb-1">90%+ Accuracy</p>
+              <p className="text-xs text-slate-400">Predicting JAMB literature questions since 2022.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── CTA ── */}
+      <section id="demo" className="relative z-10 max-w-7xl mx-auto px-4 md:px-6 py-16 mb-20">
+        <div className="relative overflow-hidden rounded-[2.5rem] bg-indigo-600 p-10 md:p-16 text-center">
+          <div className="absolute inset-0 opacity-10">
+            <Image src="/images/520231975_1062352099320762_1989502761018549539_n.jpg" alt="" fill className="object-cover" />
+          </div>
+          <div className="absolute inset-0 bg-indigo-600/80" />
+          <div className="relative z-10">
+            <h2 className="text-3xl md:text-5xl font-extrabold mb-4 text-white">Ready to crush your JAMB?</h2>
+            <p className="text-indigo-200 text-lg max-w-2xl mx-auto mb-10">
+              Join students who use Acadmate to turn hours of practice into guaranteed admission success.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-               <Link href="/register" className="w-full sm:w-auto bg-white text-indigo-600 px-8 md:px-10 py-4 rounded-2xl font-bold text-base md:text-lg hover:shadow-xl hover:scale-105 transition-all">
-                 Create Free Account
-               </Link>
-               <Link href="/login" className="w-full sm:w-auto bg-indigo-500 text-white border border-white/20 px-8 md:px-10 py-4 rounded-2xl font-bold text-base md:text-lg hover:bg-indigo-400 transition-all">
-                 Sign In
-               </Link>
+              <Link href="/register" className="w-full sm:w-auto bg-white text-indigo-700 font-bold px-10 py-4 rounded-2xl hover:shadow-xl hover:scale-105 transition-all text-base">
+                Create Free Account
+              </Link>
+              <Link href="/login" className="w-full sm:w-auto bg-white/10 border border-white/20 text-white font-medium px-10 py-4 rounded-2xl hover:bg-white/20 transition-all text-base">
+                Sign In
+              </Link>
             </div>
-            <p className="mt-8 text-indigo-200 text-xs md:text-sm font-medium">No credit card required. Start practicing instantly.</p>
+            <p className="mt-6 text-indigo-300 text-sm">No credit card required. Start instantly.</p>
           </div>
-        </section>
-      </main>
+        </div>
+      </section>
 
       {/* Footer */}
-      <footer className="border-t border-slate-200 dark:border-slate-800 px-4 md:px-6 py-12 text-center text-slate-500 text-sm mt-auto backdrop-blur-md">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-8">
-          <div className="flex items-center gap-2">
-            <Image src="/images/logo.jpg" alt="Acadmate Logo" width={24} height={24} className="rounded object-cover" />
-            <span className="font-bold text-slate-900 dark:text-white">Acadmate</span>
-          </div>
-          <nav className="flex flex-wrap items-center justify-center gap-4 md:gap-6">
+      <footer className="relative z-10 border-t border-white/5 py-10 px-4 md:px-6">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 text-sm text-slate-500">
+          <Link href="/" className="flex items-center gap-2">
+            <Image src="/images/logo.jpg" alt="Acadmate" width={22} height={22} className="rounded" />
+            <span className="font-bold text-slate-300">Acadmate</span>
+          </Link>
+          <nav className="flex flex-wrap items-center justify-center gap-5">
             {landingNavItems.map(item => (
-              <Link key={item.href} href={item.href} className="hover:text-indigo-500 transition-colors">{item.label}</Link>
+              <Link key={item.href} href={item.href} className="hover:text-slate-300 transition-colors">{item.label}</Link>
             ))}
-            <Link href="/login" className="hover:text-indigo-500 transition-colors">Sign In</Link>
+            <Link href="/login" className="hover:text-slate-300 transition-colors">Sign In</Link>
           </nav>
-          <p className="text-center md:text-right">© {new Date().getFullYear()} Acadmate CBT Platforms. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} Acadmate. All rights reserved.</p>
         </div>
       </footer>
     </div>

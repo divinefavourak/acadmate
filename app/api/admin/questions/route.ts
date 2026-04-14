@@ -9,10 +9,12 @@ export async function GET(req: NextRequest) {
 
   try {
     const { searchParams } = req.nextUrl;
+    const yearParam = searchParams.get("year");
     const parsed = questionQuerySchema.safeParse({
       subjectId: searchParams.get("subjectId") ?? undefined,
       topicId: searchParams.get("topicId") ?? undefined,
       difficulty: searchParams.get("difficulty") ?? undefined,
+      year: yearParam ?? undefined,
       limit: searchParams.get("limit") ?? undefined,
       offset: searchParams.get("offset") ?? undefined,
     });
@@ -21,17 +23,22 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Invalid query" }, { status: 400 });
     }
 
-    const { subjectId, topicId, difficulty, limit, offset } = parsed.data;
+    const { subjectId, topicId, difficulty, year, limit, offset } = parsed.data;
     const isPublished = searchParams.get("isPublished");
+    const flaggedParam = searchParams.get("flagged");
+    // "unknown" means filter for questions with no year (year IS NULL)
+    const filterNullYear = searchParams.get("year") === "unknown";
 
     const where = {
       ...(subjectId && { subjectId }),
       ...(topicId && { topicId }),
       ...(difficulty && { difficulty }),
       ...(isPublished !== null && { isPublished: isPublished === "true" }),
+      ...(flaggedParam === "true" && { isFlagged: true }),
+      ...(filterNullYear ? { year: null } : year !== undefined ? { year } : {}),
     };
 
-    const [questions, total] = await prisma.$transaction([
+    const [questions, total] = await Promise.all([
       prisma.question.findMany({
         where,
         take: limit,
@@ -42,16 +49,15 @@ export async function GET(req: NextRequest) {
           difficulty: true,
           year: true,
           isPublished: true,
+          isFlagged: true,
+          flagCount: true,
           aiAssisted: true,
           sourceType: true,
-          sourceRef: true,
-          reviewedAt: true,
           subject: { select: { id: true, name: true } },
           topic: { select: { id: true, name: true } },
-          explanation: { select: { id: true, aiAssisted: true, reviewed: true } },
           _count: { select: { options: true } },
         },
-        orderBy: { createdAt: "desc" },
+        orderBy: { year: "desc" },
       }),
       prisma.question.count({ where }),
     ]);

@@ -45,33 +45,62 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Exam template not found" }, { status: 404 });
       }
 
-      for (const ts of template.subjects) {
-        // Fetch ALL published IDs for this subject, then sample randomly
-        const allIds = await prisma.question.findMany({
-          where: { subjectId: ts.subjectId, isPublished: true },
-          select: { id: true },
-        });
-        const shuffled = fisherYates(allIds.map((q) => q.id));
-        questionIds.push(...shuffled.slice(0, ts.questionCount));
-      }
+      // Fetch all subjects in parallel, let Postgres do the random sampling
+      const perSubject = await Promise.all(
+        template.subjects.map((ts) =>
+          prisma.$queryRaw<{ id: string }[]>`
+            SELECT id FROM questions
+            WHERE "subjectId" = ${ts.subjectId} AND "isPublished" = true
+            ORDER BY RANDOM()
+            LIMIT ${ts.questionCount}
+          `
+        )
+      );
+      questionIds = perSubject.flat().map((r) => r.id);
+
+      // Duration comes from the template we already have
+      const durationMinutes = template.durationMinutes ?? 120;
+      const expiresAt = new Date(Date.now() + durationMinutes * 60 * 1000);
+      questionIds = fisherYates(questionIds);
+
+      const examSession = await prisma.examSession.create({
+        data: {
+          userId,
+          examTemplateId,
+          mode,
+          totalQuestions: questionIds.length,
+          durationMinutes,
+          expiresAt,
+          questions: { create: questionIds.map((qid, idx) => ({ questionId: qid, position: idx })) },
+        },
+        select: { id: true, mode: true, totalQuestions: true, durationMinutes: true, expiresAt: true, startedAt: true },
+      });
+      return NextResponse.json({ examSession }, { status: 201 });
+
     } else if (proseTextId) {
-      const allIds = await prisma.question.findMany({
-        where: { proseTextId, isPublished: true },
-        select: { id: true },
-      });
-      questionIds = fisherYates(allIds.map((q) => q.id)).slice(0, questionCount);
+      const rows = await prisma.$queryRaw<{ id: string }[]>`
+        SELECT id FROM questions
+        WHERE "proseTextId" = ${proseTextId} AND "isPublished" = true
+        ORDER BY RANDOM()
+        LIMIT ${questionCount}
+      `;
+      questionIds = rows.map((r) => r.id);
     } else if (mode === "TOPIC" && topicId) {
-      const allIds = await prisma.question.findMany({
-        where: { topicId, isPublished: true },
-        select: { id: true },
-      });
-      questionIds = fisherYates(allIds.map((q) => q.id)).slice(0, questionCount);
+      const rows = await prisma.$queryRaw<{ id: string }[]>`
+        SELECT id FROM questions
+        WHERE "topicId" = ${topicId} AND "isPublished" = true
+        ORDER BY RANDOM()
+        LIMIT ${questionCount}
+      `;
+      questionIds = rows.map((r) => r.id);
     } else if (subjectId) {
-      const allIds = await prisma.question.findMany({
-        where: { subjectId, isPublished: true },
-        select: { id: true },
-      });
-      questionIds = fisherYates(allIds.map((q) => q.id)).slice(0, questionCount);
+      const rows = await prisma.$queryRaw<{ id: string }[]>`
+        SELECT id FROM questions
+        WHERE "subjectId" = ${subjectId} AND "isPublished" = true
+        ORDER BY RANDOM()
+        LIMIT ${questionCount}
+      `;
+      questionIds = rows.map((r) => r.id);
     }
 
     if (questionIds.length === 0) {
@@ -81,19 +110,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Final shuffle of the assembled list
     questionIds = fisherYates(questionIds);
 
     // Determine duration
     let durationMinutes = 120;
-    if (examTemplateId) {
-      const tmpl = await prisma.examTemplate.findUnique({
-        where: { id: examTemplateId },
-        select: { durationMinutes: true },
-      });
-      durationMinutes = tmpl?.durationMinutes ?? 120;
-    } else if (mode === "PRACTICE" || mode === "TOPIC") {
-      durationMinutes = questionCount * 2; // 2 min per question for practice
+    if (mode === "PRACTICE" || mode === "TOPIC") {
+      durationMinutes = questionCount * 2;
     }
 
     const expiresAt = new Date(Date.now() + durationMinutes * 60 * 1000);
@@ -141,7 +163,7 @@ export async function GET(req: NextRequest) {
     const limit = Math.min(Number(req.nextUrl.searchParams.get("limit") ?? "20"), 50);
     const offset = Number(req.nextUrl.searchParams.get("offset") ?? "0");
 
-    const [sessions, total] = await prisma.$transaction([
+    const [sessions, total] = await Promise.all([
       prisma.examSession.findMany({
         where: { userId },
         take: limit,

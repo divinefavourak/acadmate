@@ -20,7 +20,9 @@ export async function GET() {
         _count: { select: { questions: true, topics: true } },
       },
     });
-    return NextResponse.json({ subjects });
+    return NextResponse.json({ subjects }, {
+      headers: { "Cache-Control": "public, s-maxage=120, stale-while-revalidate=600" },
+    });
   } catch {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
