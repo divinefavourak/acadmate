@@ -18,7 +18,7 @@ interface UserDetail {
     email: string;
     role: string;
     createdAt: string;
-    studentProfile: { targetScore: number | null; targetCourse: string | null; targetSchool: string | null } | null;
+    studentProfile: { targetYear: number | null; courseChoice: string | null; institution: string | null } | null;
     _count: { examSessions: number };
   };
   recentSessions: {
@@ -174,22 +174,22 @@ export default function StudentsPage() {
                     <span className="text-slate-400">Joined</span>
                     <span className="text-slate-200">{formatDate(detail.user.createdAt)}</span>
                   </div>
-                  {detail.user.studentProfile?.targetScore && (
+                  {detail.user.studentProfile?.targetYear && (
                     <div className="flex justify-between">
-                      <span className="text-slate-400">Target Score</span>
-                      <span className="text-slate-200">{detail.user.studentProfile.targetScore}</span>
+                      <span className="text-slate-400">Target Year</span>
+                      <span className="text-slate-200">{detail.user.studentProfile.targetYear}</span>
                     </div>
                   )}
-                  {detail.user.studentProfile?.targetSchool && (
+                  {detail.user.studentProfile?.institution && (
                     <div className="flex justify-between">
-                      <span className="text-slate-400">Target School</span>
-                      <span className="text-slate-200">{detail.user.studentProfile.targetSchool}</span>
+                      <span className="text-slate-400">Institution</span>
+                      <span className="text-slate-200">{detail.user.studentProfile.institution}</span>
                     </div>
                   )}
-                  {detail.user.studentProfile?.targetCourse && (
+                  {detail.user.studentProfile?.courseChoice && (
                     <div className="flex justify-between">
-                      <span className="text-slate-400">Target Course</span>
-                      <span className="text-slate-200">{detail.user.studentProfile.targetCourse}</span>
+                      <span className="text-slate-400">Course Choice</span>
+                      <span className="text-slate-200">{detail.user.studentProfile.courseChoice}</span>
                     </div>
                   )}
                 </div>

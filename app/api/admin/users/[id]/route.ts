@@ -23,7 +23,7 @@ export async function GET(
           role: true,
           createdAt: true,
           studentProfile: {
-            select: { targetScore: true, targetCourse: true, targetSchool: true },
+            select: { targetYear: true, courseChoice: true, institution: true },
           },
           _count: { select: { examSessions: true } },
         },
