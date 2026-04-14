@@ -35,6 +35,7 @@ export async function GET(
               select: {
                 id: true,
                 text: true,
+                imageUrl: true,
                 subject: { select: { id: true, name: true, code: true } },
                 topic: { select: { id: true, name: true } },
                 options: {
