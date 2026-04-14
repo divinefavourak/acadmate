@@ -105,11 +105,12 @@ export async function POST(req: NextRequest) {
         )
       );
 
-      const allIds = fisherYates([
-        ...engRows.map((r) => r.id),
-        ...proseRows.map((r) => r.id),
-        ...subjectRowBatches.flat().map((r) => r.id),
-      ]);
+      // Keep questions grouped by subject; only shuffle within each group
+      const allIds = [
+        ...fisherYates(engRows.map((r) => r.id)),
+        ...fisherYates(proseRows.map((r) => r.id)),
+        ...subjectRowBatches.map((batch) => fisherYates(batch.map((r) => r.id))).flat(),
+      ];
 
       if (allIds.length === 0) {
         return NextResponse.json(

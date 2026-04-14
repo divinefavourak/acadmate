@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Timer from "../components/Timer";
 import QuestionGrid from "../components/QuestionGrid";
+import Calculator from "../components/Calculator";
 import MathText from "@/app/components/MathText";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -20,7 +21,7 @@ interface Question {
   id: string;
   text: string;
   imageUrl: string | null;
-  subject: { id: string; name: string };
+  subject: { id: string; name: string; code: string };
   topic: { id: string; name: string } | null;
   options: Option[];
 }
@@ -56,6 +57,7 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
   const [answers, setAnswers] = useState<Record<string, string | null>>({});
   const [markedReview, setMarkedReview] = useState<Record<string, boolean>>({});
   const [submitting, setSubmitting] = useState(false);
+  const [showCalculator, setShowCalculator] = useState(false);
 
   // Fetch exam session
   useEffect(() => {
@@ -177,6 +179,7 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
     : session.durationMinutes;
 
   const isCurrentMarked = !!markedReview[currentQ.id];
+  const hasMath = questions.some((sq) => sq.question.subject.code === "MTH");
 
   return (
     <div className="flex h-full w-full">
@@ -323,6 +326,30 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
               </svg>
               Previous
             </button>
+
+            {/* Calculator trigger — only shown when Mathematics is in the session */}
+            {hasMath && (
+              <button
+                onClick={() => setShowCalculator(true)}
+                title="Open calculator"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all text-xs font-semibold"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect width="16" height="20" x="4" y="2" rx="2" />
+                  <line x1="8" x2="16" y1="6" y2="6" />
+                  <line x1="8" x2="8" y1="12" y2="12" />
+                  <line x1="12" x2="12" y1="12" y2="12" />
+                  <line x1="16" x2="16" y1="12" y2="12" />
+                  <line x1="8" x2="8" y1="16" y2="16" />
+                  <line x1="12" x2="12" y1="16" y2="16" />
+                  <line x1="16" x2="16" y1="16" y2="16" />
+                  <line x1="8" x2="8" y1="20" y2="20" />
+                  <line x1="12" x2="16" y1="20" y2="20" />
+                </svg>
+                <span className="hidden sm:inline">Calculator</span>
+              </button>
+            )}
+
             <button
               onClick={() => setCurrentIndex((i) => Math.min(questions.length - 1, i + 1))}
               disabled={currentIndex === questions.length - 1}
@@ -340,6 +367,9 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
           </div>
         </div>
       </main>
+
+      {/* Calculator modal */}
+      {showCalculator && <Calculator onClose={() => setShowCalculator(false)} />}
 
       {/* Right Sidebar */}
       <aside className="w-80 bg-white/90 dark:bg-black/90 backdrop-blur-md border-l border-slate-200 dark:border-slate-800 flex-col hidden lg:flex">

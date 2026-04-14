@@ -36,7 +36,7 @@ export async function GET(
                 id: true,
                 text: true,
                 imageUrl: true,
-                subject: { select: { id: true, name: true } },
+                subject: { select: { id: true, name: true, code: true } },
                 topic: { select: { id: true, name: true } },
                 options: {
                   select: { id: true, label: true, text: true, sortOrder: true },
