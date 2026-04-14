@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import MathText from "@/app/components/MathText";
+import MiniBarChart from "@/app/admin/components/MiniBarChart";
 
 interface QuestionEntry {
   id: string;
@@ -94,6 +95,12 @@ export default function QuestionsPage() {
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState("");
 
+  const [activeTab, setActiveTab] = useState<"questions" | "flagged" | "analytics">("questions");
+  const [flaggedQuestions, setFlaggedQuestions] = useState<QuestionEntry[]>([]);
+  const [loadingFlagged, setLoadingFlagged] = useState(false);
+  const [analyticsData, setAnalyticsData] = useState<{ subject: string; questions: number; flagged: number }[]>([]);
+  const [loadingAnalytics, setLoadingAnalytics] = useState(false);
+
   const [uploadingImage, setUploadingImage] = useState(false);
   const [editUploadingImage, setEditUploadingImage] = useState(false);
 
@@ -117,6 +124,10 @@ export default function QuestionsPage() {
     fetch("/api/admin/subjects")
       .then((r) => r.ok ? r.json() : { subjects: [] })
       .then((data) => setSubjects(data.subjects ?? []));
+    // Preload flagged count for the tab badge
+    fetch("/api/admin/questions?flagged=true&limit=500")
+      .then((r) => r.ok ? r.json() : { questions: [] })
+      .then((data) => setFlaggedQuestions(data.questions ?? []));
   }, []);
 
   useEffect(() => {
@@ -161,6 +172,45 @@ export default function QuestionsPage() {
   }, [form.subjectId]);
 
   const totalPages = Math.ceil(total / limit);
+
+  useEffect(() => {
+    if (activeTab !== "flagged") return;
+    setLoadingFlagged(true);
+    fetch("/api/admin/questions?flagged=true&limit=500")
+      .then((r) => r.ok ? r.json() : { questions: [] })
+      .then((data) => setFlaggedQuestions(data.questions ?? []))
+      .finally(() => setLoadingFlagged(false));
+  }, [activeTab]); // re-fetch every time the user opens the tab
+
+  useEffect(() => {
+    if (activeTab !== "analytics") return;
+    setLoadingAnalytics(true);
+    Promise.all([
+      fetch("/api/admin/subjects").then((r) => r.ok ? r.json() : { subjects: [] }),
+      fetch("/api/admin/questions?flagged=true&limit=500").then((r) => r.ok ? r.json() : { questions: [] }),
+    ]).then(([subjectsData, flaggedData]) => {
+      const subs: SubjectOption[] = subjectsData.subjects ?? [];
+      const flaggedBySubject: Record<string, number> = {};
+      for (const q of (flaggedData.questions ?? []) as QuestionEntry[]) {
+        flaggedBySubject[q.subject.name] = (flaggedBySubject[q.subject.name] ?? 0) + 1;
+      }
+      setAnalyticsData(
+        subs.map((s) => ({
+          subject: s.name,
+          questions: s._count?.questions ?? 0,
+          flagged: flaggedBySubject[s.name] ?? 0,
+        }))
+      );
+    }).finally(() => setLoadingAnalytics(false));
+  }, [activeTab]);
+
+  // grouped flagged questions by subject
+  const flaggedBySubject = flaggedQuestions.reduce<Record<string, QuestionEntry[]>>((acc, q) => {
+    const key = q.subject.name;
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(q);
+    return acc;
+  }, {});
 
   async function togglePublish(id: string, current: boolean) {
     await fetch(`/api/admin/questions/${id}/publish`, {
@@ -248,6 +298,7 @@ export default function QuestionsPage() {
       body: JSON.stringify({ isFlagged: false }),
     });
     setQuestions((prev) => prev.map((q) => q.id === id ? { ...q, isFlagged: false, flagCount: 0 } : q));
+    setFlaggedQuestions((prev) => prev.filter((q) => q.id !== id));
   }
 
   async function handleSaveEdit(e: React.FormEvent) {
@@ -357,78 +408,96 @@ export default function QuestionsPage() {
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight mb-2">Questions</h1>
-          <div className="flex items-center gap-2 text-sm">
-            <button 
-              onClick={() => { setActiveSubject(null); setActiveYear(null); }}
-              className={`hover:text-white transition-colors ${!activeSubject ? "text-white font-medium" : "text-slate-400"}`}
-            >
-              Subjects
-            </button>
-            {activeSubject && (
-              <>
-                <span className="text-slate-600">/</span>
-                <button 
-                  onClick={() => setActiveYear(null)}
-                  className={`hover:text-white transition-colors ${activeYear === null ? "text-white font-medium" : "text-slate-400"}`}
-                >
-                  {activeSubject.name}
-                </button>
-              </>
-            )}
-            {activeYear !== null && (
-              <>
-                <span className="text-slate-600">/</span>
-                <span className="text-white font-medium">
-                  {activeYear === "unknown" ? "No Year" : activeYear}
-                </span>
-              </>
-            )}
-          </div>
+          {activeTab === "questions" && (
+            <div className="flex items-center gap-2 text-sm">
+              <button
+                onClick={() => { setActiveSubject(null); setActiveYear(null); }}
+                className={`hover:text-white transition-colors ${!activeSubject ? "text-white font-medium" : "text-slate-400"}`}
+              >
+                Subjects
+              </button>
+              {activeSubject && (
+                <>
+                  <span className="text-slate-600">/</span>
+                  <button
+                    onClick={() => setActiveYear(null)}
+                    className={`hover:text-white transition-colors ${activeYear === null ? "text-white font-medium" : "text-slate-400"}`}
+                  >
+                    {activeSubject.name}
+                  </button>
+                </>
+              )}
+              {activeYear !== null && (
+                <>
+                  <span className="text-slate-600">/</span>
+                  <span className="text-white font-medium">
+                    {activeYear === "unknown" ? "No Year" : activeYear}
+                  </span>
+                </>
+              )}
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-3">
-          {activeSubject && activeYear !== null && (
-            <>
-              <select
-                value={publishedFilter}
-                onChange={(e) => { setPublishedFilter(e.target.value); setPage(0); }}
-                className="px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
-              >
-                <option value="">All Questions</option>
-                <option value="true">Published</option>
-                <option value="false">Unpublished</option>
-              </select>
-              <button
-                onClick={() => { setFlaggedFilter((f) => !f); setPage(0); }}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-sm font-medium transition-colors ${
-                  flaggedFilter
-                    ? "bg-red-900/30 border-red-700 text-red-400"
-                    : "bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200"
-                }`}
-              >
-                🚩 Flagged
-              </button>
-            </>
+          {activeTab === "questions" && activeSubject && activeYear !== null && (
+            <select
+              value={publishedFilter}
+              onChange={(e) => { setPublishedFilter(e.target.value); setPage(0); }}
+              className="px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+            >
+              <option value="">All Questions</option>
+              <option value="true">Published</option>
+              <option value="false">Unpublished</option>
+            </select>
           )}
-          <button
-            onClick={() => {
-              const nextState = !showForm;
-              setShowForm(!showForm);
-              setFormError("");
-              if (nextState && activeSubject) {
-                setForm(f => ({ ...f, subjectId: activeSubject.id, year: activeYear !== "unknown" && activeYear !== null ? String(activeYear) : "" }));
-              }
-            }}
-            className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-colors"
-          >
-            {showForm ? "Cancel" : "+ New Question"}
-          </button>
+          {activeTab === "questions" && (
+            <button
+              onClick={() => {
+                const nextState = !showForm;
+                setShowForm(!showForm);
+                setFormError("");
+                if (nextState && activeSubject) {
+                  setForm(f => ({ ...f, subjectId: activeSubject.id, year: activeYear !== "unknown" && activeYear !== null ? String(activeYear) : "" }));
+                }
+              }}
+              className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-colors"
+            >
+              {showForm ? "Cancel" : "+ New Question"}
+            </button>
+          )}
         </div>
       </div>
 
-      {showForm ? (
+      {/* Tabs */}
+      <div className="flex gap-1 p-1 bg-slate-800/60 border border-slate-700 rounded-xl w-fit">
+        {(["questions", "flagged", "analytics"] as const).map((t) => (
+          <button
+            key={t}
+            onClick={() => { setActiveTab(t); setShowForm(false); }}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors capitalize ${
+              activeTab === t
+                ? "bg-slate-700 text-white"
+                : "text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            {t === "flagged" ? (
+              <span className="flex items-center gap-1.5">
+                🚩 Flagged
+                {flaggedQuestions.length > 0 && (
+                  <span className="px-1.5 py-0.5 rounded-full bg-red-900/60 text-red-400 text-xs">{flaggedQuestions.length}</span>
+                )}
+              </span>
+            ) : t === "questions" ? "Questions" : "Analytics"}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Questions tab ─────────────────────────────────── */}
+      {activeTab === "questions" && showForm ? (
         <form onSubmit={handleCreate} className="bg-slate-800/60 border border-slate-700 rounded-2xl p-6 space-y-5">
 
           <h2 className="text-lg font-bold text-white">Create Question</h2>
@@ -747,6 +816,129 @@ export default function QuestionsPage() {
                   </div>
                 </div>
               )}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* ── Flagged tab ────────────────────────────────────── */}
+      {activeTab === "flagged" && (
+        <div className="space-y-6">
+          {loadingFlagged ? (
+            <p className="text-slate-400 text-sm py-8 text-center">Loading…</p>
+          ) : flaggedQuestions.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-slate-500 gap-2">
+              <span className="text-3xl">🎉</span>
+              <p className="text-sm">No flagged questions</p>
+            </div>
+          ) : (
+            Object.entries(flaggedBySubject).map(([subjectName, qs]) => (
+              <div key={subjectName} className="bg-slate-800/50 border border-slate-700 rounded-2xl overflow-hidden">
+                <div className="px-5 py-3 border-b border-slate-700 flex items-center justify-between">
+                  <h3 className="font-semibold text-white">{subjectName}</h3>
+                  <span className="text-xs text-red-400 bg-red-900/20 px-2 py-0.5 rounded-full">{qs.length} flagged</span>
+                </div>
+                <div className="divide-y divide-slate-800">
+                  {qs.map((q) => (
+                    <div key={q.id} className="px-5 py-3 flex items-start gap-4">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-white truncate">{q.text}</p>
+                        <div className="flex items-center gap-3 mt-1">
+                          <span className="text-xs text-slate-500">{q.year ?? "No year"}</span>
+                          <span className={`text-xs font-medium ${difficultyColors[q.difficulty] ?? "text-slate-400"}`}>{q.difficulty}</span>
+                          <span className="text-xs text-red-400">🚩 {q.flagCount}×</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          onClick={() => handleOpenEdit(q.id)}
+                          disabled={loadingEdit === q.id}
+                          className="inline-flex items-center px-2.5 py-1 rounded bg-indigo-900/30 text-indigo-400 hover:bg-indigo-900/50 text-xs font-medium transition-colors disabled:opacity-50"
+                        >
+                          {loadingEdit === q.id ? "…" : "Edit"}
+                        </button>
+                        <button
+                          onClick={() => handlePreview(q.id)}
+                          disabled={loadingPreview === q.id}
+                          className="inline-flex items-center px-2.5 py-1 rounded bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs font-medium transition-colors disabled:opacity-50"
+                        >
+                          {loadingPreview === q.id ? "…" : "Preview"}
+                        </button>
+                        <button
+                          onClick={() => handleClearFlag(q.id)}
+                          className="inline-flex items-center px-2.5 py-1 rounded bg-amber-900/30 text-amber-400 hover:bg-amber-900/50 text-xs font-medium transition-colors"
+                        >
+                          Unflag
+                        </button>
+                        <button
+                          onClick={() => setDeleteId(q.id)}
+                          className="inline-flex items-center px-2.5 py-1 rounded bg-red-900/30 text-red-400 hover:bg-red-900/50 text-xs font-medium transition-colors"
+                        >
+                          Del
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
+      {/* ── Analytics tab ──────────────────────────────────── */}
+      {activeTab === "analytics" && (
+        <div className="space-y-6">
+          {loadingAnalytics ? (
+            <p className="text-slate-400 text-sm py-8 text-center">Loading…</p>
+          ) : (
+            <>
+              <div className="glass-panel border border-slate-200 dark:border-slate-800 p-6 rounded-2xl">
+                <h2 className="text-lg font-bold mb-1">Questions per Subject</h2>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">Total questions in the question bank</p>
+                <MiniBarChart
+                  data={analyticsData.map((d) => ({ label: d.subject, count: d.questions }))}
+                  valueKey="count"
+                  color="indigo"
+                  emptyMessage="No data"
+                />
+              </div>
+              <div className="glass-panel border border-slate-200 dark:border-slate-800 p-6 rounded-2xl">
+                <h2 className="text-lg font-bold mb-1">Flagged per Subject</h2>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">Questions currently flagged by students</p>
+                <MiniBarChart
+                  data={analyticsData.map((d) => ({ label: d.subject, count: d.flagged }))}
+                  valueKey="count"
+                  color="amber"
+                  emptyMessage="No flagged questions"
+                />
+              </div>
+              <div className="overflow-x-auto bg-slate-800/50 border border-slate-700 rounded-2xl">
+                <table className="w-full text-left text-sm border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-700 text-slate-400">
+                      <th className="px-5 py-3 font-medium">Subject</th>
+                      <th className="px-5 py-3 font-medium text-right">Total</th>
+                      <th className="px-5 py-3 font-medium text-right">Flagged</th>
+                      <th className="px-5 py-3 font-medium text-right">Flag rate</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {analyticsData.map((d, i) => (
+                      <tr key={d.subject} className={i < analyticsData.length - 1 ? "border-b border-slate-800" : ""}>
+                        <td className="px-5 py-3 text-white font-medium">{d.subject}</td>
+                        <td className="px-5 py-3 text-slate-300 text-right">{d.questions.toLocaleString()}</td>
+                        <td className="px-5 py-3 text-right">
+                          <span className={d.flagged > 0 ? "text-red-400" : "text-slate-500"}>{d.flagged}</span>
+                        </td>
+                        <td className="px-5 py-3 text-slate-400 text-right text-xs">
+                          {d.questions > 0 ? `${((d.flagged / d.questions) * 100).toFixed(1)}%` : "—"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </>
           )}
         </div>
