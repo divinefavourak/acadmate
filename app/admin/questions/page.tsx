@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import MathText from "@/app/components/MathText";
 import MiniBarChart from "@/app/admin/components/MiniBarChart";
@@ -63,7 +63,15 @@ const emptyForm = {
   explanation: "",
 };
 
-export default function QuestionsPage() {
+export default function QuestionsPageWrapper() {
+  return (
+    <Suspense>
+      <QuestionsPage />
+    </Suspense>
+  );
+}
+
+function QuestionsPage() {
   const [questions, setQuestions] = useState<QuestionEntry[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
