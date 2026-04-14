@@ -28,6 +28,7 @@ interface OptionEntry {
 interface FullQuestionEntry extends QuestionEntry {
   options: OptionEntry[];
   explanation: { id: string; text: string } | null;
+  imageUrl: string | null;
 }
 
 interface SubjectOption {
@@ -53,6 +54,7 @@ const emptyForm = {
   subjectId: "",
   topicId: "",
   text: "",
+  imageUrl: "",
   year: "",
   difficulty: "MEDIUM",
   options: OPTION_LABELS.map((label) => ({ label, text: "", isCorrect: false })),
@@ -91,6 +93,25 @@ export default function QuestionsPage() {
   const [editForm, setEditForm] = useState(emptyForm);
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState("");
+
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [editUploadingImage, setEditUploadingImage] = useState(false);
+
+  async function handleImageUpload(
+    file: File,
+    setter: (url: string) => void,
+    setUploading: (v: boolean) => void
+  ) {
+    setUploading(true);
+    const fd = new FormData();
+    fd.append("file", file);
+    const res = await fetch("/api/upload", { method: "POST", body: fd });
+    setUploading(false);
+    if (res.ok) {
+      const data = await res.json();
+      setter(data.url);
+    }
+  }
 
   useEffect(() => {
     fetch("/api/admin/subjects")
@@ -204,6 +225,7 @@ export default function QuestionsPage() {
           subjectId: q.subject.id,
           topicId: q.topic?.id ?? "",
           text: q.text,
+          imageUrl: q.imageUrl ?? "",
           year: q.year ? String(q.year) : "",
           difficulty: q.difficulty,
           options: OPTION_LABELS.map((label) => {
@@ -245,6 +267,7 @@ export default function QuestionsPage() {
     };
     if (editForm.topicId) payload.topicId = editForm.topicId;
     if (editForm.year) payload.year = Number(editForm.year);
+    payload.imageUrl = editForm.imageUrl || null;
     if (editForm.explanation.trim()) payload.explanation = editForm.explanation.trim();
 
     const res = await fetch(`/api/admin/questions/${editQuestion.id}`, {
@@ -302,6 +325,7 @@ export default function QuestionsPage() {
     };
     if (form.topicId) payload.topicId = form.topicId;
     if (form.year) payload.year = Number(form.year);
+    if (form.imageUrl) payload.imageUrl = form.imageUrl;
     if (form.explanation.trim()) payload.explanation = form.explanation.trim();
 
     const res = await fetch("/api/admin/questions", {
@@ -523,6 +547,35 @@ export default function QuestionsPage() {
               placeholder="Why is the correct answer correct?"
               className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 resize-none"
             />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-slate-400 mb-1">Image (optional)</label>
+            <div className="flex items-center gap-3">
+              <label className="flex-1 flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-400 text-sm cursor-pointer hover:border-indigo-500/50 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+                {uploadingImage ? "Uploading…" : form.imageUrl ? "Change image" : "Upload image"}
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  disabled={uploadingImage}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleImageUpload(file, (url) => setForm((f) => ({ ...f, imageUrl: url })), setUploadingImage);
+                  }}
+                />
+              </label>
+              {form.imageUrl && (
+                <button type="button" onClick={() => setForm((f) => ({ ...f, imageUrl: "" }))}
+                  className="px-2 py-1 rounded text-xs text-red-400 hover:text-red-300 bg-red-900/20 hover:bg-red-900/30 transition-colors">
+                  Remove
+                </button>
+              )}
+            </div>
+            {form.imageUrl && (
+              <img src={form.imageUrl} alt="Question image" className="mt-2 max-h-40 rounded-lg border border-slate-700 object-contain" />
+            )}
           </div>
 
           <div className="flex gap-3 pt-1">
@@ -770,6 +823,34 @@ export default function QuestionsPage() {
                   </div>
                 )}
               </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-400 mb-1">Image (optional)</label>
+                <div className="flex items-center gap-3">
+                  <label className="flex-1 flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-400 text-sm cursor-pointer hover:border-indigo-500/50 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+                    {editUploadingImage ? "Uploading…" : editForm.imageUrl ? "Change image" : "Upload image"}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      disabled={editUploadingImage}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleImageUpload(file, (url) => setEditForm((f) => ({ ...f, imageUrl: url })), setEditUploadingImage);
+                      }}
+                    />
+                  </label>
+                  {editForm.imageUrl && (
+                    <button type="button" onClick={() => setEditForm((f) => ({ ...f, imageUrl: "" }))}
+                      className="px-2 py-1 rounded text-xs text-red-400 hover:text-red-300 bg-red-900/20 hover:bg-red-900/30 transition-colors">
+                      Remove
+                    </button>
+                  )}
+                </div>
+                {editForm.imageUrl && (
+                  <img src={editForm.imageUrl} alt="Question image" className="mt-2 max-h-40 rounded-lg border border-slate-700 object-contain" />
+                )}
+              </div>
               <div className="flex gap-3 pt-1">
                 <button type="submit" disabled={editSaving}
                   className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-colors disabled:opacity-60">
@@ -817,6 +898,9 @@ export default function QuestionsPage() {
               <div className="text-white text-lg leading-relaxed">
                 <MathText text={previewQuestion.text} />
               </div>
+              {previewQuestion.imageUrl && (
+                <img src={previewQuestion.imageUrl} alt="Question image" className="rounded-xl border border-slate-700 max-h-64 object-contain" />
+              )}
 
               <div className="space-y-3">
                 {previewQuestion.options.map((opt) => (

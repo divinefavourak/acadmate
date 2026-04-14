@@ -139,6 +139,7 @@ model Question {
   topicId          String?
   proseTextId      String?
   text             String           @db.Text
+  imageUrl         String?          @db.Text
   year             Int?
   difficulty       Difficulty       @default(MEDIUM)
   sourceType       SourceType       @default(MANUAL)
