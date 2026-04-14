@@ -1,3 +1,4 @@
+// lib/validation/questions.ts
 import { z } from "zod";
 
 export const createQuestionSchema = z.object({
@@ -35,8 +36,12 @@ export const questionQuerySchema = z.object({
   topicId: z.string().cuid().optional(),
   difficulty: z.enum(["EASY", "MEDIUM", "HARD"]).optional(),
   year: z.coerce.number().int().min(1978).max(2030).optional(),
-  limit: z.coerce.number().int().min(1).max(100).default(20),
+  // INCREASED LIMIT: Changed max from 100 to 500 to match your request
+  limit: z.coerce.number().int().min(1).max(500).default(20), 
   offset: z.coerce.number().int().min(0).default(0),
+  // Added proper boolean coercion for the flagged filter
+  flagged: z.preprocess((val) => val === "true", z.boolean()).optional(),
+  isPublished: z.preprocess((val) => val === "true", z.boolean()).optional(),
 });
 
 export type CreateQuestionInput = z.infer<typeof createQuestionSchema>;

@@ -1,7 +1,8 @@
+// app/api/admin/questions/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { requireAdmin } from "@/lib/auth/helpers";
-import { createQuestionSchema, questionQuerySchema } from "@/lib/validation/questions";
+import { questionQuerySchema, createQuestionSchema } from "@/lib/validation/questions";
 
 export async function GET(req: NextRequest) {
   const { error } = await requireAdmin();
@@ -9,32 +10,34 @@ export async function GET(req: NextRequest) {
 
   try {
     const { searchParams } = req.nextUrl;
-    const yearParam = searchParams.get("year");
+    
+    // Use '||' instead of '??' to turn empty strings ("") into undefined
     const parsed = questionQuerySchema.safeParse({
-      subjectId: searchParams.get("subjectId") ?? undefined,
-      topicId: searchParams.get("topicId") ?? undefined,
-      difficulty: searchParams.get("difficulty") ?? undefined,
-      year: yearParam ?? undefined,
-      limit: searchParams.get("limit") ?? undefined,
-      offset: searchParams.get("offset") ?? undefined,
+      subjectId: searchParams.get("subjectId") || undefined,
+      topicId: searchParams.get("topicId") || undefined,
+      difficulty: searchParams.get("difficulty") || undefined,
+      year: searchParams.get("year") || undefined,
+      limit: searchParams.get("limit") || undefined,
+      offset: searchParams.get("offset") || undefined,
+      flagged: searchParams.get("flagged") || undefined,
+      isPublished: searchParams.get("isPublished") || undefined,
     });
 
     if (!parsed.success) {
-      return NextResponse.json({ error: "Invalid query" }, { status: 400 });
+      // Improved error logging so you can see exactly which field failed in the console
+      console.error("Query Validation Error:", parsed.error.format());
+      return NextResponse.json({ error: "Invalid query", details: parsed.error.format() }, { status: 400 });
     }
 
-    const { subjectId, topicId, difficulty, year, limit, offset } = parsed.data;
-    const isPublished = searchParams.get("isPublished");
-    const flaggedParam = searchParams.get("flagged");
-    // "unknown" means filter for questions with no year (year IS NULL)
+    const { subjectId, topicId, difficulty, year, limit, offset, flagged, isPublished } = parsed.data;
     const filterNullYear = searchParams.get("year") === "unknown";
 
     const where = {
       ...(subjectId && { subjectId }),
       ...(topicId && { topicId }),
       ...(difficulty && { difficulty }),
-      ...(isPublished !== null && { isPublished: isPublished === "true" }),
-      ...(flaggedParam === "true" && { isFlagged: true }),
+      ...(isPublished !== undefined && { isPublished }),
+      ...(flagged && { isFlagged: true }), // This handles your flagged questions
       ...(filterNullYear ? { year: null } : year !== undefined ? { year } : {}),
     };
 
@@ -57,13 +60,14 @@ export async function GET(req: NextRequest) {
           topic: { select: { id: true, name: true } },
           _count: { select: { options: true } },
         },
-        orderBy: { year: "desc" },
+        orderBy: { updatedAt: "desc" }, // Order by newest updates so flagged ones show first
       }),
       prisma.question.count({ where }),
     ]);
 
     return NextResponse.json({ questions, total, limit, offset });
-  } catch {
+  } catch (err) {
+    console.error(err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
@@ -105,7 +109,6 @@ export async function POST(req: NextRequest) {
       include: { options: true, explanation: true },
     });
 
-    // Log admin activity
     await prisma.adminActivityLog.create({
       data: {
         adminId,
