@@ -3,6 +3,13 @@ import { prisma } from "@/lib/db/prisma";
 import { requireAuth } from "@/lib/auth/helpers";
 import { createExamSessionSchema } from "@/lib/validation/exams";
 
+// ─── UTME mock question distribution ─────────────────────────────────────────
+const UTME_ENGLISH_QUESTIONS = 30;   // regular Use of English (non-prose)
+const UTME_PROSE_QUESTIONS = 10;     // comprehension questions tied to a prose text
+const UTME_SUBJECT_QUESTIONS = 40;   // questions per chosen subject
+const UTME_DURATION_MINUTES = 120;
+const ENGLISH_CODE = "ENG";
+
 function fisherYates<T>(array: T[]): T[] {
   const shuffled = [...array];
   for (let i = shuffled.length - 1; i > 0; i--) {
@@ -28,64 +35,122 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { mode, examTemplateId, subjectId, topicId, proseTextId, questionCount } = parsed.data;
     const userId = session!.user!.id!;
+    const { mode } = parsed.data;
 
-    // Fetch questions based on mode
-    let questionIds: string[] = [];
+    // ── Full UTME Mock ──────────────────────────────────────────────────────
+    if (mode === "MOCK") {
+      const { subjectIds, proseTextId: requestedProseId } = parsed.data;
 
-    if (mode === "MOCK" && examTemplateId) {
-      // Pull from exam template subject distribution
-      const template = await prisma.examTemplate.findUnique({
-        where: { id: examTemplateId, isActive: true },
-        include: { subjects: true },
+      // Locate Use of English subject
+      const english = await prisma.subject.findFirst({
+        where: { code: ENGLISH_CODE, isActive: true },
+        select: { id: true },
       });
-
-      if (!template) {
-        return NextResponse.json({ error: "Exam template not found" }, { status: 404 });
+      if (!english) {
+        return NextResponse.json(
+          { error: "Use of English subject is not configured in the system" },
+          { status: 500 }
+        );
       }
 
-      // Fetch all subjects in parallel, let Postgres do the random sampling
-      const perSubject = await Promise.all(
-        template.subjects.map((ts) =>
+      // Guard: user must not have included English in their 3 picks
+      if (subjectIds.includes(english.id)) {
+        return NextResponse.json(
+          { error: "Use of English is included automatically — please select 3 other subjects" },
+          { status: 400 }
+        );
+      }
+
+      // Resolve prose text (user-chosen or random)
+      let proseId: string | null = requestedProseId ?? null;
+      if (!proseId) {
+        const randomProse = await prisma.proseText.findFirst({
+          where: { isPublished: true },
+          select: { id: true },
+        });
+        proseId = randomProse?.id ?? null;
+      }
+
+      // Fetch all question batches in parallel
+      const [engRows, proseRows] = await Promise.all([
+        prisma.$queryRaw<{ id: string }[]>`
+          SELECT id FROM questions
+          WHERE "subjectId" = ${english.id}
+            AND "isPublished" = true
+            AND "proseTextId" IS NULL
+          ORDER BY RANDOM()
+          LIMIT ${UTME_ENGLISH_QUESTIONS}
+        `,
+        proseId
+          ? prisma.$queryRaw<{ id: string }[]>`
+              SELECT id FROM questions
+              WHERE "proseTextId" = ${proseId}
+                AND "isPublished" = true
+              ORDER BY RANDOM()
+              LIMIT ${UTME_PROSE_QUESTIONS}
+            `
+          : Promise.resolve<{ id: string }[]>([]),
+      ]);
+
+      const subjectRowBatches = await Promise.all(
+        subjectIds.map((sid) =>
           prisma.$queryRaw<{ id: string }[]>`
             SELECT id FROM questions
-            WHERE "subjectId" = ${ts.subjectId} AND "isPublished" = true
+            WHERE "subjectId" = ${sid}
+              AND "isPublished" = true
             ORDER BY RANDOM()
-            LIMIT ${ts.questionCount}
+            LIMIT ${UTME_SUBJECT_QUESTIONS}
           `
         )
       );
-      questionIds = perSubject.flat().map((r) => r.id);
 
-      // Duration comes from the template we already have
-      const durationMinutes = template.durationMinutes ?? 120;
-      const expiresAt = new Date(Date.now() + durationMinutes * 60 * 1000);
-      questionIds = fisherYates(questionIds);
+      const allIds = fisherYates([
+        ...engRows.map((r) => r.id),
+        ...proseRows.map((r) => r.id),
+        ...subjectRowBatches.flat().map((r) => r.id),
+      ]);
+
+      if (allIds.length === 0) {
+        return NextResponse.json(
+          { error: "No questions available for the selected subjects" },
+          { status: 422 }
+        );
+      }
+
+      const expiresAt = new Date(Date.now() + UTME_DURATION_MINUTES * 60 * 1000);
 
       const examSession = await prisma.examSession.create({
         data: {
           userId,
-          examTemplateId,
-          mode,
-          totalQuestions: questionIds.length,
-          durationMinutes,
+          mode: "MOCK",
+          totalQuestions: allIds.length,
+          durationMinutes: UTME_DURATION_MINUTES,
           expiresAt,
-          questions: { create: questionIds.map((qid, idx) => ({ questionId: qid, position: idx })) },
+          questions: {
+            create: allIds.map((qid, idx) => ({ questionId: qid, position: idx })),
+          },
         },
-        select: { id: true, mode: true, totalQuestions: true, durationMinutes: true, expiresAt: true, startedAt: true },
+        select: {
+          id: true,
+          mode: true,
+          totalQuestions: true,
+          durationMinutes: true,
+          expiresAt: true,
+          startedAt: true,
+        },
       });
-      return NextResponse.json({ examSession }, { status: 201 });
 
-    } else if (proseTextId) {
-      const rows = await prisma.$queryRaw<{ id: string }[]>`
-        SELECT id FROM questions
-        WHERE "proseTextId" = ${proseTextId} AND "isPublished" = true
-        ORDER BY RANDOM()
-        LIMIT ${questionCount}
-      `;
-      questionIds = rows.map((r) => r.id);
-    } else if (mode === "TOPIC" && topicId) {
+      return NextResponse.json({ examSession }, { status: 201 });
+    }
+
+    // ── Practice / Topic ────────────────────────────────────────────────────
+    const { subjectId, questionCount } = parsed.data;
+    const topicId = mode === "TOPIC" ? parsed.data.topicId : undefined;
+
+    let questionIds: string[] = [];
+
+    if (mode === "TOPIC" && topicId) {
       const rows = await prisma.$queryRaw<{ id: string }[]>`
         SELECT id FROM questions
         WHERE "topicId" = ${topicId} AND "isPublished" = true
@@ -93,7 +158,7 @@ export async function POST(req: NextRequest) {
         LIMIT ${questionCount}
       `;
       questionIds = rows.map((r) => r.id);
-    } else if (subjectId) {
+    } else {
       const rows = await prisma.$queryRaw<{ id: string }[]>`
         SELECT id FROM questions
         WHERE "subjectId" = ${subjectId} AND "isPublished" = true
@@ -111,30 +176,20 @@ export async function POST(req: NextRequest) {
     }
 
     questionIds = fisherYates(questionIds);
-
-    // Determine duration
-    let durationMinutes = 120;
-    if (mode === "PRACTICE" || mode === "TOPIC") {
-      durationMinutes = questionCount * 2;
-    }
-
+    const durationMinutes = questionCount * 2;
     const expiresAt = new Date(Date.now() + durationMinutes * 60 * 1000);
 
     const examSession = await prisma.examSession.create({
       data: {
         userId,
-        examTemplateId: examTemplateId ?? null,
         mode,
-        subjectId: subjectId ?? null,
+        subjectId,
         topicId: topicId ?? null,
         totalQuestions: questionIds.length,
         durationMinutes,
         expiresAt,
         questions: {
-          create: questionIds.map((qid, idx) => ({
-            questionId: qid,
-            position: idx,
-          })),
+          create: questionIds.map((qid, idx) => ({ questionId: qid, position: idx })),
         },
       },
       select: {
