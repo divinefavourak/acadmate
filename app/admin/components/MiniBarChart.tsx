@@ -1,13 +1,11 @@
 "use client";
 
-interface DataPoint {
-  label: string;
-  [key: string]: string | number;
-}
+type DataPoint = Record<string, string | number>;
 
 interface MiniBarChartProps {
   data: DataPoint[];
   valueKey: string;
+  labelKey?: string;
   color?: "indigo" | "emerald" | "violet" | "amber";
   emptyMessage?: string;
   className?: string;
@@ -30,6 +28,7 @@ const HOVER_MAP = {
 export default function MiniBarChart({
   data,
   valueKey,
+  labelKey = "label",
   color = "indigo",
   emptyMessage = "No data yet",
   className = "",
@@ -73,7 +72,7 @@ export default function MiniBarChart({
               <div
                 key={i}
                 className="flex-1 flex flex-col items-center justify-end h-full group"
-                title={`${d.label}: ${val}`}
+                title={`${d[labelKey]}: ${val}`}
               >
                 <div
                   className={`w-full rounded-t-sm transition-all duration-300 ${barColor} cursor-default`}
@@ -90,7 +89,7 @@ export default function MiniBarChart({
         {data.map((d, i) => (
           <div key={i} className="flex-1 text-center">
             <span className="text-[10px] text-slate-400 dark:text-slate-500 truncate block leading-tight">
-              {d.label}
+              {String(d[labelKey] ?? "")}
             </span>
           </div>
         ))}

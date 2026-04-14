@@ -136,6 +136,7 @@ export default function AdminDashboard() {
             <MiniBarChart
               data={stats?.questionsBySubject ?? []}
               valueKey="questions"
+              labelKey="subject"
               color="emerald"
               emptyMessage="No subjects found"
             />
