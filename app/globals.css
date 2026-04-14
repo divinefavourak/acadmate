@@ -1,5 +1,4 @@
 @import "tailwindcss";
-@source "../node_modules/@tremor/react/dist/**/*.js";
 @import "katex/dist/katex.min.css";
 
 :root {

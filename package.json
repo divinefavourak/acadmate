@@ -23,7 +23,6 @@
     "@auth/prisma-adapter": "^2.7.4",
     "@google/generative-ai": "^0.24.1",
     "@prisma/client": "^6.6.0",
-    "@tremor/react": "^3.18.7",
     "@vercel/analytics": "^2.0.1",
     "bcryptjs": "^3.0.2",
     "groq-sdk": "^1.1.2",
