@@ -104,7 +104,8 @@ async function main() {
 
   for (let idx = 0; idx < chapters.length; idx++) {
     const ch = chapters[idx];
-    const title = `Chapter ${ch.number}${ch.title && ch.title !== `Chapter ${ch.number}` ? ": " + ch.title : ""}`;
+    const rawTitle = ch.title.replace(/The Lekki Headmaster\s*[|]?\s*\d*/gi, "").trim();
+    const title = `Chapter ${ch.number}${rawTitle && rawTitle !== `Chapter ${ch.number}` ? ": " + rawTitle : ""}`;
     await prisma.proseSection.create({
       data: {
         proseTextId: prose.id,

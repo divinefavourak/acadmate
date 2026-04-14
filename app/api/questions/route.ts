@@ -10,11 +10,11 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = req.nextUrl;
     const parsed = questionQuerySchema.safeParse({
-      subjectId: searchParams.get("subjectId"),
-      topicId: searchParams.get("topicId"),
-      difficulty: searchParams.get("difficulty"),
-      limit: searchParams.get("limit"),
-      offset: searchParams.get("offset"),
+      subjectId: searchParams.get("subjectId") ?? undefined,
+      topicId: searchParams.get("topicId") ?? undefined,
+      difficulty: searchParams.get("difficulty") ?? undefined,
+      limit: searchParams.get("limit") ?? undefined,
+      offset: searchParams.get("offset") ?? undefined,
     });
 
     if (!parsed.success) {

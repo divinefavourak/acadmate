@@ -15,9 +15,22 @@ interface QuestionEntry {
   _count: { options: number };
 }
 
+interface OptionEntry {
+  id: string;
+  label: string;
+  text: string;
+  isCorrect: boolean;
+}
+
+interface FullQuestionEntry extends QuestionEntry {
+  options: OptionEntry[];
+  explanation: { id: string; text: string } | null;
+}
+
 interface SubjectOption {
   id: string;
   name: string;
+  _count?: { questions: number };
 }
 
 interface TopicOption {
@@ -56,14 +69,47 @@ export default function QuestionsPage() {
   const [topics, setTopics] = useState<TopicOption[]>([]);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
+
+  // Navigation state
+  const [activeSubject, setActiveSubject] = useState<SubjectOption | null>(null);
+  const [activeYear, setActiveYear] = useState<number | "unknown" | null>(null);
+  const [years, setYears] = useState<{ year: number | null; count: number }[]>([]);
+
   const [formError, setFormError] = useState("");
 
+  const [previewQuestion, setPreviewQuestion] = useState<FullQuestionEntry | null>(null);
+  const [loadingPreview, setLoadingPreview] = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
   useEffect(() => {
+    fetch("/api/admin/subjects")
+      .then((r) => r.ok ? r.json() : { subjects: [] })
+      .then((data) => setSubjects(data.subjects ?? []));
+  }, []);
+
+  useEffect(() => {
+    if (!activeSubject) return;
+    fetch(`/api/admin/subjects/${activeSubject.id}/years`)
+      .then((r) => r.ok ? r.json() : { years: [] })
+      .then((data) => setYears(data.years ?? []));
+  }, [activeSubject]);
+
+  useEffect(() => {
+    if (!activeSubject || activeYear === null) {
+      setQuestions([]);
+      setTotal(0);
+      setLoading(false);
+      return;
+    }
+    
     setLoading(true);
     const params = new URLSearchParams({
       limit: String(limit),
       offset: String(page * limit),
+      subjectId: activeSubject.id,
     });
+    if (activeYear !== "unknown") params.set("year", String(activeYear));
     if (publishedFilter !== "") params.set("isPublished", publishedFilter);
 
     fetch(`/api/admin/questions?${params}`)
@@ -73,14 +119,7 @@ export default function QuestionsPage() {
         setTotal(data.total ?? 0);
       })
       .finally(() => setLoading(false));
-  }, [page, publishedFilter]);
-
-  useEffect(() => {
-    if (!showForm) return;
-    fetch("/api/admin/subjects")
-      .then((r) => r.ok ? r.json() : { subjects: [] })
-      .then((data) => setSubjects(data.subjects ?? []));
-  }, [showForm]);
+  }, [page, publishedFilter, activeSubject, activeYear]);
 
   useEffect(() => {
     if (!form.subjectId) { setTopics([]); return; }
@@ -100,6 +139,34 @@ export default function QuestionsPage() {
     setQuestions((prev) =>
       prev.map((q) => q.id === id ? { ...q, isPublished: !current } : q)
     );
+  }
+
+  async function handlePreview(id: string) {
+    setLoadingPreview(id);
+    try {
+      const res = await fetch(`/api/admin/questions/${id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setPreviewQuestion(data.question);
+      }
+    } finally {
+      setLoadingPreview(null);
+    }
+  }
+
+  async function handleDelete() {
+    if (!deleteId) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/admin/questions/${deleteId}`, { method: "DELETE" });
+      if (res.ok) {
+        setQuestions((prev) => prev.filter((q) => q.id !== deleteId));
+        setTotal((prev) => prev - 1);
+      }
+    } finally {
+      setDeleting(false);
+      setDeleteId(null);
+    }
   }
 
   function setOption(idx: number, field: "text" | "isCorrect", value: string | boolean) {
@@ -174,23 +241,58 @@ export default function QuestionsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-end justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight mb-2">Questions</h1>
-          <p className="text-slate-400">Manage the question bank.</p>
+          <div className="flex items-center gap-2 text-sm">
+            <button 
+              onClick={() => { setActiveSubject(null); setActiveYear(null); }}
+              className={`hover:text-white transition-colors ${!activeSubject ? "text-white font-medium" : "text-slate-400"}`}
+            >
+              Subjects
+            </button>
+            {activeSubject && (
+              <>
+                <span className="text-slate-600">/</span>
+                <button 
+                  onClick={() => setActiveYear(null)}
+                  className={`hover:text-white transition-colors ${activeYear === null ? "text-white font-medium" : "text-slate-400"}`}
+                >
+                  {activeSubject.name}
+                </button>
+              </>
+            )}
+            {activeYear !== null && (
+              <>
+                <span className="text-slate-600">/</span>
+                <span className="text-white font-medium">
+                  {activeYear === "unknown" ? "No Year" : activeYear}
+                </span>
+              </>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-3">
-          <select
-            value={publishedFilter}
-            onChange={(e) => { setPublishedFilter(e.target.value); setPage(0); }}
-            className="px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
-          >
-            <option value="">All Questions</option>
-            <option value="true">Published</option>
-            <option value="false">Unpublished</option>
-          </select>
+          {activeSubject && activeYear !== null && (
+            <select
+              value={publishedFilter}
+              onChange={(e) => { setPublishedFilter(e.target.value); setPage(0); }}
+              className="px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+            >
+              <option value="">All Questions</option>
+              <option value="true">Published</option>
+              <option value="false">Unpublished</option>
+            </select>
+          )}
           <button
-            onClick={() => { setShowForm((v) => !v); setFormError(""); }}
+            onClick={() => {
+              const nextState = !showForm;
+              setShowForm(!showForm);
+              setFormError("");
+              if (nextState && activeSubject) {
+                setForm(f => ({ ...f, subjectId: activeSubject.id, year: activeYear !== "unknown" && activeYear !== null ? String(activeYear) : "" }));
+              }
+            }}
             className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-colors"
           >
             {showForm ? "Cancel" : "+ New Question"}
@@ -198,8 +300,9 @@ export default function QuestionsPage() {
         </div>
       </div>
 
-      {showForm && (
+      {showForm ? (
         <form onSubmit={handleCreate} className="bg-slate-800/60 border border-slate-700 rounded-2xl p-6 space-y-5">
+
           <h2 className="text-lg font-bold text-white">Create Question</h2>
 
           {formError && (
@@ -335,85 +438,244 @@ export default function QuestionsPage() {
             </button>
           </div>
         </form>
+      ) : !activeSubject ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {subjects.map((sub) => (
+            <button
+              key={sub.id}
+              onClick={() => setActiveSubject(sub)}
+              className="flex flex-col items-start p-5 rounded-2xl bg-slate-800 border border-slate-700 hover:border-indigo-500/50 transition-all group text-left"
+            >
+              <div className="w-10 h-10 rounded-lg bg-indigo-900/30 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                <span className="text-indigo-400">📁</span>
+              </div>
+              <h3 className="text-white font-bold mb-1">{sub.name}</h3>
+              <p className="text-slate-400 text-xs">
+                {sub._count?.questions ? `${sub._count.questions} questions` : "0 questions"}
+              </p>
+            </button>
+          ))}
+        </div>
+      ) : activeYear === null ? (
+        <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 flex flex-col items-center justify-center min-h-[300px]">
+          <h2 className="text-lg font-medium text-white mb-6">Select a Year for {activeSubject.name}</h2>
+          {years.length === 0 ? (
+            <p className="text-slate-400 text-sm">No questions available for this subject.</p>
+          ) : (
+            <div className="flex flex-wrap items-center justify-center gap-3 max-w-2xl">
+              {years.map((y) => (
+                <button
+                  key={y.year ?? "unknown"}
+                  onClick={() => { setActiveYear(y.year ?? "unknown"); setPage(0); }}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 transition-colors"
+                >
+                  <span className="font-medium text-sm">{y.year ?? "No Year"}</span>
+                  <span className="px-2 py-0.5 rounded-full bg-slate-900/50 text-slate-400 text-xs">
+                    {y.count}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6">
+          {loading ? (
+            <p className="text-slate-400 text-sm py-8 text-center">Loading…</p>
+          ) : questions.length === 0 ? (
+            <p className="text-slate-400 text-sm py-8 text-center">No questions found.</p>
+          ) : (
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-700 text-slate-400">
+                      <th className="pb-3 font-medium">Question</th>
+                      <th className="pb-3 font-medium">Topic</th>
+                      <th className="pb-3 font-medium">Difficulty</th>
+                      <th className="pb-3 font-medium">Year</th>
+                      <th className="pb-3 font-medium text-right">Status</th>
+                      <th className="pb-3 font-medium text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {questions.map((q, i) => (
+                      <tr
+                        key={q.id}
+                        className={`${i < questions.length - 1 ? "border-b border-slate-800" : ""} hover:bg-slate-800/50 transition-colors`}
+                      >
+                        <td className="py-3 text-white max-w-xs">
+                          <p className="truncate">{q.text}</p>
+                        </td>
+                        <td className="py-3 text-slate-500">{q.topic ? q.topic.name : "—"}</td>
+                        <td className={`py-3 font-medium ${difficultyColors[q.difficulty] ?? "text-slate-400"}`}>
+                          {q.difficulty}
+                        </td>
+                        <td className="py-3 text-slate-400">{q.year ?? "—"}</td>
+                        <td className="py-3 text-right">
+                          <button
+                            onClick={() => togglePublish(q.id, q.isPublished)}
+                            className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                              q.isPublished
+                                ? "bg-emerald-900/30 text-emerald-400 hover:bg-emerald-900/50"
+                                : "bg-slate-700 text-slate-400 hover:bg-slate-600"
+                            }`}
+                          >
+                            {q.isPublished ? "Published" : "Unpublished"}
+                          </button>
+                        </td>
+                        <td className="py-3 text-right space-x-2">
+                          <button
+                            onClick={() => handlePreview(q.id)}
+                            disabled={loadingPreview === q.id}
+                            className="inline-flex items-center px-2.5 py-1 rounded bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs font-medium transition-colors disabled:opacity-50"
+                          >
+                            {loadingPreview === q.id ? "..." : "Preview"}
+                          </button>
+                          <button
+                            onClick={() => setDeleteId(q.id)}
+                            className="inline-flex items-center px-2.5 py-1 rounded bg-red-900/30 text-red-400 hover:bg-red-900/50 hover:text-red-300 text-xs font-medium transition-colors"
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+  
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between mt-6 pt-4 border-t border-slate-700">
+                  <p className="text-sm text-slate-400">
+                    {page * limit + 1}–{Math.min((page + 1) * limit, total)} of {total} questions
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setPage((p) => p - 1)}
+                      disabled={page === 0}
+                      className="px-3 py-1.5 rounded-lg text-sm font-medium border border-slate-700 text-slate-300 disabled:opacity-40 hover:bg-slate-800 transition-colors"
+                    >
+                      Previous
+                    </button>
+                    <button
+                      onClick={() => setPage((p) => p + 1)}
+                      disabled={page >= totalPages - 1}
+                      className="px-3 py-1.5 rounded-lg text-sm font-medium border border-slate-700 text-slate-300 disabled:opacity-40 hover:bg-slate-800 transition-colors"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
       )}
 
-      <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6">
-        {loading ? (
-          <p className="text-slate-400 text-sm py-8 text-center">Loading…</p>
-        ) : questions.length === 0 ? (
-          <p className="text-slate-400 text-sm py-8 text-center">No questions found.</p>
-        ) : (
-          <>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-sm">
-                <thead>
-                  <tr className="border-b border-slate-700 text-slate-400">
-                    <th className="pb-3 font-medium">Question</th>
-                    <th className="pb-3 font-medium">Subject</th>
-                    <th className="pb-3 font-medium">Difficulty</th>
-                    <th className="pb-3 font-medium">Year</th>
-                    <th className="pb-3 font-medium text-right">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {questions.map((q, i) => (
-                    <tr
-                      key={q.id}
-                      className={`${i < questions.length - 1 ? "border-b border-slate-800" : ""} hover:bg-slate-800/50 transition-colors`}
-                    >
-                      <td className="py-3 text-white max-w-xs">
-                        <p className="truncate">{q.text}</p>
-                        {q.topic && <p className="text-xs text-slate-500 mt-0.5">{q.topic.name}</p>}
-                      </td>
-                      <td className="py-3 text-slate-300">{q.subject.name}</td>
-                      <td className={`py-3 font-medium ${difficultyColors[q.difficulty] ?? "text-slate-400"}`}>
-                        {q.difficulty}
-                      </td>
-                      <td className="py-3 text-slate-400">{q.year ?? "—"}</td>
-                      <td className="py-3 text-right">
-                        <button
-                          onClick={() => togglePublish(q.id, q.isPublished)}
-                          className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
-                            q.isPublished
-                              ? "bg-emerald-900/30 text-emerald-400 hover:bg-emerald-900/50"
-                              : "bg-slate-700 text-slate-400 hover:bg-slate-600"
-                          }`}
-                        >
-                          {q.isPublished ? "Published" : "Unpublished"}
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {totalPages > 1 && (
-              <div className="flex items-center justify-between mt-6 pt-4 border-t border-slate-700">
-                <p className="text-sm text-slate-400">
-                  {page * limit + 1}–{Math.min((page + 1) * limit, total)} of {total} questions
-                </p>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setPage((p) => p - 1)}
-                    disabled={page === 0}
-                    className="px-3 py-1.5 rounded-lg text-sm font-medium border border-slate-700 text-slate-300 disabled:opacity-40 hover:bg-slate-800 transition-colors"
-                  >
-                    Previous
-                  </button>
-                  <button
-                    onClick={() => setPage((p) => p + 1)}
-                    disabled={page >= totalPages - 1}
-                    className="px-3 py-1.5 rounded-lg text-sm font-medium border border-slate-700 text-slate-300 disabled:opacity-40 hover:bg-slate-800 transition-colors"
-                  >
-                    Next
-                  </button>
+      {/* Preview Modal */}
+      {previewQuestion && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="p-4 md:p-6 border-b border-slate-700 flex justify-between items-start shrink-0">
+              <div>
+                <h3 className="text-xl font-bold text-white mb-1">Question Preview</h3>
+                <div className="flex flex-wrap gap-2 text-xs">
+                  <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-300">{previewQuestion.subject.name}</span>
+                  {previewQuestion.topic && (
+                    <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-300">{previewQuestion.topic.name}</span>
+                  )}
+                  <span className={`px-2 py-0.5 rounded bg-slate-800 ${difficultyColors[previewQuestion.difficulty]}`}>
+                    {previewQuestion.difficulty}
+                  </span>
+                  {previewQuestion.year && (
+                    <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-300">{previewQuestion.year}</span>
+                  )}
                 </div>
               </div>
-            )}
-          </>
-        )}
-      </div>
+              <button
+                onClick={() => setPreviewQuestion(null)}
+                className="text-slate-400 hover:text-white transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="p-4 md:p-6 overflow-y-auto space-y-6">
+              <div className="text-white text-lg leading-relaxed">
+                {previewQuestion.text}
+              </div>
+              
+              <div className="space-y-3">
+                {previewQuestion.options.map((opt) => (
+                  <div 
+                    key={opt.id} 
+                    className={`flex items-center gap-3 p-3 rounded-xl border ${
+                      opt.isCorrect 
+                        ? "bg-emerald-900/20 border-emerald-800/50" 
+                        : "bg-slate-800/50 border-slate-700"
+                    }`}
+                  >
+                    <span className={`w-7 h-7 shrink-0 rounded-full flex items-center justify-center text-sm font-bold ${
+                      opt.isCorrect ? "bg-emerald-600 text-white" : "bg-slate-700 text-slate-300"
+                    }`}>
+                      {opt.label}
+                    </span>
+                    <span className={`text-sm flex-1 ${opt.isCorrect ? "text-emerald-50" : "text-slate-300"}`}>
+                      {opt.text}
+                    </span>
+                    {opt.isCorrect && (
+                      <span className="shrink-0 text-emerald-400 text-xs font-bold uppercase tracking-wider bg-emerald-900/50 px-2 py-1 rounded">
+                        Correct Answer
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {previewQuestion.explanation && (
+                <div className="p-4 rounded-xl bg-indigo-900/20 border border-indigo-800/30 space-y-2">
+                  <h4 className="text-xs font-bold text-indigo-400 uppercase tracking-wider">Explanation</h4>
+                  <p className="text-sm text-indigo-100 whitespace-pre-wrap">{previewQuestion.explanation.text}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-sm overflow-hidden p-6 text-center space-y-6 flex flex-col">
+            <div className="mx-auto w-12 h-12 rounded-full bg-red-900/30 flex items-center justify-center shrink-0">
+              <span className="text-red-500 text-xl">⚠️</span>
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-white mb-2">Delete Question</h3>
+              <p className="text-slate-400 text-sm">
+                Are you sure you want to delete this question? This action cannot be undone.
+              </p>
+            </div>
+            <div className="flex gap-3 justify-center">
+              <button
+                onClick={() => setDeleteId(null)}
+                disabled={deleting}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-sm font-medium transition-colors disabled:opacity-50"
+              >
+                {deleting ? "Deleting…" : "Yes, delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
