@@ -3,15 +3,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-interface Template {
-  id: string;
-  name: string;
-  description: string | null;
-  durationMinutes: number;
-  totalQuestions: number;
-  subjects: { questionCount: number; subject: { id: string; name: string } }[];
-}
-
 interface Subject {
   id: string;
   name: string;
@@ -25,39 +16,52 @@ interface Topic {
   _count: { questions: number };
 }
 
+interface ProseText {
+  id: string;
+  title: string;
+  author: string | null;
+  year: number | null;
+  _count: { questions: number };
+}
+
 type Mode = "MOCK" | "PRACTICE" | "TOPIC";
 
 export default function NewExamPage() {
   const router = useRouter();
-  const [templates, setTemplates] = useState<Template[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [topics, setTopics] = useState<Topic[]>([]);
+  const [proseTexts, setProseTexts] = useState<ProseText[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [loadingTopics, setLoadingTopics] = useState(false);
 
   const [mode, setMode] = useState<Mode>("MOCK");
-  const [selectedTemplate, setSelectedTemplate] = useState<string>("");
+
+  // MOCK state
+  const [selectedSubjectIds, setSelectedSubjectIds] = useState<string[]>([]);
+  const [selectedProseId, setSelectedProseId] = useState<string>("");
+
+  // PRACTICE / TOPIC state
   const [selectedSubject, setSelectedSubject] = useState<string>("");
   const [selectedTopic, setSelectedTopic] = useState<string>("");
   const [questionCount, setQuestionCount] = useState(40);
+
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
     Promise.all([
-      fetch("/api/exams/templates").then((r) => r.ok ? r.json() : { templates: [] }),
       fetch("/api/subjects").then((r) => r.ok ? r.json() : { subjects: [] }),
-    ]).then(([tData, sData]) => {
-      const tmplList: Template[] = tData.templates ?? [];
+      fetch("/api/prose").then((r) => r.ok ? r.json() : { texts: [] }),
+    ]).then(([sData, pData]) => {
       const subjList: Subject[] = sData.subjects ?? [];
-      setTemplates(tmplList);
+      const proseList: ProseText[] = pData.texts ?? [];
       setSubjects(subjList);
-      if (tmplList.length > 0) setSelectedTemplate(tmplList[0].id);
+      setProseTexts(proseList);
       if (subjList.length > 0) setSelectedSubject(subjList[0].id);
     }).finally(() => setLoadingData(false));
   }, []);
 
-  // Fetch topics when subject changes (for TOPIC mode)
+  // Fetch topics when subject changes (TOPIC mode)
   useEffect(() => {
     if (mode !== "TOPIC" || !selectedSubject) return;
     setLoadingTopics(true);
@@ -72,14 +76,24 @@ export default function NewExamPage() {
       .finally(() => setLoadingTopics(false));
   }, [mode, selectedSubject]);
 
+  function toggleSubject(id: string) {
+    setSelectedSubjectIds((prev) =>
+      prev.includes(id)
+        ? prev.filter((x) => x !== id)
+        : prev.length < 3
+        ? [...prev, id]
+        : prev
+    );
+  }
+
   async function handleStart() {
     setError("");
 
-    if (mode === "MOCK" && !selectedTemplate) {
-      setError("Please select an exam template.");
+    if (mode === "MOCK" && selectedSubjectIds.length !== 3) {
+      setError("Please select exactly 3 subjects (Use of English is already included).");
       return;
     }
-    if ((mode === "PRACTICE") && !selectedSubject) {
+    if (mode === "PRACTICE" && !selectedSubject) {
       setError("Please select a subject.");
       return;
     }
@@ -92,7 +106,11 @@ export default function NewExamPage() {
 
     const body =
       mode === "MOCK"
-        ? { mode: "MOCK", examTemplateId: selectedTemplate }
+        ? {
+            mode: "MOCK",
+            subjectIds: selectedSubjectIds,
+            ...(selectedProseId ? { proseTextId: selectedProseId } : {}),
+          }
         : mode === "TOPIC"
         ? { mode: "TOPIC", subjectId: selectedSubject, topicId: selectedTopic, questionCount }
         : { mode: "PRACTICE", subjectId: selectedSubject, questionCount };
@@ -114,13 +132,23 @@ export default function NewExamPage() {
     router.push(`/exam/${data.examSession.id}`);
   }
 
-  const activeTemplate = templates.find((t) => t.id === selectedTemplate);
+  const englishSubject = subjects.find((s) => s.code === "ENG");
+  const otherSubjects = subjects.filter((s) => s.code !== "ENG");
+  const remaining = 3 - selectedSubjectIds.length;
 
   const modeCards: { id: Mode; title: string; description: string }[] = [
     { id: "MOCK", title: "Full UTME Mock", description: "Timed exam across all 4 subjects, just like the real UTME." },
     { id: "PRACTICE", title: "Subject Practice", description: "Focus on a single subject at your own pace." },
     { id: "TOPIC", title: "Topic Drill", description: "Deep-dive into a specific topic within a subject." },
   ];
+
+  const startDisabled =
+    starting ||
+    (mode === "MOCK"
+      ? selectedSubjectIds.length !== 3
+      : mode === "TOPIC"
+      ? !selectedTopic
+      : !selectedSubject);
 
   return (
     <div className="space-y-8">
@@ -154,42 +182,132 @@ export default function NewExamPage() {
             </div>
           </div>
 
-          {/* MOCK — Template Selection */}
+          {/* MOCK — UTME Subject Selection */}
           {mode === "MOCK" && (
-            <div className="glass-panel p-6 rounded-2xl space-y-4">
-              <h2 className="font-semibold text-lg">Template</h2>
-              {templates.length === 0 ? (
-                <p className="text-sm text-slate-500">No exam templates available.</p>
-              ) : (
-                <div className="space-y-3">
-                  {templates.map((t) => (
+            <div className="glass-panel p-6 rounded-2xl space-y-5">
+              <div>
+                <h2 className="font-semibold text-lg">Your Subjects</h2>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+                  Use of English is compulsory for all candidates. Select 3 more subjects.
+                </p>
+              </div>
+
+              {/* Use of English — locked/compulsory */}
+              <div className="flex items-center gap-3 p-3 rounded-xl border-2 border-indigo-500 bg-indigo-50/50 dark:bg-indigo-900/20">
+                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                </div>
+                <div className="min-w-0">
+                  <div className="font-semibold text-sm">
+                    {englishSubject?.name ?? "Use of English"}
+                  </div>
+                  <div className="text-xs text-slate-500">30 objective + 10 prose questions</div>
+                </div>
+                <span className="ml-auto flex-shrink-0 text-xs font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-100 dark:bg-indigo-900/40 px-2 py-0.5 rounded-full">
+                  Compulsory
+                </span>
+              </div>
+
+              {/* Selectable subjects */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium">
+                    {remaining > 0
+                      ? `Choose ${remaining} more subject${remaining !== 1 ? "s" : ""}`
+                      : "3 subjects selected"}
+                  </span>
+                  {selectedSubjectIds.length > 0 && (
                     <button
-                      key={t.id}
-                      onClick={() => setSelectedTemplate(t.id)}
-                      className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
-                        selectedTemplate === t.id
+                      onClick={() => setSelectedSubjectIds([])}
+                      className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {otherSubjects.map((s) => {
+                    const isSelected = selectedSubjectIds.includes(s.id);
+                    const isDisabled = (!isSelected && selectedSubjectIds.length >= 3) || s._count.questions === 0;
+                    return (
+                      <button
+                        key={s.id}
+                        onClick={() => toggleSubject(s.id)}
+                        disabled={isDisabled}
+                        className={`p-3 rounded-xl border-2 text-left transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
+                          isSelected
+                            ? "border-indigo-500 bg-indigo-50/50 dark:bg-indigo-900/20"
+                            : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className={`flex-shrink-0 w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
+                            isSelected
+                              ? "border-indigo-500 bg-indigo-500"
+                              : "border-slate-300 dark:border-slate-600"
+                          }`}>
+                            {isSelected && (
+                              <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="20 6 9 17 4 12" />
+                              </svg>
+                            )}
+                          </div>
+                          <div className="font-medium text-sm">{s.name}</div>
+                        </div>
+                        <div className="text-xs text-slate-500 mt-1 pl-6">
+                          {s._count.questions} questions
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Prose / Comprehension text picker */}
+              {proseTexts.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold mb-1">Prose / Comprehension Text</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
+                    10 comprehension questions will be drawn from this text as part of Use of English.
+                  </p>
+                  <div className="space-y-2">
+                    {/* Random option */}
+                    <button
+                      onClick={() => setSelectedProseId("")}
+                      className={`w-full p-3 rounded-xl border-2 text-left transition-all ${
+                        selectedProseId === ""
                           ? "border-indigo-500 bg-indigo-50/50 dark:bg-indigo-900/20"
                           : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
                       }`}
                     >
-                      <div className="font-semibold">{t.name}</div>
-                      {t.description && (
-                        <div className="text-sm text-slate-500 mt-0.5">{t.description}</div>
-                      )}
-                      <div className="flex gap-4 mt-2 text-xs text-slate-500">
-                        <span>{t.totalQuestions} questions</span>
-                        <span>{t.durationMinutes} minutes</span>
-                        <span>{t.subjects.map((s) => s.subject.name).join(", ")}</span>
-                      </div>
+                      <div className="font-medium text-sm">Random</div>
+                      <div className="text-xs text-slate-500 mt-0.5">System picks a prose text for you</div>
                     </button>
-                  ))}
+
+                    {proseTexts.map((pt) => (
+                      <button
+                        key={pt.id}
+                        onClick={() => setSelectedProseId(pt.id)}
+                        disabled={pt._count.questions === 0}
+                        className={`w-full p-3 rounded-xl border-2 text-left transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
+                          selectedProseId === pt.id
+                            ? "border-indigo-500 bg-indigo-50/50 dark:bg-indigo-900/20"
+                            : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
+                        }`}
+                      >
+                        <div className="font-medium text-sm">{pt.title}</div>
+                        {pt.author && (
+                          <div className="text-xs text-slate-500 mt-0.5">
+                            {pt.author}{pt.year ? ` · ${pt.year}` : ""}
+                          </div>
+                        )}
+                        <div className="text-xs text-slate-400 mt-0.5">{pt._count.questions} questions</div>
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              )}
-              {activeTemplate && (
-                <p className="text-xs text-slate-500">
-                  Questions distributed as:{" "}
-                  {activeTemplate.subjects.map((s) => `${s.subject.name} (${s.questionCount})`).join(" · ")}
-                </p>
               )}
             </div>
           )}
@@ -240,7 +358,7 @@ export default function NewExamPage() {
             </div>
           )}
 
-          {/* TOPIC — Subject + Topic Selection + Question Count */}
+          {/* TOPIC — Subject + Topic + Question Count */}
           {mode === "TOPIC" && (
             <div className="glass-panel p-6 rounded-2xl space-y-5">
               <div>
@@ -321,17 +439,16 @@ export default function NewExamPage() {
 
           <button
             onClick={handleStart}
-            disabled={
-              starting ||
-              (mode === "MOCK" ? !selectedTemplate : mode === "TOPIC" ? !selectedTopic : !selectedSubject)
-            }
+            disabled={startDisabled}
             className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {starting ? (
               "Starting…"
             ) : (
               <>
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polygon points="5 3 19 12 5 21 5 3" />
+                </svg>
                 Start Exam
               </>
             )}
