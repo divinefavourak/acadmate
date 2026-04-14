@@ -19,6 +19,7 @@ interface Option {
 interface Question {
   id: string;
   text: string;
+  imageUrl: string | null;
   subject: { id: string; name: string };
   topic: { id: string; name: string } | null;
   options: Option[];
@@ -254,6 +255,13 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
               <h2 className="text-lg sm:text-2xl font-medium leading-relaxed text-slate-800 dark:text-slate-100">
                 <MathText text={currentQ.text} />
               </h2>
+              {currentQ.imageUrl && (
+                <img
+                  src={currentQ.imageUrl}
+                  alt="Question diagram"
+                  className="mt-4 max-h-64 rounded-xl border border-slate-200 dark:border-slate-800 object-contain"
+                />
+              )}
             </div>
 
             <div className="space-y-3 sm:space-y-4">
