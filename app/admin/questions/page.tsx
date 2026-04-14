@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import MathText from "@/app/components/MathText";
 
 interface QuestionEntry {
   id: string;
@@ -730,19 +731,31 @@ export default function QuestionsPage() {
               <div>
                 <label className="block text-xs font-medium text-slate-400 mb-1">Question Text *</label>
                 <textarea required rows={3} value={editForm.text} onChange={(e) => setEditForm((f) => ({ ...f, text: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 resize-none" />
+                  className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 resize-none font-mono" />
+                {editForm.text.trim() && (
+                  <div className="mt-1.5 px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-slate-200 text-sm leading-relaxed">
+                    <MathText text={editForm.text} />
+                  </div>
+                )}
               </div>
               <div className="space-y-2">
                 <p className="text-xs font-medium text-slate-400">Options — select correct answer *</p>
                 {editForm.options.map((opt, i) => (
-                  <div key={opt.label} className="flex items-center gap-3">
-                    <label className="flex items-center gap-2 cursor-pointer shrink-0">
-                      <input type="radio" name="editCorrect" checked={opt.isCorrect} onChange={() => setEditOption(i, "isCorrect", true)} className="accent-indigo-500" />
-                      <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${opt.isCorrect ? "bg-indigo-600 text-white" : "bg-slate-700 text-slate-300"}`}>{opt.label}</span>
-                    </label>
-                    <input type="text" required placeholder={`Option ${opt.label}`} value={opt.text}
-                      onChange={(e) => setEditOption(i, "text", e.target.value)}
-                      className="flex-1 px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50" />
+                  <div key={opt.label} className="space-y-1">
+                    <div className="flex items-center gap-3">
+                      <label className="flex items-center gap-2 cursor-pointer shrink-0">
+                        <input type="radio" name="editCorrect" checked={opt.isCorrect} onChange={() => setEditOption(i, "isCorrect", true)} className="accent-indigo-500" />
+                        <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${opt.isCorrect ? "bg-indigo-600 text-white" : "bg-slate-700 text-slate-300"}`}>{opt.label}</span>
+                      </label>
+                      <input type="text" required placeholder={`Option ${opt.label}`} value={opt.text}
+                        onChange={(e) => setEditOption(i, "text", e.target.value)}
+                        className="flex-1 px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 font-mono" />
+                    </div>
+                    {opt.text.includes("$") && (
+                      <div className="ml-10 px-2.5 py-1.5 rounded bg-slate-950 border border-slate-800 text-xs text-slate-300">
+                        <MathText text={opt.text} />
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -750,7 +763,12 @@ export default function QuestionsPage() {
                 <label className="block text-xs font-medium text-slate-400 mb-1">Explanation</label>
                 <textarea rows={2} value={editForm.explanation} onChange={(e) => setEditForm((f) => ({ ...f, explanation: e.target.value }))}
                   placeholder="Why is the correct answer correct?"
-                  className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 resize-none" />
+                  className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 resize-none font-mono" />
+                {editForm.explanation.includes("$") && (
+                  <div className="mt-1.5 px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-indigo-100 text-sm">
+                    <MathText text={editForm.explanation} />
+                  </div>
+                )}
               </div>
               <div className="flex gap-3 pt-1">
                 <button type="submit" disabled={editSaving}
@@ -797,16 +815,16 @@ export default function QuestionsPage() {
             
             <div className="p-4 md:p-6 overflow-y-auto space-y-6">
               <div className="text-white text-lg leading-relaxed">
-                {previewQuestion.text}
+                <MathText text={previewQuestion.text} />
               </div>
-              
+
               <div className="space-y-3">
                 {previewQuestion.options.map((opt) => (
-                  <div 
-                    key={opt.id} 
+                  <div
+                    key={opt.id}
                     className={`flex items-center gap-3 p-3 rounded-xl border ${
-                      opt.isCorrect 
-                        ? "bg-emerald-900/20 border-emerald-800/50" 
+                      opt.isCorrect
+                        ? "bg-emerald-900/20 border-emerald-800/50"
                         : "bg-slate-800/50 border-slate-700"
                     }`}
                   >
@@ -816,7 +834,7 @@ export default function QuestionsPage() {
                       {opt.label}
                     </span>
                     <span className={`text-sm flex-1 ${opt.isCorrect ? "text-emerald-50" : "text-slate-300"}`}>
-                      {opt.text}
+                      <MathText text={opt.text} />
                     </span>
                     {opt.isCorrect && (
                       <span className="shrink-0 text-emerald-400 text-xs font-bold uppercase tracking-wider bg-emerald-900/50 px-2 py-1 rounded">
@@ -830,7 +848,9 @@ export default function QuestionsPage() {
               {previewQuestion.explanation && (
                 <div className="p-4 rounded-xl bg-indigo-900/20 border border-indigo-800/30 space-y-2">
                   <h4 className="text-xs font-bold text-indigo-400 uppercase tracking-wider">Explanation</h4>
-                  <p className="text-sm text-indigo-100 whitespace-pre-wrap">{previewQuestion.explanation.text}</p>
+                  <p className="text-sm text-indigo-100">
+                    <MathText text={previewQuestion.explanation.text} />
+                  </p>
                 </div>
               )}
             </div>
