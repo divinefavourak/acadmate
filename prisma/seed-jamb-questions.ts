@@ -291,7 +291,6 @@ async function writeQuestions(
         },
       })
     ),
-    { timeout: 30000 }
   );
 
   return { created: toCreate.length, skipped };
