@@ -212,9 +212,9 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
         </header>
 
         {/* Question View */}
-        <div className="w-full max-w-3xl px-4 sm:px-6 flex flex-col flex-1 overflow-hidden">
+        <div className="w-full max-w-3xl px-4 sm:px-6 flex flex-col flex-1 overflow-hidden min-h-0">
           {/* Scrollable question + options area */}
-          <div className="flex-1 overflow-y-auto py-6 sm:py-10">
+          <div className="flex-1 overflow-y-auto py-6 sm:py-10 min-h-0">
             <div className="mb-6 sm:mb-8">
               <div className="flex items-center gap-2 mb-3 sm:mb-4 flex-wrap">
                 <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">
