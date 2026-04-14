@@ -313,7 +313,7 @@ export default function QuestionsPage() {
     };
     if (editForm.topicId) payload.topicId = editForm.topicId;
     if (editForm.year) payload.year = Number(editForm.year);
-    payload.imageUrl = editForm.imageUrl || null;
+    payload.imageUrl = editForm.imageUrl || "";
     if (editForm.explanation.trim()) payload.explanation = editForm.explanation.trim();
 
     const res = await fetch(`/api/admin/questions/${editQuestion.id}`, {
@@ -707,7 +707,42 @@ export default function QuestionsPage() {
             <p className="text-slate-400 text-sm py-8 text-center">No questions found.</p>
           ) : (
             <>
-              <div className="overflow-x-auto">
+              {/* Mobile cards */}
+              <div className="md:hidden divide-y divide-slate-800">
+                {questions.map((q) => (
+                  <div key={q.id} className="py-3 space-y-2">
+                    <p className="text-white text-sm line-clamp-2">{q.text}</p>
+                    <div className="flex items-center gap-2 flex-wrap text-xs">
+                      <span className={`font-medium ${difficultyColors[q.difficulty] ?? "text-slate-400"}`}>{q.difficulty}</span>
+                      <span className="text-slate-500">{q.year ?? "No year"}</span>
+                      {q.isFlagged && <span className="text-red-400">🚩{q.flagCount}</span>}
+                      <button onClick={() => togglePublish(q.id, q.isPublished)}
+                        className={`px-2 py-0.5 rounded-full font-medium ${q.isPublished ? "bg-emerald-900/30 text-emerald-400" : "bg-slate-700 text-slate-400"}`}>
+                        {q.isPublished ? "Published" : "Draft"}
+                      </button>
+                    </div>
+                    <div className="flex gap-1.5">
+                      <button onClick={() => handleOpenEdit(q.id)} disabled={loadingEdit === q.id}
+                        className="px-2.5 py-1 rounded bg-indigo-900/30 text-indigo-400 text-xs font-medium disabled:opacity-50">
+                        {loadingEdit === q.id ? "…" : "Edit"}
+                      </button>
+                      <button onClick={() => handlePreview(q.id)} disabled={loadingPreview === q.id}
+                        className="px-2.5 py-1 rounded bg-slate-700 text-slate-300 text-xs font-medium disabled:opacity-50">
+                        {loadingPreview === q.id ? "…" : "Preview"}
+                      </button>
+                      {q.isFlagged && (
+                        <button onClick={() => handleClearFlag(q.id)}
+                          className="px-2.5 py-1 rounded bg-amber-900/30 text-amber-400 text-xs font-medium">Unflag</button>
+                      )}
+                      <button onClick={() => setDeleteId(q.id)}
+                        className="px-2.5 py-1 rounded bg-red-900/30 text-red-400 text-xs font-medium">Del</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop table */}
+              <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-left border-collapse text-sm">
                   <thead>
                     <tr className="border-b border-slate-700 text-slate-400">
@@ -721,65 +756,37 @@ export default function QuestionsPage() {
                   </thead>
                   <tbody>
                     {questions.map((q, i) => (
-                      <tr
-                        key={q.id}
-                        className={`${i < questions.length - 1 ? "border-b border-slate-800" : ""} hover:bg-slate-800/50 transition-colors`}
-                      >
-                        <td className="py-3 text-white max-w-xs">
-                          <p className="truncate">{q.text}</p>
-                        </td>
+                      <tr key={q.id}
+                        className={`${i < questions.length - 1 ? "border-b border-slate-800" : ""} hover:bg-slate-800/50 transition-colors`}>
+                        <td className="py-3 text-white max-w-xs"><p className="truncate">{q.text}</p></td>
                         <td className="py-3 text-slate-500">{q.topic ? q.topic.name : "—"}</td>
-                        <td className={`py-3 font-medium ${difficultyColors[q.difficulty] ?? "text-slate-400"}`}>
-                          {q.difficulty}
-                        </td>
+                        <td className={`py-3 font-medium ${difficultyColors[q.difficulty] ?? "text-slate-400"}`}>{q.difficulty}</td>
                         <td className="py-3 text-slate-400">{q.year ?? "—"}</td>
                         <td className="py-3 text-right">
                           <div className="flex items-center justify-end gap-1">
-                            {q.isFlagged && (
-                              <span title={`Flagged ${q.flagCount}x`} className="text-xs text-red-400 mr-1">🚩{q.flagCount > 1 ? q.flagCount : ""}</span>
-                            )}
-                            <button
-                              onClick={() => togglePublish(q.id, q.isPublished)}
-                              className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
-                                q.isPublished
-                                  ? "bg-emerald-900/30 text-emerald-400 hover:bg-emerald-900/50"
-                                  : "bg-slate-700 text-slate-400 hover:bg-slate-600"
-                              }`}
-                            >
+                            {q.isFlagged && <span title={`Flagged ${q.flagCount}x`} className="text-xs text-red-400 mr-1">🚩{q.flagCount > 1 ? q.flagCount : ""}</span>}
+                            <button onClick={() => togglePublish(q.id, q.isPublished)}
+                              className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${q.isPublished ? "bg-emerald-900/30 text-emerald-400 hover:bg-emerald-900/50" : "bg-slate-700 text-slate-400 hover:bg-slate-600"}`}>
                               {q.isPublished ? "Published" : "Unpublished"}
                             </button>
                           </div>
                         </td>
                         <td className="py-3 text-right">
                           <div className="flex items-center justify-end gap-1.5">
-                            <button
-                              onClick={() => handleOpenEdit(q.id)}
-                              disabled={loadingEdit === q.id}
-                              className="inline-flex items-center px-2.5 py-1 rounded bg-indigo-900/30 text-indigo-400 hover:bg-indigo-900/50 text-xs font-medium transition-colors disabled:opacity-50"
-                            >
+                            <button onClick={() => handleOpenEdit(q.id)} disabled={loadingEdit === q.id}
+                              className="inline-flex items-center px-2.5 py-1 rounded bg-indigo-900/30 text-indigo-400 hover:bg-indigo-900/50 text-xs font-medium transition-colors disabled:opacity-50">
                               {loadingEdit === q.id ? "…" : "Edit"}
                             </button>
-                            <button
-                              onClick={() => handlePreview(q.id)}
-                              disabled={loadingPreview === q.id}
-                              className="inline-flex items-center px-2.5 py-1 rounded bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs font-medium transition-colors disabled:opacity-50"
-                            >
+                            <button onClick={() => handlePreview(q.id)} disabled={loadingPreview === q.id}
+                              className="inline-flex items-center px-2.5 py-1 rounded bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs font-medium transition-colors disabled:opacity-50">
                               {loadingPreview === q.id ? "..." : "Preview"}
                             </button>
                             {q.isFlagged && (
-                              <button
-                                onClick={() => handleClearFlag(q.id)}
-                                className="inline-flex items-center px-2.5 py-1 rounded bg-red-900/30 text-red-400 hover:bg-red-900/50 text-xs font-medium transition-colors"
-                              >
-                                Unflag
-                              </button>
+                              <button onClick={() => handleClearFlag(q.id)}
+                                className="inline-flex items-center px-2.5 py-1 rounded bg-red-900/30 text-red-400 hover:bg-red-900/50 text-xs font-medium transition-colors">Unflag</button>
                             )}
-                            <button
-                              onClick={() => setDeleteId(q.id)}
-                              className="inline-flex items-center px-2.5 py-1 rounded bg-red-900/30 text-red-400 hover:bg-red-900/50 hover:text-red-300 text-xs font-medium transition-colors"
-                            >
-                              Del
-                            </button>
+                            <button onClick={() => setDeleteId(q.id)}
+                              className="inline-flex items-center px-2.5 py-1 rounded bg-red-900/30 text-red-400 hover:bg-red-900/50 hover:text-red-300 text-xs font-medium transition-colors">Del</button>
                           </div>
                         </td>
                       </tr>

@@ -74,7 +74,31 @@ export default function ResultsPage() {
           </div>
         ) : (
           <>
-            <div className="overflow-x-auto">
+            {/* Mobile cards */}
+            <div className="md:hidden space-y-3">
+              {results.map((r) => (
+                <Link key={r.id} href={`/results/${r.id}`}
+                  className="block p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-black/20 active:scale-[0.98] transition-all">
+                  <div className="flex justify-between items-start mb-2">
+                    <span className="font-semibold text-sm">{modeLabel(r.examSession.mode)}</span>
+                    <span className={`text-lg font-bold ${scoreColor(r.score)}`}>{Math.round(r.score)}%</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-slate-500">
+                    <span>{formatDate(r.createdAt)}</span>
+                    <span>
+                      <span className="text-emerald-600 dark:text-emerald-400">{r.correct}✓</span>
+                      {" · "}
+                      <span className="text-red-500">{r.incorrect}✗</span>
+                      {" · "}
+                      <span>{r.unanswered} blank</span>
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+
+            {/* Desktop table */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-slate-200 dark:border-slate-800 text-sm text-slate-500 dark:text-slate-400">
@@ -88,22 +112,15 @@ export default function ResultsPage() {
                 </thead>
                 <tbody className="text-sm">
                   {results.map((r, i) => (
-                    <tr
-                      key={r.id}
-                      className={`${i < results.length - 1 ? "border-b border-slate-200 dark:border-slate-800/50" : ""} hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors`}
-                    >
+                    <tr key={r.id}
+                      className={`${i < results.length - 1 ? "border-b border-slate-200 dark:border-slate-800/50" : ""} hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors`}>
                       <td className="py-4 font-medium">{modeLabel(r.examSession.mode)}</td>
                       <td className="py-4 text-slate-500">{formatDate(r.createdAt)}</td>
                       <td className={`py-4 font-bold ${scoreColor(r.score)}`}>{Math.round(r.score)}%</td>
                       <td className="py-4 text-emerald-600 dark:text-emerald-400">{r.correct}</td>
                       <td className="py-4 text-red-600 dark:text-red-400">{r.incorrect}</td>
                       <td className="py-4 text-right">
-                        <Link
-                          href={`/results/${r.id}`}
-                          className="text-indigo-500 hover:text-indigo-600 font-medium text-xs"
-                        >
-                          View →
-                        </Link>
+                        <Link href={`/results/${r.id}`} className="text-indigo-500 hover:text-indigo-600 font-medium text-xs">View →</Link>
                       </td>
                     </tr>
                   ))}

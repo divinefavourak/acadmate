@@ -44,13 +44,15 @@ export async function PATCH(
       return NextResponse.json({ error: "Validation failed", issues: parsed.error.issues }, { status: 400 });
     }
 
-    const { options, explanation, aiAssistedExplanation, ...questionData } = parsed.data;
+    const { options, explanation, aiAssistedExplanation, imageUrl: rawImageUrl, ...questionData } = parsed.data;
     const adminId = session!.user!.id!;
+    const imageUrl = rawImageUrl === "" ? null : rawImageUrl;
 
     const question = await prisma.question.update({
       where: { id },
       data: {
         ...questionData,
+        imageUrl,
         ...(options && {
           options: {
             deleteMany: {},

@@ -6,7 +6,7 @@ export const createQuestionSchema = z.object({
   topicId: z.string().cuid().optional(),
   proseTextId: z.string().cuid().optional(),
   text: z.string().min(1, "Question text is required"),
-  imageUrl: z.string().url().optional().or(z.literal("")),
+  imageUrl: z.string().url().optional().or(z.literal("")).or(z.null()),
   year: z.number().int().min(1990).max(2030).optional(),
   difficulty: z.enum(["EASY", "MEDIUM", "HARD"]).default("MEDIUM"),
   sourceType: z.enum(["MANUAL", "IMPORTED", "AI_ASSISTED"]).default("MANUAL"),

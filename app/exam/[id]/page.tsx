@@ -58,6 +58,7 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
   const [markedReview, setMarkedReview] = useState<Record<string, boolean>>({});
   const [submitting, setSubmitting] = useState(false);
   const [showCalculator, setShowCalculator] = useState(false);
+  const [showMobileNav, setShowMobileNav] = useState(false);
 
   // Fetch exam session
   useEffect(() => {
@@ -183,11 +184,45 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
 
   return (
     <div className="flex h-full w-full">
+      {/* Mobile Question Navigator Sheet */}
+      {showMobileNav && (
+        <div className="fixed inset-0 z-50 lg:hidden flex flex-col justify-end">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setShowMobileNav(false)} />
+          <div className="relative bg-white dark:bg-slate-950 rounded-t-2xl p-5 shadow-2xl max-h-[70vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="font-bold text-base">Question Navigator</h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {answeredIndexes.length} of {questions.length} answered
+                  {markedIndexes.length > 0 && ` · ${markedIndexes.length} flagged`}
+                </p>
+              </div>
+              <button onClick={() => setShowMobileNav(false)} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+              </button>
+            </div>
+            <QuestionGrid
+              totalQuestions={questions.length}
+              currentQuestion={currentIndex}
+              answeredQuestions={answeredIndexes}
+              markedQuestions={markedIndexes}
+              onSelect={(idx) => { setCurrentIndex(idx); setShowMobileNav(false); }}
+            />
+            <div className="flex items-center gap-4 mt-4 text-xs text-slate-500 flex-wrap">
+              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-indigo-600 inline-block" />Current</span>
+              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-emerald-400 inline-block" />Answered</span>
+              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-amber-400 inline-block" />Flagged</span>
+              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-slate-200 dark:bg-slate-700 border border-slate-300 inline-block" />Unanswered</span>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Main Exam Area */}
-      <main className="flex-1 flex flex-col items-center">
+      <main className="flex-1 flex flex-col items-center min-w-0">
         {/* Top Bar */}
         <header className="w-full flex items-center justify-between px-3 sm:px-8 py-2 sm:py-4 bg-white/80 dark:bg-black/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 flex-shrink-0 gap-2">
-          <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-shrink-0">
               <Image
                 src="/images/logo.jpg"
@@ -198,10 +233,18 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
               />
               <span className="font-bold tracking-tight hidden sm:block">Acadmate CBT</span>
             </div>
-            <div className="h-5 w-px bg-slate-200 dark:bg-slate-800 hidden sm:block flex-shrink-0"></div>
-            <span className="font-semibold text-slate-700 dark:text-slate-300 truncate text-sm sm:text-base min-w-0">
-              {currentQ.subject.name} — {session.mode === "MOCK" ? "Mock Exam" : "Practice"}
-            </span>
+            <div className="h-5 w-px bg-slate-200 dark:bg-slate-800 hidden sm:block flex-shrink-0" />
+            {/* Tappable progress — opens mobile navigator */}
+            <button
+              onClick={() => setShowMobileNav(true)}
+              className="flex items-center gap-2 min-w-0 lg:cursor-default lg:pointer-events-none"
+            >
+              <span className="font-semibold text-slate-700 dark:text-slate-300 truncate text-sm sm:text-base">
+                <span className="hidden sm:inline">{currentQ.subject.name} — {session.mode === "MOCK" ? "Mock Exam" : "Practice"}</span>
+                <span className="sm:hidden">{currentIndex + 1}/{questions.length}</span>
+              </span>
+              <span className="lg:hidden text-xs text-indigo-500 flex-shrink-0">↑ Navigator</span>
+            </button>
           </div>
 
           <Timer initialMinutes={minutesRemaining} onExpire={handleExpire} />
