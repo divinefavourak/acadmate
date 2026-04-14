@@ -182,20 +182,20 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
       {/* Main Exam Area */}
       <main className="flex-1 flex flex-col items-center">
         {/* Top Bar */}
-        <header className="w-full flex items-center justify-between px-8 py-4 bg-white/80 dark:bg-black/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
+        <header className="w-full flex items-center justify-between px-3 sm:px-8 py-2 sm:py-4 bg-white/80 dark:bg-black/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 flex-shrink-0 gap-2">
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+            <div className="flex items-center gap-2 flex-shrink-0">
               <Image
                 src="/images/logo.jpg"
                 alt="Acadmate Logo"
-                width={32}
-                height={32}
+                width={28}
+                height={28}
                 className="rounded-lg shadow-md object-cover"
               />
               <span className="font-bold tracking-tight hidden sm:block">Acadmate CBT</span>
             </div>
-            <div className="h-6 w-px bg-slate-200 dark:bg-slate-800 hidden sm:block"></div>
-            <span className="font-semibold text-slate-700 dark:text-slate-300">
+            <div className="h-5 w-px bg-slate-200 dark:bg-slate-800 hidden sm:block flex-shrink-0"></div>
+            <span className="font-semibold text-slate-700 dark:text-slate-300 truncate text-sm sm:text-base min-w-0">
               {currentQ.subject.name} — {session.mode === "MOCK" ? "Mock Exam" : "Practice"}
             </span>
           </div>
@@ -205,108 +205,112 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
           <button
             onClick={handleSubmit}
             disabled={submitting}
-            className="btn-secondary text-sm px-4 py-2 border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 dark:border-red-900/50 dark:text-red-400 dark:hover:bg-red-950/30 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="btn-secondary text-xs sm:text-sm px-3 sm:px-4 py-1.5 sm:py-2 border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 dark:border-red-900/50 dark:text-red-400 dark:hover:bg-red-950/30 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
           >
-            {submitting ? "Submitting…" : "Submit Exam"}
+            {submitting ? "Submitting…" : "Submit"}
           </button>
         </header>
 
         {/* Question View */}
-        <div className="w-full max-w-3xl px-6 py-12 flex flex-col flex-1">
-          <div className="mb-8">
-            <div className="flex items-center gap-3 mb-4">
-              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">
-                Question {currentIndex + 1} of {questions.length}
-              </span>
-              {currentQ.topic && (
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
-                  {currentQ.topic.name}
+        <div className="w-full max-w-3xl px-4 sm:px-6 flex flex-col flex-1 overflow-hidden">
+          {/* Scrollable question + options area */}
+          <div className="flex-1 overflow-y-auto py-6 sm:py-10">
+            <div className="mb-6 sm:mb-8">
+              <div className="flex items-center gap-2 mb-3 sm:mb-4 flex-wrap">
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">
+                  Question {currentIndex + 1} of {questions.length}
                 </span>
-              )}
-              {/* Mark for Review button */}
-              <button
-                onClick={() => toggleMarkReview(currentQ.id)}
-                className={`ml-auto inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all border ${
-                  isCurrentMarked
-                    ? "bg-amber-100 border-amber-400 text-amber-700 dark:bg-amber-900/30 dark:border-amber-600 dark:text-amber-400"
-                    : "bg-slate-100 border-slate-300 text-slate-500 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-400 hover:border-amber-400 hover:text-amber-600"
-                }`}
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="12"
-                  height="12"
-                  viewBox="0 0 24 24"
-                  fill={isCurrentMarked ? "currentColor" : "none"}
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
-                  <line x1="4" x2="4" y1="22" y2="15" />
-                </svg>
-                {isCurrentMarked ? "Flagged" : "Flag for Review"}
-              </button>
-            </div>
-            <h2 className="text-2xl font-medium leading-relaxed text-slate-800 dark:text-slate-100">
-              <MathText text={currentQ.text} />
-            </h2>
-          </div>
-
-          <div className="space-y-4">
-            {currentQ.options.map((option) => {
-              const isSelected = answers[currentQ.id] === option.id;
-              return (
-                <label
-                  key={option.id}
-                  className={`flex items-center p-4 rounded-2xl border-2 cursor-pointer transition-all ${
-                    isSelected
-                      ? "border-indigo-600 bg-indigo-50/50 dark:bg-indigo-900/20"
-                      : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white/50 dark:bg-black/50"
+                {currentQ.topic && (
+                  <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
+                    {currentQ.topic.name}
+                  </span>
+                )}
+                {/* Mark for Review button */}
+                <button
+                  onClick={() => toggleMarkReview(currentQ.id)}
+                  className={`ml-auto inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all border ${
+                    isCurrentMarked
+                      ? "bg-amber-100 border-amber-400 text-amber-700 dark:bg-amber-900/30 dark:border-amber-600 dark:text-amber-400"
+                      : "bg-slate-100 border-slate-300 text-slate-500 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-400 hover:border-amber-400 hover:text-amber-600"
                   }`}
                 >
-                  <input
-                    type="radio"
-                    name={`question-${currentQ.id}`}
-                    className="sr-only"
-                    checked={isSelected}
-                    onChange={() => handleOptionSelect(option.id)}
-                  />
-                  <span
-                    className={`flex-shrink-0 w-8 h-8 rounded-full border-2 flex items-center justify-center font-bold text-sm mr-4 transition-colors ${
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill={isCurrentMarked ? "currentColor" : "none"}
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+                    <line x1="4" x2="4" y1="22" y2="15" />
+                  </svg>
+                  {isCurrentMarked ? "Flagged" : "Flag"}
+                </button>
+              </div>
+              <h2 className="text-lg sm:text-2xl font-medium leading-relaxed text-slate-800 dark:text-slate-100">
+                <MathText text={currentQ.text} />
+              </h2>
+            </div>
+
+            <div className="space-y-3 sm:space-y-4">
+              {currentQ.options.map((option) => {
+                const isSelected = answers[currentQ.id] === option.id;
+                return (
+                  <label
+                    key={option.id}
+                    className={`flex items-center p-3 sm:p-4 rounded-xl sm:rounded-2xl border-2 cursor-pointer transition-all ${
                       isSelected
-                        ? "border-indigo-600 bg-indigo-600 text-white"
-                        : "border-slate-300 dark:border-slate-700 text-slate-500"
+                        ? "border-indigo-600 bg-indigo-50/50 dark:bg-indigo-900/20"
+                        : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white/50 dark:bg-black/50"
                     }`}
                   >
-                    {option.label}
-                  </span>
-                  <span
-                    className={`text-lg ${
-                      isSelected
-                        ? "font-medium text-indigo-900 dark:text-indigo-100"
-                        : "text-slate-700 dark:text-slate-300"
-                    }`}
-                  >
-                    <MathText text={option.text} />
-                  </span>
-                </label>
-              );
-            })}
+                    <input
+                      type="radio"
+                      name={`question-${currentQ.id}`}
+                      className="sr-only"
+                      checked={isSelected}
+                      onChange={() => handleOptionSelect(option.id)}
+                    />
+                    <span
+                      className={`flex-shrink-0 w-8 h-8 rounded-full border-2 flex items-center justify-center font-bold text-sm mr-3 sm:mr-4 transition-colors ${
+                        isSelected
+                          ? "border-indigo-600 bg-indigo-600 text-white"
+                          : "border-slate-300 dark:border-slate-700 text-slate-500"
+                      }`}
+                    >
+                      {option.label}
+                    </span>
+                    <span
+                      className={`text-base sm:text-lg ${
+                        isSelected
+                          ? "font-medium text-indigo-900 dark:text-indigo-100"
+                          : "text-slate-700 dark:text-slate-300"
+                      }`}
+                    >
+                      <MathText text={option.text} />
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
           </div>
 
-          <div className="mt-auto pt-10 flex items-center justify-between">
+          {/* Navigation — always pinned at the bottom */}
+          <div className="flex-shrink-0 flex items-center justify-between py-3 sm:py-5 border-t border-slate-200 dark:border-slate-800">
             <button
               onClick={() => setCurrentIndex((i) => Math.max(0, i - 1))}
               disabled={currentIndex === 0}
-              className={`px-6 py-3 rounded-xl font-semibold flex items-center gap-2 transition-all ${
+              className={`px-5 py-2.5 sm:px-6 sm:py-3 rounded-xl font-semibold flex items-center gap-2 transition-all text-sm sm:text-base ${
                 currentIndex === 0
                   ? "opacity-50 cursor-not-allowed bg-slate-100 dark:bg-slate-900 text-slate-400"
                   : "btn-secondary"
               }`}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="m15 18-6-6 6-6" />
               </svg>
               Previous
@@ -314,14 +318,14 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
             <button
               onClick={() => setCurrentIndex((i) => Math.min(questions.length - 1, i + 1))}
               disabled={currentIndex === questions.length - 1}
-              className={`px-8 py-3 rounded-xl font-semibold flex items-center gap-2 transition-all ${
+              className={`px-5 py-2.5 sm:px-8 sm:py-3 rounded-xl font-semibold flex items-center gap-2 transition-all text-sm sm:text-base ${
                 currentIndex === questions.length - 1
                   ? "opacity-50 cursor-not-allowed bg-slate-100 dark:bg-slate-900 text-slate-400"
                   : "btn-primary"
               }`}
             >
               Next
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="m9 18 6-6-6-6" />
               </svg>
             </button>
