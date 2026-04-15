@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import MathText from "@/app/components/MathText";
 
 interface ImportEntry {
   id: string;
@@ -13,6 +14,21 @@ interface ImportEntry {
   publishedRows: number;
   createdAt: string;
   uploadedBy: { name: string | null; email: string };
+}
+
+interface ParsedRow {
+  subject: string;
+  topic?: string;
+  text: string;
+  optionA: string;
+  optionB: string;
+  optionC: string;
+  optionD: string;
+  correctOption: string;
+  year?: string;
+  difficulty?: string;
+  explanation?: string;
+  [key: string]: unknown;
 }
 
 const statusColors: Record<string, string> = {
@@ -29,6 +45,174 @@ function formatDate(iso: string) {
 const CSV_TEMPLATE = `subject,topic,text,optionA,optionB,optionC,optionD,correctOption,year,difficulty,explanation
 Mathematics,Algebra,"What is 2+2?","2","3","4","5","C",2024,EASY,"Basic addition: 2+2=4"`;
 
+function parseFile(file: File, text: string): ParsedRow[] {
+  if (file.name.endsWith(".json")) {
+    return JSON.parse(text) as ParsedRow[];
+  }
+  const lines = text.trim().split("\n");
+  const headers = lines[0].split(",").map((h) => h.trim().replace(/^"|"$/g, ""));
+  return lines.slice(1).map((line) => {
+    const values: string[] = [];
+    let current = "";
+    let inQuotes = false;
+    for (const ch of line) {
+      if (ch === '"') { inQuotes = !inQuotes; }
+      else if (ch === "," && !inQuotes) { values.push(current); current = ""; }
+      else { current += ch; }
+    }
+    values.push(current);
+    return Object.fromEntries(headers.map((h, i) => [h, values[i]?.trim() ?? ""])) as ParsedRow;
+  });
+}
+
+const OPTION_LABELS = ["A", "B", "C", "D"];
+const OPTION_KEYS = ["optionA", "optionB", "optionC", "optionD"] as const;
+
+function PreviewModal({
+  rows,
+  filename,
+  onConfirm,
+  onCancel,
+  uploading,
+}: {
+  rows: ParsedRow[];
+  filename: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+  uploading: boolean;
+}) {
+  const [page, setPage] = useState(0);
+  const perPage = 10;
+  const totalPages = Math.ceil(rows.length / perPage);
+  const visible = rows.slice(page * perPage, (page + 1) * perPage);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onCancel} />
+      <div className="relative bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between p-5 border-b border-slate-700 flex-shrink-0">
+          <div>
+            <h2 className="text-lg font-bold text-white">Preview Upload</h2>
+            <p className="text-xs text-slate-400 mt-0.5">
+              {rows.length} questions from <span className="font-mono text-slate-300">{filename}</span>
+            </p>
+          </div>
+          <button onClick={onCancel} className="p-2 rounded-full hover:bg-slate-800 text-slate-400 transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+          </button>
+        </div>
+
+        {/* Questions list */}
+        <div className="flex-1 overflow-y-auto p-5 space-y-5">
+          {visible.map((row, i) => {
+            const globalIdx = page * perPage + i;
+            const correct = (row.correctOption ?? "").toUpperCase();
+            return (
+              <div key={globalIdx} className="bg-slate-800/60 border border-slate-700 rounded-xl p-4 space-y-3">
+                <div className="flex items-start gap-3">
+                  <span className="flex-shrink-0 text-xs font-bold text-indigo-400 bg-indigo-900/30 rounded-full px-2.5 py-1 mt-0.5">
+                    Q{globalIdx + 1}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-slate-100 leading-relaxed">
+                      <MathText text={row.text || "(no question text)"} />
+                    </p>
+                    {(row.subject || row.topic) && (
+                      <div className="flex gap-2 mt-1.5 flex-wrap">
+                        {row.subject && <span className="text-xs bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full">{row.subject}</span>}
+                        {row.topic && <span className="text-xs bg-slate-700 text-slate-400 px-2 py-0.5 rounded-full">{row.topic}</span>}
+                        {row.year && <span className="text-xs bg-slate-700 text-slate-400 px-2 py-0.5 rounded-full">{row.year}</span>}
+                        {row.difficulty && <span className="text-xs bg-slate-700 text-slate-400 px-2 py-0.5 rounded-full">{row.difficulty}</span>}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {OPTION_KEYS.map((key, idx) => {
+                    const label = OPTION_LABELS[idx];
+                    const isCorrect = correct === label;
+                    return (
+                      <div
+                        key={key}
+                        className={`flex items-start gap-2.5 px-3 py-2 rounded-lg text-sm ${
+                          isCorrect
+                            ? "bg-emerald-900/30 border border-emerald-700/50 text-emerald-300"
+                            : "bg-slate-900/40 border border-slate-700/40 text-slate-400"
+                        }`}
+                      >
+                        <span className={`flex-shrink-0 font-bold text-xs mt-0.5 ${isCorrect ? "text-emerald-400" : "text-slate-500"}`}>
+                          {label}
+                        </span>
+                        <span className="leading-snug">
+                          <MathText text={String(row[key] ?? "")} />
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {row.explanation && (
+                  <p className="text-xs text-slate-500 italic border-l-2 border-slate-700 pl-3">
+                    <MathText text={String(row.explanation)} />
+                  </p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Pagination + actions */}
+        <div className="flex items-center justify-between p-5 border-t border-slate-700 flex-shrink-0 gap-3 flex-wrap">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPage((p) => p - 1)}
+              disabled={page === 0}
+              className="px-3 py-1.5 rounded-lg text-sm border border-slate-700 text-slate-300 disabled:opacity-40 hover:bg-slate-800 transition-colors"
+            >
+              Previous
+            </button>
+            <span className="text-xs text-slate-500">
+              {page + 1} / {totalPages} pages · {rows.length} total
+            </span>
+            <button
+              onClick={() => setPage((p) => p + 1)}
+              disabled={page >= totalPages - 1}
+              className="px-3 py-1.5 rounded-lg text-sm border border-slate-700 text-slate-300 disabled:opacity-40 hover:bg-slate-800 transition-colors"
+            >
+              Next
+            </button>
+          </div>
+          <div className="flex gap-3">
+            <button
+              onClick={onCancel}
+              disabled={uploading}
+              className="px-4 py-2 rounded-xl border border-slate-700 text-slate-300 hover:bg-slate-800 text-sm font-medium transition-colors disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={onConfirm}
+              disabled={uploading}
+              className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 active:scale-95"
+            >
+              {uploading ? (
+                <>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                  Uploading…
+                </>
+              ) : (
+                <>Confirm & Upload {rows.length} Questions</>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ImportsPage() {
   const [imports, setImports] = useState<ImportEntry[]>([]);
   const [total, setTotal] = useState(0);
@@ -40,6 +224,12 @@ export default function ImportsPage() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadResult, setUploadResult] = useState<{ success: boolean; message: string; details?: string } | null>(null);
+
+  // Preview state
+  const [previewRows, setPreviewRows] = useState<ParsedRow[] | null>(null);
+  const [previewFilename, setPreviewFilename] = useState("");
+  const [parseError, setParseError] = useState<string | null>(null);
+  const [fileLabel, setFileLabel] = useState("Click to choose CSV or JSON file");
 
   function loadImports(p = 0) {
     setLoading(true);
@@ -56,45 +246,43 @@ export default function ImportsPage() {
 
   const totalPages = Math.ceil(total / limit);
 
-  async function handleUpload() {
+  async function handleFileChange() {
     const file = fileRef.current?.files?.[0];
     if (!file) return;
-
-    setUploading(true);
+    setFileLabel(file.name);
     setUploadResult(null);
+    setParseError(null);
 
     try {
       const text = await file.text();
-      let rows: unknown[] = [];
-
-      if (file.name.endsWith(".json")) {
-        rows = JSON.parse(text);
-      } else {
-        // CSV parse
-        const lines = text.trim().split("\n");
-        const headers = lines[0].split(",").map((h) => h.trim().replace(/^"|"$/g, ""));
-        rows = lines.slice(1).map((line) => {
-          // Handle quoted CSV values
-          const values: string[] = [];
-          let current = "";
-          let inQuotes = false;
-          for (const ch of line) {
-            if (ch === '"') { inQuotes = !inQuotes; }
-            else if (ch === "," && !inQuotes) { values.push(current); current = ""; }
-            else { current += ch; }
-          }
-          values.push(current);
-          return Object.fromEntries(headers.map((h, i) => [h, values[i]?.trim() ?? ""]));
-        });
+      const rows = parseFile(file, text);
+      if (!Array.isArray(rows) || rows.length === 0) {
+        setParseError("File parsed to an empty list. Check the format.");
+        return;
       }
+      setPreviewRows(rows);
+      setPreviewFilename(file.name);
+    } catch (e) {
+      setParseError(`Failed to parse file: ${(e as Error).message}`);
+    }
+  }
 
+  async function handleConfirmUpload() {
+    const file = fileRef.current?.files?.[0];
+    if (!file || !previewRows) return;
+
+    setUploading(true);
+
+    try {
       const res = await fetch("/api/admin/imports", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ filename: file.name, rows }),
+        body: JSON.stringify({ filename: file.name, rows: previewRows }),
       });
 
       const data = await res.json();
+
+      setPreviewRows(null);
 
       if (res.ok) {
         setUploadResult({
@@ -103,13 +291,14 @@ export default function ImportsPage() {
           details: data.errors?.length > 0 ? `${data.errors.length} rows had errors and were skipped.` : undefined,
         });
         if (fileRef.current) fileRef.current.value = "";
+        setFileLabel("Click to choose CSV or JSON file");
         loadImports(0);
         setPage(0);
       } else {
         setUploadResult({ success: false, message: `❌ ${data.error ?? "Upload failed."}` });
       }
     } catch (e) {
-      setUploadResult({ success: false, message: `❌ Failed to parse file: ${(e as Error).message}` });
+      setUploadResult({ success: false, message: `❌ Upload failed: ${(e as Error).message}` });
     } finally {
       setUploading(false);
     }
@@ -127,6 +316,16 @@ export default function ImportsPage() {
 
   return (
     <div className="space-y-8">
+      {previewRows && (
+        <PreviewModal
+          rows={previewRows}
+          filename={previewFilename}
+          onConfirm={handleConfirmUpload}
+          onCancel={() => setPreviewRows(null)}
+          uploading={uploading}
+        />
+      )}
+
       <div>
         <h1 className="text-3xl font-bold tracking-tight mb-2">Imports</h1>
         <p className="text-slate-400">Upload question banks via CSV or JSON.</p>
@@ -153,32 +352,28 @@ export default function ImportsPage() {
         <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
           <label className="flex-1 flex items-center gap-3 px-4 py-3 border-2 border-dashed border-slate-600 hover:border-indigo-500 rounded-xl cursor-pointer transition-colors min-h-[52px]">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400 flex-shrink-0"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
-            <span className="text-sm text-slate-400 truncate">
-              {fileRef.current?.files?.[0]?.name ?? "Click to choose CSV or JSON file"}
-            </span>
+            <span className="text-sm text-slate-400 truncate">{fileLabel}</span>
             <input
               ref={fileRef}
               type="file"
               accept=".csv,.json"
               className="sr-only"
-              onChange={() => setUploadResult(null)}
+              onChange={handleFileChange}
             />
           </label>
           <button
-            onClick={handleUpload}
-            disabled={uploading}
-            className="px-5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-95"
+            onClick={() => fileRef.current?.click()}
+            className="px-5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition-all flex items-center justify-center gap-2 active:scale-95"
           >
-            {uploading ? (
-              <>
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-                Uploading…
-              </>
-            ) : (
-              "Upload"
-            )}
+            Preview & Upload
           </button>
         </div>
+
+        {parseError && (
+          <div className="px-4 py-3 rounded-xl text-sm bg-red-900/30 border border-red-700 text-red-400">
+            {parseError}
+          </div>
+        )}
 
         {uploadResult && (
           <div className={`px-4 py-3 rounded-xl text-sm ${uploadResult.success ? "bg-emerald-900/30 border border-emerald-700 text-emerald-400" : "bg-red-900/30 border border-red-700 text-red-400"}`}>

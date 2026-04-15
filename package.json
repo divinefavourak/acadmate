@@ -32,6 +32,7 @@
     "next-auth": "^5.0.0-beta.25",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "react-katex": "^3.1.0",
     "zod": "^3.24.2"
   },
   "devDependencies": {
@@ -40,6 +41,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/react-katex": "^3.0.4",
     "eslint": "^9",
     "eslint-config-next": "16.2.3",
     "prisma": "^6.6.0",
