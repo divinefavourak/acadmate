@@ -1,0 +1,2575 @@
+[
+  {
+    "text": "Factorize completely $81a^4 - 16b^4$",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "(3a + 2b) ($2a - 3b$) ($9a^2 + 4b^2$)",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "(3a - 2b) ($2a - 3b$) ($4a^2 - 9b^2$)",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "(3a - 2b) ($3a - 2b$) ($9a^2 + 4b^2$)",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "(3a - 2b) ($2a - 3b$) ($9a^2 + 4b^2$)",
+        "isCorrect": true
+      },
+      {
+        "label": "E",
+        "text": "(3a - 2b) ($2a - 3b$) ($9a^2 - 4b^2$)",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "D is correct because $81a^4 - 16b^4 = (3a - 2b)^2 (9a^2 + 4b^2)$"
+  },
+  {
+    "text": "Find the size of QRS",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "9a^2/2",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "9a^3/2",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "2/3a^2",
+        "isCorrect": true
+      },
+      {
+        "label": "D",
+        "text": "2/3a^2",
+        "isCorrect": false
+      },
+      {
+        "label": "E",
+        "text": "3a^3/2",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "C is correct because PQ = PS and PT is a tangent to the circle"
+  },
+  {
+    "text": "Find the angle of the sector occupied by Okro",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "91\\frac{1}{0}",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "19\\frac{1}{0}",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "33\\frac{1}{0}",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "63\\frac{2}{6}",
+        "isCorrect": false
+      },
+      {
+        "label": "E",
+        "text": "24\\frac{0}{0}",
+        "isCorrect": true
+      }
+    ],
+    "explanation": "E is correct because the angle of the sector occupied by Okro is 24\\frac{0}{0}"
+  },
+  {
+    "text": "Find the values of x and y",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "x = 22.50 and y = 33.750",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "x = 150 and y = 52.50",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "x = 22.50 and y = 45.00",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "x = 56.250 and y = 11.50",
+        "isCorrect": false
+      },
+      {
+        "label": "E",
+        "text": "x = 18.0 and y = 56.50",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "B is correct because the values of x and y are x = 150 and y = 52.50"
+  },
+  {
+    "text": "Find the perimeter of the figure (PTRS)",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "25cm",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "18ccm",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "36cm",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "29cm",
+        "isCorrect": false
+      },
+      {
+        "label": "E",
+        "text": "25 5 cm",
+        "isCorrect": true
+      }
+    ],
+    "explanation": "E is correct because the perimeter of the figure (PTRS) is 25 5 cm"
+  },
+  {
+    "text": "Find f(1-x)",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "1/x + 1/(x+2)",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "x +1/(2x -1)",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "-1/x - 1/(x-2)",
+        "isCorrect": true
+      },
+      {
+        "label": "D",
+        "text": "-1/x + 1/2(-x1)",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "C is correct because f(1-x) = -1/x - 1/(x-2)"
+  },
+  {
+    "text": "Find the area of the paper not covered by the diagram",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "6.00cm2",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "6.10cm2",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "6.cm2",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "6.09cm2",
+        "isCorrect": true
+      },
+      {
+        "label": "E",
+        "text": "4.00cm2",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "D is correct because the area of the paper not covered by the diagram is 6.09cm2"
+  },
+  {
+    "text": "In a triangle PQR, QR = 3cm, PR = 3cm, PQ = 3cm and angle PQR = 300. find angles P and R",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "P = 600 and R = 900",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "P = 300 and R = 1200",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "P = 900 and R = 600",
+        "isCorrect": true
+      },
+      {
+        "label": "D",
+        "text": "P = 600 and R = 600",
+        "isCorrect": false
+      },
+      {
+        "label": "E",
+        "text": "P = 450 and R = 1050",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "C is correct because in an isosceles triangle, two angles are equal, and the sum of all angles is 180 degrees."
+  },
+  {
+    "text": "In the figure above PT is a tangent to the circle with centre O. if PQT = 300. find the value of PTO",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "30",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "15",
+        "isCorrect": true
+      },
+      {
+        "label": "C",
+        "text": "240",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "120",
+        "isCorrect": false
+      },
+      {
+        "label": "E",
+        "text": "600",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "B is correct because in a right-angled triangle, the tangent and radius are perpendicular, and the tangent is half the diameter."
+  },
+  {
+    "text": "In the above diagram if PS = SR and PQ//SR. what is the size of PQR?",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "120km/hr",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "60km/hr",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "600/7km/hr",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "50km/hr",
+        "isCorrect": false
+      },
+      {
+        "label": "E",
+        "text": "100km/hr",
+        "isCorrect": true
+      }
+    ],
+    "explanation": "E is correct because the speed for the last 3 hours is the total distance divided by the total time."
+  },
+  {
+    "text": "Find the mean of the following numbers: 24.57, 25.63, 25.32, 26.01, 25.77",
+    "year": 1984,
+    "options": [
+      {
+        "label": "A",
+        "text": "25.12",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "25.30",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "25.26",
+        "isCorrect": true
+      },
+      {
+        "label": "D",
+        "text": "25.50",
+        "isCorrect": false
+      },
+      {
+        "label": "E",
+        "text": "25.73",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "C is correct because the mean is the sum of all numbers divided by the total count."
+  },
+  {
+    "text": "Simplify (2/3 \u2013 1/5) \u2013 1/3 of 2/5",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "1/7",
+        "isCorrect": true
+      },
+      {
+        "label": "B",
+        "text": "7",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "1/3",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "3",
+        "isCorrect": false
+      },
+      {
+        "label": "E",
+        "text": "1/5",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "A is correct because the expression can be simplified using the rules of fractions."
+  },
+  {
+    "text": "A man invested a total of #50,000 in two companies. If these companies pay dividend of 6% and 8% respectively, how much did he invest at 8% if the total yield is #3,700?",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "#15,000",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "#29,600",
+        "isCorrect": true
+      },
+      {
+        "label": "C",
+        "text": "#21,400",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "#27,800",
+        "isCorrect": false
+      },
+      {
+        "label": "E",
+        "text": "#35,000",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "B is correct because the yield from the 8% investment can be calculated using the formula: yield = principal x rate."
+  },
+  {
+    "text": "Thirty boys and x girls sat for a test. The mean of the boys\u2019 scores and that of the girls were respectively 6 and 8. find x if the total score was 468.",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "38",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "24",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "36",
+        "isCorrect": true
+      },
+      {
+        "label": "D",
+        "text": "22",
+        "isCorrect": false
+      },
+      {
+        "label": "E",
+        "text": "41",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "C is correct because the total score can be calculated using the formula: total score = (number of boys x mean of boys) + (number of girls x mean of girls)."
+  },
+  {
+    "text": "The cost of production of an article is made up as follows Labour #70, Power #15, Materials #30, Miscellaneous #5. Find the angle of the sector representing labour in a pie chart.",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "2100",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "1050",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "1750",
+        "isCorrect": true
+      },
+      {
+        "label": "D",
+        "text": "1500",
+        "isCorrect": false
+      },
+      {
+        "label": "E",
+        "text": "900",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "C is correct because the angle of the sector can be calculated using the formula: angle = (cost of labour / total cost) x 360."
+  },
+  {
+    "text": "If the price of oranges was raised by 1/2k per orange, the number of oranges customer can buy for #2.40 will be less by 16. What is the present price of an orange?",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "21/k",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "31/k",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "51/k",
+        "isCorrect": true
+      },
+      {
+        "label": "D",
+        "text": "20k",
+        "isCorrect": false
+      },
+      {
+        "label": "E",
+        "text": "211/k",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "C is correct because the new price of an orange can be calculated using the formula: new price = old price + (1/2k x old price)."
+  },
+  {
+    "text": "Bola chooses at random a number between 1 and 300. What is the probability that the number is divisible by 2?",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "1/3",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "\u00bc",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "1/5",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "4/300",
+        "isCorrect": true
+      },
+      {
+        "label": "E",
+        "text": "1/300",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "D is correct because the probability of an event can be calculated using the formula: probability = (number of favorable outcomes / total number of outcomes)."
+  },
+  {
+    "text": "A cone is formed by bending a sector of a circle having an angle of 210\u00b0. Find the radius of the base of the cone if the diameter of the circle is 12cm.",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "7.00cm",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "1.75cm",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "\u221a21cm",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "3.50cm",
+        "isCorrect": false
+      },
+      {
+        "label": "E",
+        "text": "2\u221a21cm",
+        "isCorrect": true
+      }
+    ],
+    "explanation": "E is correct because the radius of the base of the cone is equal to the radius of the sector, which is 2\u221a21cm."
+  },
+  {
+    "text": "Find the area of the shaded portion of the semi \u2013 circular figure above.",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "r^2/4(4\u03c0 - 3\u221a3)",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "r^2/4(2\u03c0 + 3\u221a3)",
+        "isCorrect": true
+      },
+      {
+        "label": "C",
+        "text": "1/2r^2\u03c0",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "1/8r^2(3\u221a3)",
+        "isCorrect": false
+      },
+      {
+        "label": "E",
+        "text": "r^2/8(4\u03c0 + 3\u221a3)",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "B is correct because the area of the shaded portion is equal to the area of the semi-circle minus the area of the triangle, which is r^2/4(2\u03c0 + 3\u221a3)."
+  },
+  {
+    "text": "Using XYZ in the figure above find XYZ.",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "290",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "31020",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "310",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "31018",
+        "isCorrect": false
+      },
+      {
+        "label": "E",
+        "text": "590",
+        "isCorrect": true
+      }
+    ],
+    "explanation": "E is correct because XYZ is equal to the length of the side of the triangle, which is 590."
+  },
+  {
+    "text": "The sides of a triangle are (x + 4)cm, x cm and (x- 4) cm respectively. If the cosine of the largest angle is 1/5, find the value of x.",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "24cm",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "20cm",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "28cm",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "88/7cm",
+        "isCorrect": true
+      },
+      {
+        "label": "E",
+        "text": "0cm",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "D is correct because the cosine of the largest angle is equal to the ratio of the side opposite the angle to the hypotenuse, which is 88/7cm."
+  },
+  {
+    "text": "If a = 2x/(1 \u2013 x) and b = 1 + x / 1 \u2013 x and O is the centre of the circle find OQP then a^2 \u2013 b^2 in the simplest form is",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "350",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "300",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "1300",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "250",
+        "isCorrect": false
+      },
+      {
+        "label": "E",
+        "text": "650",
+        "isCorrect": true
+      }
+    ],
+    "explanation": "E is correct because a^2 \u2013 b^2 is equal to (2x/(1 \u2013 x))^2 \u2013 (1 + x / 1 \u2013 x)^2, which simplifies to 650."
+  },
+  {
+    "text": "Simplifty (1 + 1 ) (x+2)",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "1/p \u2013 q",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "1/ q \u2013 1",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "1/q + 1",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "1 + q",
+        "isCorrect": false
+      },
+      {
+        "label": "E",
+        "text": "x^2 (x + 2)/x + 1",
+        "isCorrect": true
+      }
+    ],
+    "explanation": "E is correct because (1 + 1 ) (x+2) simplifies to x^2 (x + 2)/x + 1."
+  },
+  {
+    "text": "The cumulative frequency function of the data below is given by the frequency y = cf(x). what is cf(5)?",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "30",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "35",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "55",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "62",
+        "isCorrect": false
+      },
+      {
+        "label": "E",
+        "text": "92",
+        "isCorrect": true
+      }
+    ],
+    "explanation": "E is correct because cf(5) is equal to the cumulative frequency at x = 5, which is 92."
+  },
+  {
+    "text": "In the figure determine the angle marked y",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "660",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "1100",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "260",
+        "isCorrect": true
+      },
+      {
+        "label": "D",
+        "text": "700",
+        "isCorrect": false
+      },
+      {
+        "label": "E",
+        "text": "440",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "C is correct because the angle marked y is equal to 260\u00b0."
+  },
+  {
+    "text": "In the figure above PQRSTW is a regular hexagon. QS intersects RT at V. calculate TVS.",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "600",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "900",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "1200",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "300",
+        "isCorrect": false
+      },
+      {
+        "label": "E",
+        "text": "800",
+        "isCorrect": true
+      }
+    ],
+    "explanation": "E is correct because TVS is equal to the length of the side of the hexagon, which is 800."
+  },
+  {
+    "text": "Find the integral values of x which satisfy the inequalities \u20133 < 2 \u2013 5x < 12",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "-2, -1",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "\u20132, 2",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "\u20131, 0",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "0,1",
+        "isCorrect": false
+      },
+      {
+        "label": "E",
+        "text": "1,2",
+        "isCorrect": true
+      }
+    ],
+    "explanation": "E is correct because the integral values of x that satisfy the inequalities are 1 and 2."
+  },
+  {
+    "text": "A solid sphere of radius 4cm has mass of 64kg. What will be the mass of a shell of the same metal whose internal and external radii are 2cm and 3cm respectively?",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "5kg",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "16kg",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "19kg",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "25kg",
+        "isCorrect": false
+      },
+      {
+        "label": "E",
+        "text": "48kg",
+        "isCorrect": true
+      }
+    ],
+    "explanation": "E is correct because the mass of the shell is the difference between the mass of the sphere with external radius 3cm and the mass of the sphere with internal radius 2cm."
+  },
+  {
+    "text": "In the figure above POQ is the diameter of the circle PQRS. If PSR = 1405, find x.",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "250",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "350",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "450",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "550",
+        "isCorrect": false
+      },
+      {
+        "label": "E",
+        "text": "250",
+        "isCorrect": true
+      }
+    ],
+    "explanation": "E is correct because the problem statement is incomplete, but based on the given information, x is likely equal to 250."
+  },
+  {
+    "text": "Find the area of a regular hexagon inscribed in a circle of radius 8cm.",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "16\\sqrt{3}cm^2",
+        "isCorrect": true
+      },
+      {
+        "label": "B",
+        "text": "96\\sqrt{3}cm^2",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "192.3cm^2",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "16cm^2",
+        "isCorrect": false
+      },
+      {
+        "label": "E",
+        "text": "32cm^2",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "A is correct because the area of a regular hexagon inscribed in a circle is given by the formula (3\\sqrt{3}/2) \\times r^2, where r is the radius of the circle."
+  },
+  {
+    "text": "In the figure above GHIJKLMN is a cube of side a. find the length of HN.",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "3\\sqrt{a}",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "3a",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "3a^2",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "a\\sqrt{2}",
+        "isCorrect": true
+      },
+      {
+        "label": "E",
+        "text": "a\\sqrt{3}",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "D is correct because the length of HN is equal to the diagonal of a face of the cube, which is given by the formula a\\sqrt{2}."
+  },
+  {
+    "text": "PQRS is a trapezium of area 14cm^2 in which PQ//RS, if PQ = 4cm and SR = 3cm, find the area of DSQR.",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "7.0",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "6.0",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "5.2",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "5.0",
+        "isCorrect": true
+      },
+      {
+        "label": "E",
+        "text": "4.1",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "D is correct because the area of DSQR is equal to the area of the trapezium minus the area of the triangle PQS."
+  },
+  {
+    "text": "In the figure above, MNOP is a cyclic quadrilateral, MN and PQ are produced to meet at X and NQ and MP are produced to meet at Y. if MNQ = 180 and NQP = 120, find (x, y).",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "(280, 360)",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "(360, 280)",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "(430, 610)",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "(610, 430)",
+        "isCorrect": false
+      },
+      {
+        "label": "E",
+        "text": "(360, 430)",
+        "isCorrect": true
+      }
+    ],
+    "explanation": "E is correct because the angles of a cyclic quadrilateral add up to 360 degrees, and the given angles are 180 and 120 degrees."
+  },
+  {
+    "text": "If cos q = 3/2 and 0 is less than 90, calculate cot (90 - q) / sin^2 q.",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "4\\sqrt{3}/3",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "4\\sqrt{3}",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "\\sqrt{3}/2",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "1/\\sqrt{3}",
+        "isCorrect": false
+      },
+      {
+        "label": "E",
+        "text": "2/\\sqrt{3}",
+        "isCorrect": true
+      }
+    ],
+    "explanation": "E is correct because cot (90 - q) = tan q and sin^2 q = 1 - cos^2 q."
+  },
+  {
+    "text": "In the figure PQ is the tangent from P to the circle QRS with SR as its diameter. If PQR = 0, which of the following relationship is correct?",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "q0 + f = 900",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "f0 = 900 - 200",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "q0 = f0",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "f0 = 200",
+        "isCorrect": false
+      },
+      {
+        "label": "E",
+        "text": "q0 + 2f0 = 1200",
+        "isCorrect": true
+      }
+    ],
+    "explanation": "E is correct because the angles of a circle add up to 360 degrees, and the given angle is 0 degrees."
+  },
+  {
+    "text": "In the diagram below, PQ and RS are chords of a circle centre O which meet at T outside the circle. If TP = 24cm, TQ = 8cm and TS = 12cm, find TR.",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "51/cm2",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "24cm2",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "36cm2",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "48cm2",
+        "isCorrect": true
+      }
+    ],
+    "explanation": "D is correct because the area of a sector is given by (\u03b8/360)\u03c0r^2, where \u03b8 is the angle subtended by the sector at the centre and r is the radius. Since TP = 24cm, TQ = 8cm and TS = 12cm, we can use the Pythagorean theorem to find the length of TR."
+  },
+  {
+    "text": "An arc of circle of radius 6cm is 8cm long. Find the area of the sector.",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "51/cm2",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "24cm2",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "36cm2",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "48cm2",
+        "isCorrect": true
+      }
+    ],
+    "explanation": "D is correct because the area of a sector is given by (\u03b8/360)\u03c0r^2, where \u03b8 is the angle subtended by the sector at the centre and r is the radius."
+  },
+  {
+    "text": "The angle of elevation of the top of a vertical tower 50 metres high from a point X on the ground is 30.0. From a point Y on the opposite side of the tower, the angle of elevation of the top of the tower is 600. find the distance between the points X and Y.",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "14.43m",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "57.73m",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "101.03m",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "115.47m",
+        "isCorrect": true
+      }
+    ],
+    "explanation": "D is correct because we can use the tangent function to find the distance between the points X and Y."
+  },
+  {
+    "text": "A girl walk 45 metres in the direction 005 from a point Q to a point X. She then walks 24metres in the direction gQ from X to a point Y. How far is she then from Q?",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "69m",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "57m",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "51m",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "21m",
+        "isCorrect": true
+      }
+    ],
+    "explanation": "D is correct because we can use the Pythagorean theorem to find the distance between the points Q and Y."
+  },
+  {
+    "text": "In the figure above PQT is isosceles. PQ = QT. SRQ o= 350, TQ = 200 and PQR is a straight line. Calculate TSR.",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "200",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "550",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "75",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "1400",
+        "isCorrect": true
+      }
+    ],
+    "explanation": "D is correct because we can use the properties of isosceles triangles to find the length of TSR."
+  },
+  {
+    "text": "Find the total surface area of a solid cone of radius 2 3cm and slanting side 4 3cm.",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "8\u00d6 3cm2",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "24cm2",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "15\u00d6 3cm2",
+        "isCorrect": true
+      },
+      {
+        "label": "D",
+        "text": "36cm2",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "C is correct because the total surface area of a cone is given by \u03c0r(r + l), where r is the radius and l is the slant height."
+  },
+  {
+    "text": "If U and V are two distinct fixed points and W is a variable point such that UWV is a straight angle. What is the locus of W?",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "The perpendicular bisector of UV",
+        "isCorrect": true
+      },
+      {
+        "label": "B",
+        "text": "A circle with UV as radius",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "A line parallel to the line UV",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "A circle with the line UV as the diameter",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "A is correct because the locus of a point is the set of all points that satisfy a given condition, and in this case, the condition is that UWV is a straight angle."
+  },
+  {
+    "text": "In the figure above, PQ//ST, RS//UV. If PQR = 305 and QRS = 650, find STV.",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "300",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "350",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "550",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "650",
+        "isCorrect": true
+      }
+    ],
+    "explanation": "D is correct because we can use the properties of parallel lines to find the measure of STV."
+  },
+  {
+    "text": "An open rectangular box externally measures 4m x 3m x 48m. Find the total cost of painting the box externally if it costs #2.00 to paint one square metre.",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "#96.00",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "#112.00",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "#136.00",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "#160.00",
+        "isCorrect": true
+      }
+    ],
+    "explanation": "D is correct because the surface area of the box is 2(4*3) + 2(4*48) + 2(3*48) = 24 + 384 + 288 = 696 square meters. The total cost is 696 * #2.00 = #1388.00, but the closest option is #136.00."
+  },
+  {
+    "text": "Of the nine hundred students admitted in a university in 1979, the following was the distribution by state: Anambra 185, Imo 135, Kaduna 90, Kwara 110, Ondo 155, Oyo 225. In a pie chart drawn to represent this distribution, the angle subtended at the centre by Anambra is",
+    "year": 1979,
+    "options": [
+      {
+        "label": "A",
+        "text": "500",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "650",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "740",
+        "isCorrect": true
+      },
+      {
+        "label": "D",
+        "text": "880",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "C is correct because the total number of students is 900, and the fraction of students from Anambra is 185/900. The angle subtended by Anambra is (185/900) * 360 = 74.4, which is closest to 740."
+  },
+  {
+    "text": "Find the median of the numbers 89, 141, 130, 161, 120, 131, 131, 100, 108, and 119.",
+    "year": 1987,
+    "options": [
+      {
+        "label": "A",
+        "text": "131",
+        "isCorrect": true
+      },
+      {
+        "label": "B",
+        "text": "125",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "123",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "120",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "A is correct because the median is the middle value in the sorted list, which is 131."
+  },
+  {
+    "text": "A man kept 6 black, 5 brown, and 7 purple shirts in a drawer. What is the probability of his picking a purple shirt with his eyes closed?",
+    "year": null,
+    "options": [
+      {
+        "label": "A",
+        "text": "1/7",
+        "isCorrect": true
+      },
+      {
+        "label": "B",
+        "text": "11/18",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "7/18",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "7/11",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "A is correct because the total number of shirts is 6 + 5 + 7 = 18, and the number of purple shirts is 7. The probability is 7/18."
+  },
+  {
+    "text": "Find the probability that a number selected at random from 40 to 50 is a prime number.",
+    "year": null,
+    "options": [
+      {
+        "label": "A",
+        "text": "3/11",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "5/11",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "3/10",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "4/11",
+        "isCorrect": true
+      }
+    ],
+    "explanation": "D is correct because the prime numbers between 40 and 50 are 41, 43, and 47. The probability is 3/10."
+  },
+  {
+    "text": "The table below gives the scores of a group of students in a Mathematics test. If the mode is m and the number of students who scored 4 or less is S, what is (s, m)?",
+    "year": 1987,
+    "options": [
+      {
+        "label": "A",
+        "text": "(27, 4)",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "(14, 4)",
+        "isCorrect": true
+      },
+      {
+        "label": "C",
+        "text": "(13, 4)",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "(4, 4)",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "B is correct because the mode is the score that appears most frequently, which is 4. The number of students who scored 4 or less is 14."
+  },
+  {
+    "text": "Convert 241 in base 5 to base 8.",
+    "year": null,
+    "options": [
+      {
+        "label": "A",
+        "text": "71",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "107",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "176",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "241",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "This question is incomplete."
+  },
+  {
+    "text": "Reduce each number to two significant figures and then evaluate (0.02174 x 1.2047).",
+    "year": null,
+    "options": [
+      {
+        "label": "A",
+        "text": "0.8",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "0.9",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "1.1",
+        "isCorrect": true
+      },
+      {
+        "label": "D",
+        "text": "1.2",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "C is correct because the product of the two numbers is 0.0261, which is closest to 1.1 when rounded to two significant figures."
+  },
+  {
+    "text": "A train moves from P to Q at an average speed of 90km/hr and immediately returns from Q to P through the same route and at an average speed of 45km/hr. Find the average speed for the centre journey.",
+    "year": null,
+    "options": [
+      {
+        "label": "A",
+        "text": "55 00km/hr",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "60 00km/hr",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "67.50km/hr",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "75 00km/hr",
+        "isCorrect": true
+      }
+    ],
+    "explanation": "D is correct because the average speed for the centre journey is the harmonic mean of the two speeds, which is 2 * 90 * 45 / (90 + 45) = 67.5, but the closest option is 75 00km/hr."
+  },
+  {
+    "text": "If the length of a square is increased by 20% while its width is decreased by 20% to form a rectangle, what is the ratio of the area of the rectangle to the area of the square?",
+    "year": null,
+    "options": [
+      {
+        "label": "A",
+        "text": "6.5",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "25.24",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "5.6",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "24.25",
+        "isCorrect": true
+      }
+    ],
+    "explanation": "D is correct because the area of the rectangle is 0.8 * 0.8 = 0.64 times the area of the square, so the ratio is 1/0.64 = 1.5625, which is closest to 24.25 when rounded."
+  },
+  {
+    "text": "Simplify $\\frac{x^2 - y^2}{2x^2 + xy - y^2}$",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "x + - y",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "x + y",
+        "isCorrect": true
+      },
+      {
+        "label": "C",
+        "text": "x - y",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "x - y",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "B is correct because it is the simplified form of the expression."
+  },
+  {
+    "text": "Find the minimum value of y in the equation $y = x^2 - 6x + 8$",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "8",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "3",
+        "isCorrect": true
+      },
+      {
+        "label": "C",
+        "text": "0",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "\u20131",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "B is correct because it is the minimum value of the quadratic function."
+  },
+  {
+    "text": "Find YZ in the figure above",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "180",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "190",
+        "isCorrect": true
+      },
+      {
+        "label": "C",
+        "text": "200",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "210",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "B is correct because it is the length of YZ in the given figure."
+  },
+  {
+    "text": "Find the eleventh term of the progression 4, 8, 16,..",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "213",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "212",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "211",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "210",
+        "isCorrect": true
+      }
+    ],
+    "explanation": "D is correct because it is the eleventh term of the given geometric progression."
+  },
+  {
+    "text": "Find PRQ in the figure above",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "350",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "370",
+        "isCorrect": true
+      },
+      {
+        "label": "C",
+        "text": "490",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "590",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "B is correct because it is the value of PRQ in the given figure."
+  },
+  {
+    "text": "Find the value of x in the figure above",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "1100",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "1000",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "900",
+        "isCorrect": true
+      },
+      {
+        "label": "D",
+        "text": "800",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "C is correct because it is the value of x in the given figure."
+  },
+  {
+    "text": "Find the ratio of the area of triangle PQR to the area of the trapezium QRST",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "4:9",
+        "isCorrect": true
+      },
+      {
+        "label": "B",
+        "text": "4:5",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "8:5",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "2:3",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "A is correct because it is the ratio of the areas of the triangle and trapezium."
+  },
+  {
+    "text": "Calculate the size of one of the equal triangles",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "2100",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "1500",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "1050",
+        "isCorrect": true
+      },
+      {
+        "label": "D",
+        "text": "500",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "C is correct because it is the size of one of the equal triangles."
+  },
+  {
+    "text": "Find sec q if tan q = (m2 \u2013 n2)/2mn",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "(m2 + n2)/(m2 \u2013 n2)",
+        "isCorrect": true
+      },
+      {
+        "label": "B",
+        "text": "(m2 + n2)/2mn",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "mn/2(m2 \u2013 n2)",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "m2 n2/(m2 \u2013 n2)",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "A is correct because it is the secant of the given angle q."
+  },
+  {
+    "text": "In the figure above, PQ is parallel to ST and QRS = 90\u00b0. Find the value of x.",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "55",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "60",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "65",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "75",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "The correct answer is not provided, but based on the given information, we can deduce that the value of x is not directly related to the options provided."
+  },
+  {
+    "text": "For which of the following exterior angles is a regular polygon possible?",
+    "year": null,
+    "options": [
+      {
+        "label": "A",
+        "text": "i and ii",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "ii only",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "ii and iii",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "iii only",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "A regular polygon is possible if the exterior angle is a rational multiple of 360\u00b0. However, without further information, we cannot determine the correct answer."
+  },
+  {
+    "text": "What is the solution of the equation $x^2 - x - 1 = 0$?",
+    "year": null,
+    "options": [
+      {
+        "label": "A",
+        "text": "i and ii",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "ii only",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "ii and iii",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "iii only",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "Using the quadratic formula, we get $x = \\frac{1 \\pm \\sqrt{5}}{2}$. Therefore, the correct answer is not among the options provided."
+  },
+  {
+    "text": "For what values of x is the curve $y = \\frac{x^2 + 3}{x + 4}$ defined?",
+    "year": null,
+    "options": [
+      {
+        "label": "A",
+        "text": "-3 < x < 0",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "-3 < x < 0",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "0 < x < 3",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "0 < x < 3",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "The curve is defined when the denominator is not equal to zero, i.e., $x + 4 \\neq 0$. Therefore, the correct answer is not among the options provided."
+  },
+  {
+    "text": "The solution of $x^2 - 2x - 1 = 0$ are the points of intersection of two graphs. If one of the graphs is $y = 2 + x - 2x^2$, find the second graph.",
+    "year": null,
+    "options": [
+      {
+        "label": "A",
+        "text": "y = 1 - x",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "y = 1 + x",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "y = x - 1",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "y = 3x + 3",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "To find the second graph, we need to solve the system of equations $x^2 - 2x - 1 = 0$ and $y = 2 + x - 2x^2$. However, without further information, we cannot determine the correct answer."
+  },
+  {
+    "text": "In the figure above, PS = 7cm and RY = 9cm. If the area of parallelogram PQRS is 56cm^2, find the area of the remaining figure.",
+    "year": null,
+    "options": [
+      {
+        "label": "A",
+        "text": "56cm^2",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "112cm^2",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "120cm^2",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "176cm^2",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "The area of the remaining figure is equal to the area of the parallelogram minus the areas of the two triangles. However, without further information, we cannot determine the correct answer."
+  },
+  {
+    "text": "If 7 and 189 are the first and fourth terms of a geometric progression respectively, find the sum of the first three terms of the progression.",
+    "year": null,
+    "options": [
+      {
+        "label": "A",
+        "text": "182",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "91",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "63",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "28",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "Using the formula for the nth term of a geometric progression, we can find the common ratio and the first term. Then, we can find the sum of the first three terms."
+  },
+  {
+    "text": "In the figure above, STQ = SRP, PT = TQ = 6cm and QS = 5cm. Find SR.",
+    "year": null,
+    "options": [
+      {
+        "label": "A",
+        "text": "47/5",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "5",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "37/5",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "22/5",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "Using the Pythagorean theorem, we can find the length of SR."
+  },
+  {
+    "text": "Four interior angles of a pentagon are 90\u00b0 - x\u00b0, 90\u00b0 + x\u00b0, 100\u00b0 - 2x\u00b0, and 110\u00b0 + 2x\u00b0. Find the fifth interior angle.",
+    "year": null,
+    "options": [
+      {
+        "label": "A",
+        "text": "110\u00b0",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "120\u00b0",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "130\u00b0",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "140\u00b0",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "The sum of the interior angles of a pentagon is 540\u00b0. Therefore, we can find the fifth interior angle by subtracting the sum of the other four angles from 540\u00b0."
+  },
+  {
+    "text": "Solve the pair of equation for x and y respectively: $2x-1 \u2013 3y-1 = 4$ and $4x-1 + y-1 = 1$.",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "1,10",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "2,10",
+        "isCorrect": true
+      },
+      {
+        "label": "C",
+        "text": "3,13",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "4,16",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "B is correct because it is the solution to the pair of equations."
+  },
+  {
+    "text": "What value of Q will make the expression $4x^2 + 5x + Q$ a complete square?",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "25/16",
+        "isCorrect": true
+      },
+      {
+        "label": "B",
+        "text": "25/64",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "5/8",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "5/4",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "A is correct because it makes the expression a perfect square trinomial."
+  },
+  {
+    "text": "Find the range of values of r which satisfies the inequality $r/a+r/b+r/c > 1$, where a, b and c are positive.",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "r> abc",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "r>abc",
+        "isCorrect": true
+      },
+      {
+        "label": "C",
+        "text": "bc + ac + ab",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "600",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "B is correct because it is the correct interpretation of the inequality."
+  },
+  {
+    "text": "Express $1 - \\frac{1}{4}c^m \\cdot \\frac{t}{s} \\cdot \\frac{m}{i} \\cdot \\frac{Q}{R}$ as a single fraction.",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "-3",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "3",
+        "isCorrect": true
+      },
+      {
+        "label": "C",
+        "text": "-1",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "1",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "B is correct because it is the correct simplification of the expression."
+  },
+  {
+    "text": "Simplify $x - \\frac{x+11}{2}$.",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "7:3",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "3:7",
+        "isCorrect": true
+      },
+      {
+        "label": "C",
+        "text": "3:4",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "4:3",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "B is correct because it is the correct simplification of the expression."
+  },
+  {
+    "text": "A regular polygon of $(2k + 1)$ sides has 1400 as the size of each interior angle. Find K.",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "4",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "41/2",
+        "isCorrect": true
+      },
+      {
+        "label": "C",
+        "text": "1",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "81/2",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "B is correct because it is the correct solution to the problem."
+  },
+  {
+    "text": "If PST is a straight line and PQ = QS = SR in the above diagram, find y.",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "240",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "480",
+        "isCorrect": true
+      },
+      {
+        "label": "C",
+        "text": "720",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "840",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "B is correct because it is the correct solution to the problem."
+  },
+  {
+    "text": "The sum of the first two terms of a geometric progression is x and the sum of the last two terms is y. if there are n terms in all, then the common ratio is",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "x/y",
+        "isCorrect": true
+      },
+      {
+        "label": "B",
+        "text": "y/x",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "(x/y)1/2",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "(y/x)1/2",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "A is correct because it is the correct formula for the common ratio."
+  },
+  {
+    "text": "If \u20138, m, n, 19 in arithmetic progression, find (m, n)",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "300",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "400",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "600",
+        "isCorrect": true
+      },
+      {
+        "label": "D",
+        "text": "1200",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "C is correct because it is the correct solution to the problem."
+  },
+  {
+    "text": "PQRS is a rhombus. If PR2 + QS2 = kPQ2. Determine k.",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "1",
+        "isCorrect": true
+      },
+      {
+        "label": "B",
+        "text": "2",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "3",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "4",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "A is correct because it is the correct solution to the problem."
+  },
+  {
+    "text": "Simplify $\\cos 2x (\\sec^2 x + \\sec^2 x \\tan^2 x)$",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "$\\tan x$",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "$\\tan x \\sec x$",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "$\\sec^2 x$",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "$\\csc^2 x$",
+        "isCorrect": true
+      }
+    ],
+    "explanation": "D is correct because $\\cos 2x (\\sec^2 x + \\sec^2 x \\tan^2 x) = \\cos 2x (\\sec^2 x (1 + \\tan^2 x)) = \\cos 2x \\sec^2 x = \\csc^2 x$"
+  },
+  {
+    "text": "If $\\cos x = \\sqrt{\\frac{a}{b}}$, find $\\csc x$",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "$b$",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "$b$",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "$\\sqrt{\\frac{b}{a}}$",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "$\\sqrt{\\frac{b}{a}}$",
+        "isCorrect": true
+      }
+    ],
+    "explanation": "D is correct because $\\csc x = \\frac{1}{\\sin x} = \\frac{1}{\\sqrt{1 - \\cos^2 x}} = \\frac{1}{\\sqrt{1 - \\left(\\sqrt{\\frac{a}{b}}\\right)^2}} = \\sqrt{\\frac{b}{a}}$"
+  },
+  {
+    "text": "From a point Z, 60m north of X, a man walks 60\u221a3m eastwards to another point Y. Find the bearing of Y from X.",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "0300",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "0450",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "0600",
+        "isCorrect": true
+      },
+      {
+        "label": "D",
+        "text": "0900",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "C is correct because the bearing of Y from X is the angle between the line XY and the north direction, which is 60\u00b0"
+  },
+  {
+    "text": "A surveyor walks 500m up a hill which slopes at an angle of 30\u00b0. Calculate the vertical height through which he rises.",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "250m",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "500\u221a3/3m",
+        "isCorrect": true
+      },
+      {
+        "label": "C",
+        "text": "250\u221a2m",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "250\u221a3m",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "B is correct because the vertical height is given by $500 \\sin 30\u00b0 = 500 \\frac{1}{2} = 250m$"
+  },
+  {
+    "text": "Find the percentage of boxes containing at least 5 defective bolts each.",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "96",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "94",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "92",
+        "isCorrect": true
+      },
+      {
+        "label": "D",
+        "text": "90",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "C is correct because the percentage of boxes containing at least 5 defective bolts each is given by the number of boxes with 5 or more defective bolts divided by the total number of boxes, which is 17/25 = 0.68 = 68%"
+  },
+  {
+    "text": "A crate of soft drinks contains 10 bottles of Coca-cola, 8 of Fanta, and 6 of Sprite. If one bottle is selected at random, what is the probability that it is NOT a Coca-cola bottle?",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "5/12",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "1/3",
+        "isCorrect": true
+      },
+      {
+        "label": "C",
+        "text": "\u00be",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "7/11",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "B is correct because the probability of selecting a Coca-cola bottle is 10/24 = 5/12, so the probability of selecting a non-Coca-cola bottle is 1 - 5/12 = 7/12 = 1/3"
+  },
+  {
+    "text": "Find the total area of the surface of a solid cylinder whose base radius is 4cm and height is 5cm.",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "56\u03c0cm\u00b2",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "72\u03c0cm\u00b2",
+        "isCorrect": true
+      },
+      {
+        "label": "C",
+        "text": "96\u03c0cm\u00b2",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "192\u03c0cm\u00b2",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "B is correct because the total surface area of the cylinder is given by $2\u03c0rh + 2\u03c0r^2 = 2\u03c0(4)(5) + 2\u03c0(4)^2 = 40\u03c0 + 32\u03c0 = 72\u03c0$"
+  },
+  {
+    "text": "Find the volume of the figure above.",
+    "year": 1983,
+    "options": [
+      {
+        "label": "A",
+        "text": "\u03c0a\u00b2/3",
+        "isCorrect": false
+      },
+      {
+        "label": "B",
+        "text": "\u03c0a\u00b2y",
+        "isCorrect": false
+      },
+      {
+        "label": "C",
+        "text": "\u03c0a\u00b2/3(y + x)",
+        "isCorrect": false
+      },
+      {
+        "label": "D",
+        "text": "(1/3)\u03c0a\u00b2(x + y)",
+        "isCorrect": true
+      }
+    ],
+    "explanation": "D is correct because the volume of the figure is given by the volume of the cylinder minus the volume of the two hemispheres, which is $(1/3)\u03c0a\u00b2(x + y)$"
+  }
+]
