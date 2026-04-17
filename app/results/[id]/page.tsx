@@ -182,7 +182,7 @@ function QuestionCard({ qa, index }: { qa: QuestionAnswer; index: number }) {
                 💡 Explanation
               </p>
               <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
-                {qa.question.explanation.text}
+                <MathText text={qa.question.explanation.text} />
               </p>
             </div>
           )}
