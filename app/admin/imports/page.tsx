@@ -220,6 +220,29 @@ export default function ImportsPage() {
   const [page, setPage] = useState(0);
   const limit = 20;
 
+  // Publish state
+  const [publishingId, setPublishingId] = useState<string | null>(null);
+  const [publishResult, setPublishResult] = useState<{ id: string; success: boolean; message: string } | null>(null);
+
+  async function handlePublish(imp: ImportEntry) {
+    setPublishingId(imp.id);
+    setPublishResult(null);
+    try {
+      const res = await fetch(`/api/admin/imports/${imp.id}/publish`, { method: "POST" });
+      const data = await res.json();
+      if (res.ok) {
+        setPublishResult({ id: imp.id, success: true, message: `${data.published} questions published.` });
+        loadImports(page);
+      } else {
+        setPublishResult({ id: imp.id, success: false, message: data.error ?? "Publish failed." });
+      }
+    } catch (e) {
+      setPublishResult({ id: imp.id, success: false, message: (e as Error).message });
+    } finally {
+      setPublishingId(null);
+    }
+  }
+
   // Upload state
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -401,11 +424,17 @@ export default function ImportsPage() {
                     <th className="pb-3 font-medium">Rows</th>
                     <th className="pb-3 font-medium">Valid</th>
                     <th className="pb-3 font-medium">Errors</th>
-                    <th className="pb-3 font-medium text-right">Status</th>
+                    <th className="pb-3 font-medium">Published</th>
+                    <th className="pb-3 font-medium text-right">Status / Action</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {imports.map((imp, i) => (
+                  {imports.map((imp, i) => {
+                    const isFullyPublished = imp.publishedRows >= imp.validRows && imp.validRows > 0;
+                    const isPublishing = publishingId === imp.id;
+                    const canPublish = imp.status === "DONE" && !isFullyPublished;
+                    const thisResult = publishResult?.id === imp.id ? publishResult : null;
+                    return (
                     <tr
                       key={imp.id}
                       className={`${i < imports.length - 1 ? "border-b border-slate-800" : ""} hover:bg-slate-800/50 transition-colors`}
@@ -413,18 +442,55 @@ export default function ImportsPage() {
                       <td className="py-3">
                         <p className="font-medium text-white">{imp.filename}</p>
                         <p className="text-xs text-slate-500">{imp.uploadedBy.name ?? imp.uploadedBy.email}</p>
+                        {thisResult && (
+                          <p className={`text-xs mt-0.5 ${thisResult.success ? "text-emerald-400" : "text-red-400"}`}>
+                            {thisResult.message}
+                          </p>
+                        )}
                       </td>
                       <td className="py-3 text-slate-400">{formatDate(imp.createdAt)}</td>
                       <td className="py-3 text-slate-300">{imp.totalRows}</td>
                       <td className="py-3 text-emerald-400">{imp.validRows}</td>
                       <td className="py-3 text-red-400">{imp.invalidRows}</td>
+                      <td className="py-3 text-slate-300">
+                        {imp.publishedRows > 0 ? (
+                          <span className={isFullyPublished ? "text-emerald-400" : "text-amber-400"}>
+                            {imp.publishedRows}/{imp.validRows}
+                          </span>
+                        ) : (
+                          <span className="text-slate-600">—</span>
+                        )}
+                      </td>
                       <td className="py-3 text-right">
-                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${statusColors[imp.status] ?? "bg-slate-700 text-slate-400"}`}>
-                          {imp.status}
-                        </span>
+                        <div className="flex items-center justify-end gap-2">
+                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${statusColors[imp.status] ?? "bg-slate-700 text-slate-400"}`}>
+                            {imp.status}
+                          </span>
+                          {canPublish && (
+                            <button
+                              onClick={() => handlePublish(imp)}
+                              disabled={isPublishing}
+                              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {isPublishing ? (
+                                <>
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                                  Publishing…
+                                </>
+                              ) : "Publish"}
+                            </button>
+                          )}
+                          {isFullyPublished && (
+                            <span className="inline-flex items-center gap-1 text-xs text-emerald-400 font-medium">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                              Live
+                            </span>
+                          )}
+                        </div>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
