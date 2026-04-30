@@ -1,36 +1,82 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Acadmate Business Consult
+
+Nigeria's JAMB CBT practice platform — timed mock exams, 8,600+ past questions (1978–2024), AI-powered explanations, and a literature guide for UTME prose texts.
+
+## Tech Stack
+
+- **Framework**: Next.js 15 (App Router)
+- **Database**: PostgreSQL via Prisma ORM
+- **Auth**: NextAuth v5
+- **AI**: Anthropic Claude SDK, Google Generative AI, Groq SDK
+- **Storage**: Cloudinary
+- **Analytics**: Vercel Analytics
+- **UI**: Tailwind CSS, Heroicons, react-katex (LaTeX rendering)
 
 ## Getting Started
 
-First, run the development server:
+### 1. Install dependencies
+
+```bash
+npm install
+```
+
+### 2. Set up environment variables
+
+Copy `.env.example` to `.env` (or create `.env`) and fill in:
+
+```env
+DATABASE_URL=
+NEXTAUTH_SECRET=
+NEXTAUTH_URL=
+
+ANTHROPIC_API_KEY=
+GOOGLE_GENERATIVE_AI_API_KEY=
+GROQ_API_KEY=
+
+CLOUDINARY_CLOUD_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
+```
+
+### 3. Set up the database
+
+```bash
+npm run db:migrate       # run migrations
+npm run db:seed          # seed base data
+npm run db:seed:jamb     # seed JAMB past questions
+```
+
+### 4. Run the development server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Key Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Script | Description |
+|---|---|
+| `npm run dev` | Start dev server (binds to 0.0.0.0) |
+| `npm run build` | Generate Prisma client + build |
+| `npm run db:generate` | Regenerate Prisma client |
+| `npm run db:migrate` | Run database migrations |
+| `npm run db:push` | Push schema without migration |
+| `npm run db:studio` | Open Prisma Studio |
+| `npm run db:seed` | Seed base data |
+| `npm run db:seed:jamb` | Seed JAMB questions dataset |
+| `npm run db:seed:lekki-text` | Seed Lekki Headmaster literature text |
 
-## Learn More
+## Features
 
-To learn more about Next.js, take a look at the following resources:
+- **CBT Engine** — timed 2-hour mock exams replicating the real JAMB experience
+- **Past Questions** — 8,600+ questions across 11 subjects from 1978–2024
+- **AI Explanations** — step-by-step solutions with LaTeX math rendering
+- **Analytics** — score trends, subject accuracy, weak-topic detection
+- **Literature Guide** — *The Lekki Headmaster* summaries, character analysis, predicted questions
+- **Admin Panel** — question import (CSV/JSON), publish workflow, analytics dashboard
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Deployment
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Deployed on [Vercel](https://vercel.com). Set all environment variables in the Vercel project settings before deploying.

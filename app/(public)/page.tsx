@@ -5,13 +5,23 @@ import Link from 'next/link';
 import { Analytics } from "@vercel/analytics/next"
 import Image from 'next/image';
 import MobileNav from '../components/layout/MobileNav';
+import {
+  ChatBubbleLeftRightIcon,
+  GlobeAltIcon,
+  DevicePhoneMobileIcon,
+  EnvelopeIcon,
+  BookOpenIcon,
+} from '@heroicons/react/24/outline';
 
 const landingNavItems = [
   { href: "#features", label: "Features", icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m11 17 2 2 4-4"/><path d="m11 9 2 2 4-4"/><path d="M7 17h.01"/><path d="M7 11h.01"/><path d="M7 5h.01"/><path d="M3 21h18"/><path d="M3 3h18"/></svg> },
   { href: "#subjects", label: "Subjects", icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg> },
   { href: "#prose", label: "Literature", icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg> },
 ];
-
+const footerSocials = [
+  { name: 'WhatsApp', href: 'https://wa.me/2349031843486', icon: ChatBubbleLeftRightIcon},
+  { name: 'Website', href: '/', icon: GlobeAltIcon }
+]
 export default function Home() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -21,8 +31,8 @@ export default function Home() {
 
       {/* Subtle background gradient */}
       <div className="pointer-events-none fixed inset-0 z-0">
-        <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-indigo-600/10 rounded-full blur-[120px]" />
-        <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-purple-600/10 rounded-full blur-[100px]" />
+        <div className="absolute top-0 left-1/4 w-150 h-150 bg-indigo-600/10 rounded-full blur-[120px]" />
+        <div className="absolute bottom-0 right-1/4 w-100 h-100 bg-purple-600/10 rounded-full blur-[100px]" />
       </div>
 
       {/* Nav */}
@@ -30,7 +40,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5">
             <Image src="/images/logo.jpg" alt="Acadmate" width={32} height={32} className="rounded-lg" />
-            <span className="text-lg font-bold tracking-tight">Acadmate</span>
+            <span className="text-lg font-bold tracking-tight">Acadmate Business Consult</span>
           </Link>
 
           <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-400">
@@ -44,7 +54,7 @@ export default function Home() {
               Sign In
             </Link>
             <Link href="/register" className="text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl transition-colors">
-              Start Free
+              Click here to register free
             </Link>
             <button className="md:hidden p-2 text-slate-400" onClick={() => setIsMenuOpen(true)}>
               <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
@@ -62,12 +72,12 @@ export default function Home() {
           {/* Left: copy */}
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-semibold uppercase tracking-wider mb-6">
-              🎓 Nigeria&apos;s #1 JAMB CBT Practice Platform
+              🎓 Nigeria&apos;s JAMB CBT Practice Platform
             </div>
 
             <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight leading-[1.08] mb-6">
               Ace your UTME.<br />
-              <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+              <span className="bg-linear-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
                 No guesswork.
               </span>
             </h1>
@@ -103,7 +113,7 @@ export default function Home() {
           {/* Right: real photos */}
           <div className="relative">
             {/* Main photo — exam hall */}
-            <div className="relative rounded-2xl overflow-hidden border border-white/10 shadow-2xl shadow-black/40 aspect-[4/3]">
+            <div className="relative rounded-2xl overflow-hidden border border-white/10 shadow-2xl shadow-black/40 aspect-4/3">
               <Image
                 src="/images/520596414_739489019062965_5923685459460735498_n.jpg"
                 alt="Students taking JAMB CBT exam"
@@ -111,7 +121,7 @@ export default function Home() {
                 className="object-cover"
                 priority
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+              <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent" />
               <div className="absolute bottom-4 left-4 right-4">
                 <div className="flex items-center gap-2 bg-black/60 backdrop-blur-sm rounded-xl px-4 py-2.5 border border-white/10 w-fit">
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
@@ -129,7 +139,7 @@ export default function Home() {
                 height={156}
                 className="object-cover w-full h-full"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+              <div className="absolute inset-0 bg-linear-to-t from-black/50 to-transparent" />
               <div className="absolute bottom-2 left-2 right-2 text-xs font-semibold text-white drop-shadow">
                 Practice → Confidence
               </div>
@@ -159,7 +169,7 @@ export default function Home() {
             { icon: "🎯", title: "Topic Mastery", desc: "Drill specific topics until they're perfect. Identify gaps and close them systematically.", accent: "pink" },
             { icon: "📖", title: "Literature Guide", desc: "Full summaries, character breakdowns and predicted questions for The Lekki Headmaster and other UTME prose.", accent: "cyan" },
           ].map((f, i) => (
-            <div key={i} className="group relative bg-white/[0.03] border border-white/8 hover:border-white/15 rounded-2xl p-6 transition-all hover:bg-white/[0.06]">
+            <div key={i} className="group relative bg-white/3 border border-white/8 hover:border-white/15 rounded-2xl p-6 transition-all hover:bg-white/6">
               <div className="text-3xl mb-4">{f.icon}</div>
               <h4 className="text-lg font-bold mb-2">{f.title}</h4>
               <p className="text-sm text-slate-400 leading-relaxed">{f.desc}</p>
@@ -190,7 +200,7 @@ export default function Home() {
               { name: "CRK", icon: "✝️" },
               { name: "More soon…", icon: "🔜" },
             ].map((s, i) => (
-              <div key={i} className="flex items-center gap-3 bg-white/[0.03] border border-white/8 rounded-xl p-4 hover:border-indigo-500/30 transition-colors group">
+              <div key={i} className="flex items-center gap-3 bg-white/3 border border-white/8 rounded-xl p-4 hover:border-indigo-500/30 transition-colors group">
                 <span className="text-xl">{s.icon}</span>
                 <span className="text-sm font-semibold text-slate-200 group-hover:text-white transition-colors">{s.name}</span>
               </div>
@@ -229,16 +239,16 @@ export default function Home() {
           </div>
 
           <div className="relative">
-            <div className="relative aspect-[4/3] rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
+            <div className="relative aspect-4/3 rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
               <Image
                 src="/images/520596414_739489019062965_5923685459460735498_n.jpg"
                 alt="Students in CBT exam hall"
                 fill
                 className="object-cover"
               />
-              <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/40 to-transparent" />
+              <div className="absolute inset-0 bg-linear-to-br from-emerald-900/40 to-transparent" />
             </div>
-            <div className="absolute -bottom-5 -right-5 bg-[#09090b] border border-white/10 rounded-2xl p-5 shadow-xl max-w-[220px] hidden md:block">
+            <div className="absolute -bottom-5 -right-5 bg-[#09090b] border border-white/10 rounded-2xl p-5 shadow-xl max-w-55 hidden md:block">
               <p className="text-sm font-bold text-white mb-1">90%+ Accuracy</p>
               <p className="text-xs text-slate-400">Predicting JAMB literature questions since 2022.</p>
             </div>
@@ -266,25 +276,50 @@ export default function Home() {
                 Sign In
               </Link>
             </div>
-            <p className="mt-6 text-indigo-300 text-sm">No credit card required. Start instantly.</p>
+            <p className="mt-6 text-indigo-300 text-sm">A free platform for practice Start instantly.</p>
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="relative z-10 border-t border-white/5 py-10 px-4 md:px-6">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 text-sm text-slate-500">
-          <Link href="/" className="flex items-center gap-2">
-            <Image src="/images/logo.jpg" alt="Acadmate" width={22} height={22} className="rounded" />
-            <span className="font-bold text-slate-300">Acadmate</span>
-          </Link>
-          <nav className="flex flex-wrap items-center justify-center gap-5">
-            {landingNavItems.map(item => (
-              <Link key={item.href} href={item.href} className="hover:text-slate-300 transition-colors">{item.label}</Link>
-            ))}
-            <Link href="/login" className="hover:text-slate-300 transition-colors">Sign In</Link>
-          </nav>
-          <p>© {new Date().getFullYear()} Acadmate. All rights reserved.</p>
+      <footer className="relative z-10 border-t border-white/5 py-10 px-4 md:px-6 bg-[#09090b]/80 backdrop-blur-xl">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-8">
+          {/* Left: Acadmate Brand */}
+          <div className="flex flex-col items-center md:items-start gap-4">
+            <Link href="/" className="flex items-center gap-2">
+              <Image src="/images/logo.jpg" alt="Acadmate" width={22} height={22} className="rounded" />
+              <span className="font-bold text-slate-300 text-lg">Acadmate</span>
+            </Link>
+            <p className="text-sm text-slate-500 max-w-xs text-center md:text-left">
+              Helping Nigerian students ace their UTME with confidence and passion
+            </p>
+          </div>
+
+        {/*Center: Social/Contact Icons */}
+          <div className="flex flex-col items-center gap-4">
+              <span className="text-xs font-semibold uppercase tracking-widest text-slate-600">Connect with us</span>
+              {footerSocials.map((item) => (
+                <Link 
+                  key={item.name}
+                  href={item.href}
+                  className="group flex flex-col items-center gap-2"
+                  target="_blank"
+                  >
+                    <div className="p-2.5 rounded-full bg-white/5 border border-white/5 group-hover:border-indigo-500/50 group-hover:bg-indigo-500/10 transition-all">
+                      <item.icon className="size-5 text-slate-400 group-hover:text-indigo-400 transition-colors" />
+                    </div>
+                  </Link>
+              )
+            )}
+          </div>
+          {/* Right: Copyright */}
+          <div className="flex flex-col items-center md:items-end gap-3 text-sm">
+            <nav className="flex gap-6 text-slate-500">
+              <Link href="/login" className=''></Link>
+            </nav>
+             <p>© {new Date().getFullYear()} Acadmate. All rights reserved.</p>
+          </div>
+         
         </div>
       </footer>
     </div>

@@ -1,0 +1,12 @@
+ [
+    {
+      "subject": "Mathematics",
+      "text": "Find the value of $x$ if $x^2 - 5x + 6 = 0$",
+      "optionA": "$x = 2$ or $x = 3$",
+      "optionB": "$x = 1$ or $x = 6$",
+      "optionC": "$x = -2$ or $x = -3$",
+      "optionD": "$x = 0$ or $x = 5$",
+      "correctOption": "A",
+      "explanation": "Factorising: $(x-2)(x-3)=0$, so $x=2$ or $x=3$."
+    }
+  ]
