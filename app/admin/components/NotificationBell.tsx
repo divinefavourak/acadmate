@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { apiClient } from "@/lib/api/client";
 
 export default function NotificationBell() {
   const [unreadCount, setUnreadCount] = useState(0);
@@ -10,11 +11,8 @@ export default function NotificationBell() {
 
   const fetchCount = useCallback(async () => {
     try {
-      const res = await fetch("/api/admin/notifications");
-      if (res.ok) {
-        const data = await res.json();
-        setUnreadCount(data.unreadCount ?? 0);
-      }
+      const data = await apiClient<{ unreadCount: number }>("/admin/notifications");
+      setUnreadCount(data.unreadCount ?? 0);
     } catch { /* silent */ }
   }, []);
 

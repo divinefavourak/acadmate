@@ -3,8 +3,8 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
-import { signOut } from "next-auth/react";
+import { usePathname, useRouter } from "next/navigation";
+import { removeToken } from "@/lib/api/auth";
 
 interface NavItem {
   href: string;
@@ -29,6 +29,7 @@ export default function MobileNav({
   showSignOut = false,
 }: MobileNavProps) {
   const pathname = usePathname();
+  const router = useRouter();
 
   // Prevent scrolling when menu is open
   useEffect(() => {
@@ -91,7 +92,7 @@ export default function MobileNav({
         {showSignOut && (
           <div className="p-4 border-t border-slate-100 dark:border-slate-900">
             <button
-              onClick={() => signOut({ callbackUrl: "/" })}
+              onClick={() => { removeToken(); router.push("/"); onClose(); }}
               className="w-full flex items-center gap-4 px-4 py-4 rounded-2xl font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-all border border-transparent hover:border-red-500/20"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>

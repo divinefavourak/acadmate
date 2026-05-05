@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import StatCard from "../dashboard/components/StatCard";
 import MiniBarChart from "./components/MiniBarChart";
+import { apiClient } from "@/lib/api/client";
 
 interface AdminStats {
   totalStudents: number;
@@ -20,9 +21,9 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/admin/stats")
-      .then((r) => r.ok ? r.json() : null)
-      .then((data) => { if (data) setStats(data); })
+    apiClient<AdminStats>("/admin/stats")
+      .then((data) => setStats(data))
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 

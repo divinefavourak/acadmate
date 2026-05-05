@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import MathText from "@/app/components/MathText";
+import { apiClient } from "@/lib/api/client";
 
 interface FlagEntry {
   id: string;
@@ -31,9 +32,9 @@ export default function MyFlagsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/my-flags")
-      .then((r) => r.ok ? r.json() : { flags: [] })
+    apiClient<{ flags: FlagEntry[] }>("/flags")
       .then((data) => setFlags(data.flags ?? []))
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 

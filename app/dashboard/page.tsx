@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import StatCard from "./components/StatCard";
+import { apiClient } from "@/lib/api/client";
 
 interface AnalyticsData {
   totalTests: number;
@@ -45,15 +46,12 @@ export default function DashboardPage() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const [analyticsRes, resultsRes] = await Promise.all([
-          fetch("/api/analytics"),
-          fetch("/api/results?limit=5"),
+        const [analyticsData, resultsData] = await Promise.allSettled([
+          apiClient<AnalyticsData>("/analytics"),
+          apiClient<{ results: ResultEntry[] }>("/results?limit=5"),
         ]);
-        if (analyticsRes.ok) setAnalytics(await analyticsRes.json());
-        if (resultsRes.ok) {
-          const data = await resultsRes.json();
-          setResults(data.results ?? []);
-        }
+        if (analyticsData.status === "fulfilled") setAnalytics(analyticsData.value);
+        if (resultsData.status === "fulfilled") setResults(resultsData.value.results ?? []);
       } finally {
         setLoading(false);
       }

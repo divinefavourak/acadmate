@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import MathText from "@/app/components/MathText";
+import { apiClient, ApiError } from "@/lib/api/client";
 import MiniBarChart from "@/app/admin/components/MiniBarChart";
 
 interface QuestionEntry {
@@ -137,29 +138,25 @@ function QuestionsPage() {
     setUploading(true);
     const fd = new FormData();
     fd.append("file", file);
-    const res = await fetch("/api/upload", { method: "POST", body: fd });
-    setUploading(false);
-    if (res.ok) {
-      const data = await res.json();
+    try {
+      const data = await apiClient<{ url: string }>("/upload", { method: "POST", body: fd });
       setter(data.url);
+    } catch { /* upload failed silently */ } finally {
+      setUploading(false);
     }
   }
 
   useEffect(() => {
-    fetch("/api/admin/subjects")
-      .then((r) => r.ok ? r.json() : { subjects: [] })
-      .then((data) => setSubjects(data.subjects ?? []));
-    // Preload flagged count for the tab badge
-    fetch("/api/admin/questions?flagged=true&limit=500")
-      .then((r) => r.ok ? r.json() : { questions: [] })
-      .then((data) => setFlaggedQuestions(data.questions ?? []));
+    apiClient<{ subjects: { id: string; name: string; code: string }[] }>("/admin/subjects")
+      .then((data) => setSubjects(data.subjects ?? [])).catch(() => {});
+    apiClient<{ questions: unknown[] }>("/admin/questions?flagged=true&limit=500")
+      .then((data) => setFlaggedQuestions(data.questions ?? [])).catch(() => {});
   }, []);
 
   useEffect(() => {
     if (!activeSubject) return;
-    fetch(`/api/admin/subjects/${activeSubject.id}/years`)
-      .then((r) => r.ok ? r.json() : { years: [] })
-      .then((data) => setYears(data.years ?? []));
+    apiClient<{ years: (number | null)[] }>(`/admin/subjects/${activeSubject.id}/years`)
+      .then((data) => setYears(data.years ?? [])).catch(() => {});
   }, [activeSubject]);
 
   useEffect(() => {
@@ -180,20 +177,19 @@ function QuestionsPage() {
     if (publishedFilter !== "") params.set("isPublished", publishedFilter);
     if (flaggedFilter) params.set("flagged", "true");
 
-    fetch(`/api/admin/questions?${params}`)
-      .then((r) => r.ok ? r.json() : { questions: [], total: 0 })
+    apiClient<{ questions: unknown[]; total: number }>(`/admin/questions?${params}`)
       .then((data) => {
         setQuestions(data.questions ?? []);
         setTotal(data.total ?? 0);
       })
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, [page, publishedFilter, flaggedFilter, activeSubject, activeYear]);
 
   useEffect(() => {
     if (!form.subjectId) { setTopics([]); return; }
-    fetch(`/api/topics?subjectId=${form.subjectId}`)
-      .then((r) => r.ok ? r.json() : { topics: [] })
-      .then((data) => setTopics(data.topics ?? []));
+    apiClient<{ topics: { id: string; name: string }[] }>(`/topics?subjectId=${form.subjectId}`)
+      .then((data) => setTopics(data.topics ?? [])).catch(() => {});
   }, [form.subjectId]);
 
   const totalPages = Math.ceil(total / limit);
@@ -201,11 +197,11 @@ function QuestionsPage() {
   useEffect(() => {
     if (activeTab !== "flagged") return;
     setLoadingFlagged(true);
-    fetch("/api/admin/questions?flagged=true&limit=500")
-      .then((r) => r.ok ? r.json() : { questions: [] })
+    apiClient<{ questions: unknown[] }>("/admin/questions?flagged=true&limit=500")
       .then((data) => setFlaggedQuestions(data.questions ?? []))
+      .catch(() => {})
       .finally(() => setLoadingFlagged(false));
-  }, [activeTab]); // re-fetch every time the user opens the tab
+  }, [activeTab]);
 
   // Analytics data is derived from already-loaded subjects + flaggedQuestions — no extra fetches needed
   useEffect(() => {
@@ -399,31 +395,27 @@ function QuestionsPage() {
     if (form.imageUrl) payload.imageUrl = form.imageUrl;
     if (form.explanation.trim()) payload.explanation = form.explanation.trim();
 
-    const res = await fetch("/api/admin/questions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json();
-    setSaving(false);
-
-    if (!res.ok) {
-      setFormError(data.error ?? "Failed to create question.");
-      return;
+    try {
+      await apiClient("/admin/questions", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+      setShowForm(false);
+      setForm(emptyForm);
+      setTopics([]);
+      setPage(0);
+      const params = new URLSearchParams({ limit: String(limit), offset: "0" });
+      if (publishedFilter !== "") params.set("isPublished", publishedFilter);
+      setLoading(true);
+      apiClient<{ questions: unknown[]; total: number }>(`/admin/questions?${params}`)
+        .then((d) => { setQuestions(d.questions ?? []); setTotal(d.total ?? 0); })
+        .catch(() => {})
+        .finally(() => setLoading(false));
+    } catch (e) {
+      setFormError(e instanceof ApiError ? e.message : "Failed to create question.");
+    } finally {
+      setSaving(false);
     }
-
-    setShowForm(false);
-    setForm(emptyForm);
-    setTopics([]);
-    setPage(0);
-    // Reload list
-    const params = new URLSearchParams({ limit: String(limit), offset: "0" });
-    if (publishedFilter !== "") params.set("isPublished", publishedFilter);
-    setLoading(true);
-    fetch(`/api/admin/questions?${params}`)
-      .then((r) => r.ok ? r.json() : { questions: [], total: 0 })
-      .then((d) => { setQuestions(d.questions ?? []); setTotal(d.total ?? 0); })
-      .finally(() => setLoading(false));
   }
 
   return (

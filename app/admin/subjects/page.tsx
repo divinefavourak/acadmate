@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { apiClient } from "@/lib/api/client";
 
 interface SubjectEntry {
   id: string;
@@ -17,18 +18,17 @@ export default function SubjectsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/admin/subjects")
-      .then((r) => r.ok ? r.json() : { subjects: [] })
+    apiClient<{ subjects: SubjectEntry[] }>("/admin/subjects")
       .then((data) => setSubjects(data.subjects ?? []))
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
   async function toggleActive(id: string, current: boolean) {
-    await fetch(`/api/admin/subjects/${id}`, {
+    await apiClient(`/admin/subjects/${id}`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ isActive: !current }),
-    });
+    }).catch(() => {});
     setSubjects((prev) =>
       prev.map((s) => s.id === id ? { ...s, isActive: !current } : s)
     );

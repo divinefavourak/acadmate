@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { apiClient, ApiError } from "@/lib/api/client";
+import { setToken } from "@/lib/api/auth";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -19,35 +20,28 @@ export default function RegisterPage() {
     setError("");
     setLoading(true);
 
-    const res = await fetch("/api/auth/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, password }),
-    });
+    try {
+      await apiClient("/auth/register", {
+        method: "POST",
+        body: JSON.stringify({ name, email, password }),
+        skipAuth: true,
+      });
 
-    const data = await res.json();
+      const data = await apiClient<{ accessToken: string }>(
+        "/auth/login",
+        {
+          method: "POST",
+          body: JSON.stringify({ email, password }),
+          skipAuth: true,
+        },
+      );
 
-    if (!res.ok) {
-      setLoading(false);
-      setError(data.error ?? "Registration failed. Please try again.");
-      return;
-    }
-
-    // Auto sign-in after registration
-    const result = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-    });
-
-    setLoading(false);
-
-    if (result?.error) {
-      setError("Account created but sign-in failed. Please log in.");
-      router.push("/login");
-    } else {
+      setToken(data.accessToken);
       router.push("/dashboard");
       router.refresh();
+    } catch (err) {
+      setLoading(false);
+      setError(err instanceof ApiError ? err.message : "Registration failed. Please try again.");
     }
   }
 

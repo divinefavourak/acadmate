@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { apiClient } from "@/lib/api/client";
 
 interface AnalyticsData {
   totalTests: number;
@@ -24,9 +25,9 @@ export default function AnalyticsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/analytics")
-      .then((r) => r.ok ? r.json() : null)
-      .then((d) => { if (d) setData(d); })
+    apiClient<AnalyticsData>("/analytics")
+      .then((d) => setData(d))
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 

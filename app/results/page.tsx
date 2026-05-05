@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { apiClient } from "@/lib/api/client";
 
 interface ResultEntry {
   id: string;
@@ -46,12 +47,12 @@ export default function ResultsPage() {
 
   useEffect(() => {
     setLoading(true);
-    fetch(`/api/results?limit=${limit}&offset=${page * limit}`)
-      .then((r) => r.ok ? r.json() : { results: [], total: 0 })
+    apiClient<{ results: ResultEntry[]; total: number }>(`/results?limit=${limit}&offset=${page * limit}`)
       .then((data) => {
         setResults(data.results ?? []);
         setTotal(data.total ?? 0);
       })
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, [page]);
 
