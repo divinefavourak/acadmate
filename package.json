@@ -13,10 +13,12 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:seed:jamb": "tsx prisma/seed-jamb-questions.ts",
     "db:seed:lekki-text": "tsx prisma/seed-lekki-text.ts",
-    "db:studio": "prisma studio"
-  },
-  "prisma": {
-    "seed": "tsx prisma/seed.ts"
+    "db:studio": "prisma studio",
+    "db:backfill": "tsx scripts/backfill-result-breakdowns.ts",
+    "db:backfill:dry": "tsx scripts/backfill-result-breakdowns.ts --dry-run",
+    "db:backfill:verify": "tsx scripts/backfill-result-breakdowns.ts --verify",
+    "db:cleanup:dry": "tsx scripts/cleanup-json-columns.ts",
+    "db:cleanup": "tsx scripts/cleanup-json-columns.ts --confirm"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.88.0",

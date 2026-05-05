@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { requireAuth } from "@/lib/auth/helpers";
 import { bulkSaveAnswersSchema } from "@/lib/validation/exams";
+import { resolveExamExpiry } from "@/lib/services/exam-expiry";
 
 // POST /api/exams/[id]/answers - Save/update answers (auto-save)
 export async function POST(
@@ -17,19 +18,21 @@ export async function POST(
 
     const examSession = await prisma.examSession.findUnique({
       where: { id, userId, status: "IN_PROGRESS" },
-      select: { id: true, expiresAt: true },
+      select: { id: true, expiresAt: true, status: true },
     });
 
     if (!examSession) {
       return NextResponse.json({ error: "Active exam session not found" }, { status: 404 });
     }
 
-    // Check expiry
-    if (examSession.expiresAt && new Date() > examSession.expiresAt) {
-      await prisma.examSession.update({
-        where: { id },
-        data: { status: "TIMED_OUT", submittedAt: new Date() },
-      });
+    const expiry = await resolveExamExpiry(
+      prisma,
+      id,
+      examSession.status,
+      examSession.expiresAt
+    );
+
+    if (expiry.expired) {
       return NextResponse.json({ error: "Exam session has expired" }, { status: 410 });
     }
 
@@ -45,7 +48,6 @@ export async function POST(
 
     const { answers } = parsed.data;
 
-    // Get correct option IDs for the answered questions
     const questionIds = answers.map((a) => a.questionId);
     const options = await prisma.questionOption.findMany({
       where: { questionId: { in: questionIds }, isCorrect: true },
@@ -53,14 +55,11 @@ export async function POST(
     });
     const correctMap = new Map(options.map((o) => [o.questionId, o.id]));
 
-    // Upsert each answer
     await prisma.$transaction(
       answers.map((answer) => {
         const correctOptionId = correctMap.get(answer.questionId);
         const isCorrect =
-          answer.optionId !== null
-            ? answer.optionId === correctOptionId
-            : null;
+          answer.optionId !== null ? answer.optionId === correctOptionId : null;
 
         return prisma.userAnswer.upsert({
           where: {

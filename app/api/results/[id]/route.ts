@@ -23,9 +23,9 @@ export async function GET(
         incorrect: true,
         unanswered: true,
         totalQuestions: true,
+        createdAt: true,
         subjectBreakdown: true,
         topicBreakdown: true,
-        createdAt: true,
         examSession: {
           select: {
             id: true,

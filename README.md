@@ -7,7 +7,7 @@ Nigeria's JAMB CBT practice platform — timed mock exams, 8,600+ past questions
 - **Framework**: Next.js 15 (App Router)
 - **Database**: PostgreSQL via Prisma ORM
 - **Auth**: NextAuth v5
-- **AI**: Anthropic Claude SDK, Google Generative AI, Groq SDK
+<!-- - **AI**: Anthropic Claude SDK, Google Generative AI, Groq SDK -->
 - **Storage**: Cloudinary
 - **Analytics**: Vercel Analytics
 - **UI**: Tailwind CSS, Heroicons, react-katex (LaTeX rendering)
