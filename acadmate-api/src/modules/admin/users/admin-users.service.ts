@@ -5,12 +5,14 @@ import { PrismaService } from '../../../prisma/prisma.service';
 export class AdminUsersService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async listUsers(limit = 20, offset = 0) {
+  async listUsers(limit = 20, offset = 0, role?: string) {
     const safeLimit = Math.min(limit, 100);
+    const where = role ? { role } : {};
     const [users, total] = await this.prisma.$transaction([
       this.prisma.user.findMany({
         take: safeLimit,
         skip: offset,
+        where,
         orderBy: { createdAt: 'desc' },
         select: {
           id: true,
@@ -24,14 +26,14 @@ export class AdminUsersService {
           _count: { select: { examSessions: true } },
         },
       }),
-      this.prisma.user.count(),
+      this.prisma.user.count({ where }),
     ]);
 
     return { users, total, limit: safeLimit, offset };
   }
 
   async getUserStats(userId: string) {
-    const [user, examCount, resultStats] = await Promise.all([
+    const [user, examCount, resultStats, recentSessions] = await Promise.all([
       this.prisma.user.findUnique({
         where: { id: userId },
         select: {
@@ -46,16 +48,24 @@ export class AdminUsersService {
         _max: { score: true },
         _count: { id: true },
       }),
+      this.prisma.examSession.findMany({
+        where: { userId },
+        take: 5,
+        orderBy: { startedAt: 'desc' },
+        select: {
+          id: true, mode: true, status: true, totalQuestions: true,
+          startedAt: true, submittedAt: true,
+          result: { select: { score: true, correct: true } },
+        },
+      }),
     ]);
 
     return {
       user,
-      stats: {
-        totalExams: examCount,
-        totalResults: resultStats._count.id,
-        averageScore: resultStats._avg.score ?? 0,
-        bestScore: resultStats._max.score ?? 0,
-      },
+      recentSessions,
+      totalExams: examCount,
+      averageScore: resultStats._avg.score ?? 0,
+      bestScore: resultStats._max.score ?? 0,
     };
   }
 }

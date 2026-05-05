@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { apiClient } from "@/lib/api/client";
 
 interface UserEntry {
   id: string;
@@ -19,7 +20,6 @@ interface UserDetail {
     role: string;
     createdAt: string;
     studentProfile: { targetYear: number | null; courseChoice: string | null; institution: string | null } | null;
-    _count: { examSessions: number };
   };
   recentSessions: {
     id: string;
@@ -50,17 +50,19 @@ export default function StudentsPage() {
 
   useEffect(() => {
     setLoading(true);
-    fetch(`/api/admin/users?role=STUDENT&limit=${limit}&offset=${page * limit}`)
-      .then((r) => r.ok ? r.json() : { users: [], total: 0 })
+    apiClient<{ users: UserEntry[]; total: number }>(`/admin/users?role=STUDENT&limit=${limit}&offset=${page * limit}`)
       .then((data) => { setUsers(data.users ?? []); setTotal(data.total ?? 0); })
+      .catch(() => { setUsers([]); setTotal(0); })
       .finally(() => setLoading(false));
   }, [page]);
 
   async function openDetail(id: string) {
     setLoadingDetail(id);
     try {
-      const res = await fetch(`/api/admin/users/${id}`);
-      if (res.ok) setDetail(await res.json());
+      const data = await apiClient<UserDetail>(`/admin/users/${id}/stats`);
+      setDetail(data);
+    } catch {
+      // ignore
     } finally {
       setLoadingDetail(null);
     }

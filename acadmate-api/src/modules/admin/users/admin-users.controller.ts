@@ -10,6 +10,7 @@ import { AdminUsersService } from './admin-users.service';
 class PaginationQuery {
   @IsOptional() @IsInt() @Min(1) @Max(100) @Type(() => Number) limit?: number = 20;
   @IsOptional() @IsInt() @Min(0) @Type(() => Number) offset?: number = 0;
+  @IsOptional() role?: string;
 }
 
 @ApiTags('admin')
@@ -21,7 +22,7 @@ export class AdminUsersController {
   constructor(private readonly adminUsersService: AdminUsersService) {}
 
   @Get() listUsers(@Query() query: PaginationQuery) {
-    return this.adminUsersService.listUsers(query.limit, query.offset);
+    return this.adminUsersService.listUsers(query.limit, query.offset, query.role);
   }
 
   @Get(':id/stats') getUserStats(@Param('id') id: string) {
