@@ -3,78 +3,51 @@ import {
   IsArray,
   IsOptional,
   IsInt,
-  IsBoolean,
   Min,
   Max,
   ArrayMinSize,
   ArrayMaxSize,
-  ValidateNested,
   IsIn,
+  ValidateIf,
 } from 'class-validator';
-import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-// ─── MOCK exam ──────────────────────────────────────────────────────────────
-export class CreateMockExamDto {
-  @ApiProperty({ enum: ['MOCK'] })
-  @IsIn(['MOCK'])
-  mode: 'MOCK';
+export class CreateExamDto {
+  @ApiProperty({ enum: ['MOCK', 'PRACTICE', 'TOPIC'] })
+  @IsIn(['MOCK', 'PRACTICE', 'TOPIC'])
+  mode: 'MOCK' | 'PRACTICE' | 'TOPIC';
 
-  @ApiProperty({ type: [String], minItems: 3, maxItems: 3 })
+  // ─── MOCK fields ──────────────────────────────────────────────────────────
+  @ApiPropertyOptional({ type: [String], minItems: 3, maxItems: 3 })
+  @ValidateIf((o) => o.mode === 'MOCK')
   @IsArray()
-  @ArrayMinSize(3, { message: 'Select exactly 3 subjects (Use of English is included automatically)' })
-  @ArrayMaxSize(3, { message: 'Select exactly 3 subjects (Use of English is included automatically)' })
+  @ArrayMinSize(3, { message: 'Select exactly 3 subjects' })
+  @ArrayMaxSize(3, { message: 'Select exactly 3 subjects' })
   @IsString({ each: true })
-  subjectIds: string[];
+  subjectIds?: string[];
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
   proseTextId?: string;
-}
 
-// ─── PRACTICE exam ───────────────────────────────────────────────────────────
-export class CreatePracticeExamDto {
-  @ApiProperty({ enum: ['PRACTICE'] })
-  @IsIn(['PRACTICE'])
-  mode: 'PRACTICE';
-
-  @ApiProperty()
+  // ─── PRACTICE & TOPIC fields ──────────────────────────────────────────────
+  @ApiPropertyOptional()
+  @ValidateIf((o) => o.mode === 'PRACTICE' || o.mode === 'TOPIC')
   @IsString()
-  subjectId: string;
+  subjectId?: string;
 
-  @ApiProperty({ default: 40 })
+  // ─── TOPIC fields ─────────────────────────────────────────────────────────
+  @ApiPropertyOptional()
+  @ValidateIf((o) => o.mode === 'TOPIC')
+  @IsString()
+  topicId?: string;
+
+  // ─── Shared overrides ─────────────────────────────────────────────────────
+  @ApiPropertyOptional({ description: 'Defaults to 40 for PRACTICE, 20 for TOPIC' })
   @IsOptional()
   @IsInt()
   @Min(1)
   @Max(100)
-  questionCount?: number = 40;
+  questionCount?: number;
 }
-
-// ─── TOPIC exam ───────────────────────────────────────────────────────────────
-export class CreateTopicExamDto {
-  @ApiProperty({ enum: ['TOPIC'] })
-  @IsIn(['TOPIC'])
-  mode: 'TOPIC';
-
-  @ApiProperty()
-  @IsString()
-  subjectId: string;
-
-  @ApiProperty()
-  @IsString()
-  topicId: string;
-
-  @ApiProperty({ default: 20 })
-  @IsOptional()
-  @IsInt()
-  @Min(1)
-  @Max(100)
-  questionCount?: number = 20;
-}
-
-// ─── Union type (controller accepts any of the three) ────────────────────────
-export type CreateExamDto =
-  | CreateMockExamDto
-  | CreatePracticeExamDto
-  | CreateTopicExamDto;

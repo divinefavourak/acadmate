@@ -290,6 +290,8 @@ export class ExamsService {
           incorrect,
           unanswered,
           score,
+          subjectBreakdown: subjectBreakdown.reduce((acc, s) => ({ ...acc, [s.subjectId]: s }), {}),
+          topicBreakdown: topicBreakdown.reduce((acc, t) => ({ ...acc, [t.topicId]: t }), {}),
         },
       });
 

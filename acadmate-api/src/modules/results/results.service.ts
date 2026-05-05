@@ -52,6 +52,8 @@ export class ResultsService {
         unanswered: true,
         totalQuestions: true,
         createdAt: true,
+        subjectBreakdown: true,
+        topicBreakdown: true,
         examSession: {
           select: {
             id: true,

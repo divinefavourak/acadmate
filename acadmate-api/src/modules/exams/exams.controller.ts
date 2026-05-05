@@ -16,7 +16,7 @@ import { Type } from 'class-transformer';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser, JwtUser } from '../../common/decorators/current-user.decorator';
 import { ExamsService } from './exams.service';
-import { CreateMockExamDto, CreatePracticeExamDto, CreateTopicExamDto } from './dto/create-exam.dto';
+import { CreateExamDto } from './dto/create-exam.dto';
 import { SaveAnswersDto } from './dto/save-answers.dto';
 import { MarkReviewDto } from './dto/mark-review.dto';
 
@@ -37,7 +37,7 @@ export class ExamsController {
   @ApiOperation({ summary: 'Create a new exam session (MOCK / PRACTICE / TOPIC)' })
   createSession(
     @CurrentUser() user: JwtUser,
-    @Body() dto: CreateMockExamDto | CreatePracticeExamDto | CreateTopicExamDto,
+    @Body() dto: CreateExamDto,
   ) {
     return this.examsService.createSession(user.id, dto as any);
   }

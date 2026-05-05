@@ -353,6 +353,8 @@ model Result {
   examSession       ExamSession              @relation(fields: [examSessionId], references: [id], onDelete: Cascade)
   subjectBreakdowns ResultSubjectBreakdown[]
   topicBreakdowns   ResultTopicBreakdown[]
+  subjectBreakdown  Json                     @default("{}")
+  topicBreakdown    Json                     @default("{}")
 
   @@index([userId])
   @@index([userId, createdAt])
