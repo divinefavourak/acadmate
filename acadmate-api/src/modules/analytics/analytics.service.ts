@@ -1,12 +1,33 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 
+type AnalyticsResult = {
+  totalTests: number;
+  averageScore: number;
+  bestScore: number;
+  recentTrend: unknown[];
+  subjectPerformance: unknown[];
+  weakTopics: unknown[];
+};
+
 @Injectable()
 export class AnalyticsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  // GET /analytics — capped at `limit` most-recent results to prevent unbounded RAM usage
-  async getStudentAnalytics(userId: string, limit: number = 100) {
+  private readonly cache = new Map<string, { data: AnalyticsResult; expiresAt: number }>();
+  private readonly CACHE_TTL_MS = 60_000;
+
+  invalidateCache(userId: string): void {
+    this.cache.delete(`analytics:${userId}`);
+  }
+
+  async getStudentAnalytics(userId: string, limit: number = 100): Promise<AnalyticsResult> {
+    const cacheKey = `analytics:${userId}`;
+    const cached = this.cache.get(cacheKey);
+    if (cached && Date.now() < cached.expiresAt) {
+      return cached.data;
+    }
+
     const results = await this.prisma.result.findMany({
       where: { userId },
       orderBy: { createdAt: 'asc' },
@@ -20,7 +41,6 @@ export class AnalyticsService {
         totalQuestions: true,
         createdAt: true,
         examSession: { select: { mode: true } },
-        // Normalized tables — no JSON aggregation
         subjectBreakdowns: {
           select: { subjectId: true, name: true, correct: true, total: true },
         },
@@ -31,7 +51,7 @@ export class AnalyticsService {
     });
 
     if (results.length === 0) {
-      return {
+      const empty: AnalyticsResult = {
         totalTests: 0,
         averageScore: 0,
         bestScore: 0,
@@ -39,6 +59,8 @@ export class AnalyticsService {
         subjectPerformance: [],
         weakTopics: [],
       };
+      this.cache.set(cacheKey, { data: empty, expiresAt: Date.now() + this.CACHE_TTL_MS });
+      return empty;
     }
 
     const totalTests = results.length;
@@ -52,7 +74,6 @@ export class AnalyticsService {
       date: r.createdAt,
     }));
 
-    // Aggregate subject performance across all results
     const subjectAgg: Record<string, { subjectId: string; name: string; correct: number; total: number }> = {};
     for (const result of results) {
       for (const s of result.subjectBreakdowns) {
@@ -69,7 +90,6 @@ export class AnalyticsService {
       percentage: s.total > 0 ? Math.round((s.correct / s.total) * 100) : 0,
     }));
 
-    // Aggregate topic performance and identify weak topics
     const topicAgg: Record<string, { topicId: string; name: string; correct: number; total: number }> = {};
     for (const result of results) {
       for (const t of result.topicBreakdowns) {
@@ -90,7 +110,7 @@ export class AnalyticsService {
       .sort((a, b) => a.percentage - b.percentage)
       .slice(0, 10);
 
-    return {
+    const data: AnalyticsResult = {
       totalTests,
       averageScore: Math.round(averageScore * 100) / 100,
       bestScore: Math.round(bestScore * 100) / 100,
@@ -98,5 +118,8 @@ export class AnalyticsService {
       subjectPerformance,
       weakTopics,
     };
+
+    this.cache.set(cacheKey, { data, expiresAt: Date.now() + this.CACHE_TTL_MS });
+    return data;
   }
 }

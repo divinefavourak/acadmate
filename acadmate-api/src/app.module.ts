@@ -1,6 +1,5 @@
-import { Module } from '@nestjs/common';
+import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { HealthController } from './health.controller';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -17,23 +16,22 @@ import { FlagsModule } from './modules/flags/flags.module';
 import { UploadModule } from './modules/upload/upload.module';
 import { SchedulerModule } from './modules/scheduler/scheduler.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { HealthController } from './health.controller';
+import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
 
 @Module({
   controllers: [HealthController],
   imports: [
-    // ── Load .env FIRST so all modules can read env vars ─────────────────
     ConfigModule.forRoot({ isGlobal: true }),
 
-    // ── Rate limiting: 100 req / 60s per IP ──────────────────────────────
-    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }]),
+    // ── Rate limiting ─────────────────────────────────────────────────────
+    // Named 'default' so route-level @Throttle({ default: {...} }) can
+    // override it for stricter limits (auth: 5/min, submit: 10/min).
+    ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 100 }]),
 
-    // ── Cron scheduler ────────────────────────────────────────────────────
     ScheduleModule.forRoot(),
-
-    // ── Database ──────────────────────────────────────────────────────────
     PrismaModule,
 
-    // ── Feature modules ───────────────────────────────────────────────────
     AuthModule,
     UsersModule,
     ExamsModule,
@@ -48,8 +46,13 @@ import { AdminModule } from './modules/admin/admin.module';
     AdminModule,
   ],
   providers: [
-    // Apply ThrottlerGuard globally
     { provide: APP_GUARD, useClass: ThrottlerGuard },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    // Attach a unique requestId to every request before guards/interceptors run.
+    // This ensures it's available in exception filters even for 401/403 responses.
+    consumer.apply(RequestIdMiddleware).forRoutes('*');
+  }
+}

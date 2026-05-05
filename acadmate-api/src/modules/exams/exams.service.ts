@@ -12,6 +12,7 @@ import {
 } from './exam-factory.service';
 import { ExamExpiryService } from './exam-expiry.service';
 import { ScoringService } from './scoring.service';
+import { AnalyticsService } from '../analytics/analytics.service';
 import { SaveAnswersDto } from './dto/save-answers.dto';
 import { MarkReviewDto } from './dto/mark-review.dto';
 
@@ -27,6 +28,7 @@ export class ExamsService {
     private readonly examFactory: ExamFactoryService,
     private readonly examExpiry: ExamExpiryService,
     private readonly scoring: ScoringService,
+    private readonly analyticsService: AnalyticsService,
   ) {}
 
   // ─── POST /exams ──────────────────────────────────────────────────────────
@@ -320,6 +322,9 @@ export class ExamsService {
 
       return newResult;
     });
+
+    // New result means analytics are stale — bust the cache immediately.
+    this.analyticsService.invalidateCache(userId);
 
     return { result };
   }
