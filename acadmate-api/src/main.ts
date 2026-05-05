@@ -28,22 +28,26 @@ async function bootstrap() {
 
   app.useGlobalFilters(new HttpExceptionFilter());
 
-  // ─── Swagger docs ─────────────────────────────────────────────────────────
-  const config = new DocumentBuilder()
-    .setTitle('Acadmate API')
-    .setDescription('NestJS backend for the Acadmate CBT Platform')
-    .setVersion('1.0')
-    .addBearerAuth()
-    .build();
+  // ─── Swagger docs (dev only) ──────────────────────────────────────────────
+  if (process.env.NODE_ENV !== 'production') {
+    const config = new DocumentBuilder()
+      .setTitle('Acadmate API')
+      .setDescription('NestJS backend for the Acadmate CBT Platform')
+      .setVersion('1.0')
+      .addBearerAuth()
+      .build();
 
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document);
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('api/docs', app, document);
+  }
 
   // ─── Start ────────────────────────────────────────────────────────────────
-  const port = process.env.PORT ?? 3001;
-  await app.listen(port);
-  console.log(`🚀 Acadmate API running on http://localhost:${port}`);
-  console.log(`📖 Swagger docs: http://localhost:${port}/api/docs`);
+  const port = process.env.PORT || 3001;
+  await app.listen(port, '0.0.0.0');
+  console.log(`🚀 Acadmate API running on port ${port}`);
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`📖 Swagger docs: http://localhost:${port}/api/docs`);
+  }
 }
 
 bootstrap();

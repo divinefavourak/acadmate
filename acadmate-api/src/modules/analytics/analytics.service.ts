@@ -5,11 +5,12 @@ import { PrismaService } from '../../prisma/prisma.service';
 export class AnalyticsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  // GET /analytics — exact port of /api/analytics/route.ts
-  async getStudentAnalytics(userId: string) {
+  // GET /analytics — capped at `limit` most-recent results to prevent unbounded RAM usage
+  async getStudentAnalytics(userId: string, limit: number = 100) {
     const results = await this.prisma.result.findMany({
       where: { userId },
       orderBy: { createdAt: 'asc' },
+      take: limit,
       select: {
         id: true,
         score: true,
