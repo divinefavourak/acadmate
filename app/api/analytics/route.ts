@@ -20,11 +20,13 @@ export async function GET() {
         incorrect: true,
         unanswered: true,
         totalQuestions: true,
-        subjectBreakdown: true,
-        topicBreakdown: true,
         createdAt: true,
-        examSession: {
-          select: { mode: true },
+        examSession: { select: { mode: true } },
+        subjectBreakdowns: {
+          select: { subjectId: true, name: true, correct: true, total: true },
+        },
+        topicBreakdowns: {
+          select: { topicId: true, name: true, correct: true, total: true },
         },
       },
     });
@@ -41,11 +43,9 @@ export async function GET() {
     }
 
     const totalTests = results.length;
-    const averageScore =
-      results.reduce((sum, r) => sum + r.score, 0) / totalTests;
+    const averageScore = results.reduce((sum, r) => sum + r.score, 0) / totalTests;
     const bestScore = Math.max(...results.map((r) => r.score));
 
-    // Recent trend (last 10 tests)
     const recentTrend = results.slice(-10).map((r) => ({
       id: r.id,
       score: r.score,
@@ -53,27 +53,11 @@ export async function GET() {
       date: r.createdAt,
     }));
 
-    // Aggregate subject performance across all results
-    const subjectAgg: Record<
-      string,
-      { subjectId: string; name: string; correct: number; total: number }
-    > = {};
-
+    const subjectAgg: Record<string, { subjectId: string; name: string; correct: number; total: number }> = {};
     for (const result of results) {
-      const breakdown = result.subjectBreakdown as Array<{
-        subjectId: string;
-        name: string;
-        correct: number;
-        total: number;
-      }>;
-      for (const s of breakdown) {
+      for (const s of result.subjectBreakdowns) {
         if (!subjectAgg[s.subjectId]) {
-          subjectAgg[s.subjectId] = {
-            subjectId: s.subjectId,
-            name: s.name,
-            correct: 0,
-            total: 0,
-          };
+          subjectAgg[s.subjectId] = { subjectId: s.subjectId, name: s.name, correct: 0, total: 0 };
         }
         subjectAgg[s.subjectId].correct += s.correct;
         subjectAgg[s.subjectId].total += s.total;
@@ -85,27 +69,11 @@ export async function GET() {
       percentage: s.total > 0 ? Math.round((s.correct / s.total) * 100) : 0,
     }));
 
-    // Weak topics: topics with < 50% accuracy, min 3 attempts
-    const topicAgg: Record<
-      string,
-      { topicId: string; name: string; correct: number; total: number }
-    > = {};
-
+    const topicAgg: Record<string, { topicId: string; name: string; correct: number; total: number }> = {};
     for (const result of results) {
-      const breakdown = result.topicBreakdown as Array<{
-        topicId: string;
-        name: string;
-        correct: number;
-        total: number;
-      }>;
-      for (const t of breakdown) {
+      for (const t of result.topicBreakdowns) {
         if (!topicAgg[t.topicId]) {
-          topicAgg[t.topicId] = {
-            topicId: t.topicId,
-            name: t.name,
-            correct: 0,
-            total: 0,
-          };
+          topicAgg[t.topicId] = { topicId: t.topicId, name: t.name, correct: 0, total: 0 };
         }
         topicAgg[t.topicId].correct += t.correct;
         topicAgg[t.topicId].total += t.total;

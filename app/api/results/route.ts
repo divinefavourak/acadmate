@@ -25,7 +25,6 @@ export async function GET(req: NextRequest) {
           incorrect: true,
           unanswered: true,
           totalQuestions: true,
-          subjectBreakdown: true,
           createdAt: true,
           examSession: {
             select: {

@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { requireAdmin } from "@/lib/auth/helpers";
-import { importRowSchema } from "@/lib/validation/admin";
+import { ImportService } from "@/lib/services/import.service";
+
+const importService = new ImportService(prisma);
 
 // POST /api/admin/imports - Upload and validate a question import
 export async function POST(req: NextRequest) {
@@ -18,124 +20,24 @@ export async function POST(req: NextRequest) {
 
     const adminId = session!.user!.id!;
 
-    // Create import record
-    const importRecord = await prisma.import.create({
-      data: {
-        uploadedById: adminId,
-        filename,
-        format: filename.endsWith(".csv") ? "CSV" : "JSON",
-        status: "PROCESSING",
-        totalRows: rows.length,
-      },
-    });
-
-    // Validate rows
-    const validRows: typeof importRowSchema._type[] = [];
-    const errorLog: Array<{ row: number; errors: string[] }> = [];
-
-    for (let i = 0; i < rows.length; i++) {
-      const parsed = importRowSchema.safeParse(rows[i]);
-      if (parsed.success) {
-        validRows.push(parsed.data);
-      } else {
-        errorLog.push({
-          row: i + 1,
-          errors: parsed.error.issues.map((e) => `${e.path.join(".")}: ${e.message}`),
-        });
-      }
-    }
-
-    // Resolve subjects and topics
-    const subjectNames = [...new Set(validRows.map((r) => r.subject))];
-    const subjects = await prisma.subject.findMany({
-      where: { name: { in: subjectNames } },
-      select: { id: true, name: true },
-    });
-    const subjectMap = new Map(subjects.map((s) => [s.name.toLowerCase(), s.id]));
-
-    // Create questions as drafts (not published)
-    let created = 0;
-    const creationErrors: typeof errorLog = [];
-
-    for (let i = 0; i < validRows.length; i++) {
-      const row = validRows[i];
-      const subjectId = subjectMap.get(row.subject.toLowerCase());
-
-      if (!subjectId) {
-        creationErrors.push({ row: i + 1, errors: [`Subject not found: ${row.subject}`] });
-        continue;
-      }
-
-      // Resolve topic if provided
-      let topicId: string | null = null;
-      if (row.topic) {
-        const topic = await prisma.topic.findFirst({
-          where: { subjectId, name: { equals: row.topic, mode: "insensitive" } },
-          select: { id: true },
-        });
-        topicId = topic?.id ?? null;
-      }
-
-      const correctLabel = row.correctOption;
-      const options = [
-        { label: "A", text: row.optionA, isCorrect: correctLabel === "A", sortOrder: 0 },
-        { label: "B", text: row.optionB, isCorrect: correctLabel === "B", sortOrder: 1 },
-        { label: "C", text: row.optionC, isCorrect: correctLabel === "C", sortOrder: 2 },
-        { label: "D", text: row.optionD, isCorrect: correctLabel === "D", sortOrder: 3 },
-      ];
-
-      await prisma.question.create({
-        data: {
-          subjectId,
-          topicId,
-          text: row.text,
-          year: row.year ?? null,
-          difficulty: row.difficulty,
-          sourceType: "IMPORTED",
-          isPublished: false,
-          importId: importRecord.id,
-          options: { create: options },
-          ...(row.explanation && {
-            explanation: {
-              create: { text: row.explanation, aiAssisted: false },
-            },
-          }),
-        },
-      });
-      created++;
-    }
-
-    const allErrors = [...errorLog, ...creationErrors];
-
-    await prisma.import.update({
-      where: { id: importRecord.id },
-      data: {
-        status: "DONE",
-        validRows: validRows.length,
-        invalidRows: rows.length - validRows.length,
-        publishedRows: 0,
-        errorLog: allErrors.length > 0 ? allErrors : undefined,
-      },
-    });
+    const result = await importService.processImport({ adminId, filename, rows });
 
     await prisma.adminActivityLog.create({
       data: {
         adminId,
         action: "IMPORT_QUESTIONS",
         entityType: "import",
-        entityId: importRecord.id,
-        details: { filename, totalRows: rows.length, created, errors: allErrors.length },
+        entityId: result.importId,
+        details: {
+          filename,
+          totalRows: result.totalRows,
+          created: result.created,
+          errors: result.errors.length,
+        },
       },
     });
 
-    return NextResponse.json({
-      importId: importRecord.id,
-      totalRows: rows.length,
-      validRows: validRows.length,
-      invalidRows: rows.length - validRows.length,
-      created,
-      errors: allErrors,
-    });
+    return NextResponse.json(result);
   } catch {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }

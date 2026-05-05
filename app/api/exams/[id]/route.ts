@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { requireAuth } from "@/lib/auth/helpers";
+import { resolveExamExpiry } from "@/lib/services/exam-expiry";
 
 // GET /api/exams/[id] - Get exam session with questions (no correct answers)
 export async function GET(
@@ -56,17 +57,10 @@ export async function GET(
       return NextResponse.json({ error: "Exam session not found" }, { status: 404 });
     }
 
-    // Auto-expire if past deadline
-    if (
-      examSession.status === "IN_PROGRESS" &&
-      examSession.expiresAt &&
-      new Date() > examSession.expiresAt
-    ) {
-      await prisma.examSession.update({
-        where: { id },
-        data: { status: "TIMED_OUT", submittedAt: new Date() },
-      });
-    }
+    // Expiry check: the write is delegated to the service.
+    // The cron job (`expireStaleSessions`) handles bulk expiry; this call
+    // handles the case where a student re-opens a session slightly after deadline.
+    await resolveExamExpiry(prisma, id, examSession.status, examSession.expiresAt);
 
     return NextResponse.json({ examSession });
   } catch {

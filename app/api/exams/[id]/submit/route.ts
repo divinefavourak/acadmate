@@ -31,10 +31,8 @@ export async function POST(
       );
     }
 
-    const isTimedOut =
-      examSession.expiresAt && new Date() > examSession.expiresAt;
+    const isTimedOut = examSession.expiresAt && new Date() > examSession.expiresAt;
 
-    // Fetch answers + questions flagged by this user (flagged questions don't count)
     const [answers, userFlags] = await Promise.all([
       prisma.userAnswer.findMany({
         where: { examSessionId: id },
@@ -64,20 +62,23 @@ export async function POST(
 
     const flaggedIds = new Set(userFlags.map((f) => f.questionId));
     const scorableAnswers = answers.filter((a) => !flaggedIds.has(a.questionId));
-    const effectiveTotal = examSession.totalQuestions - flaggedIds.size;
+    const effectiveTotal = Math.max(examSession.totalQuestions - flaggedIds.size, 0);
 
     const { correct, incorrect, unanswered, score, subjectBreakdown, topicBreakdown } =
-      computeScore(scorableAnswers, Math.max(effectiveTotal, 0));
+      computeScore(scorableAnswers, effectiveTotal);
 
-    const [, result] = await prisma.$transaction([
-      prisma.examSession.update({
+    // Interactive transaction: we need the generated resultId to write child rows,
+    // so this cannot use the sequential $transaction([...]) form.
+    const result = await prisma.$transaction(async (tx) => {
+      await tx.examSession.update({
         where: { id },
         data: {
           status: isTimedOut ? "TIMED_OUT" : "SUBMITTED",
           submittedAt: new Date(),
         },
-      }),
-      prisma.result.create({
+      });
+
+      const newResult = await tx.result.create({
         data: {
           examSessionId: id,
           userId,
@@ -86,11 +87,35 @@ export async function POST(
           incorrect,
           unanswered,
           score,
-          subjectBreakdown,
-          topicBreakdown,
         },
-      }),
-    ]);
+      });
+
+      // Dual-write: normalized breakdown tables (Phase 2 migration step)
+      await Promise.all([
+        subjectBreakdown.length > 0 &&
+          tx.resultSubjectBreakdown.createMany({
+            data: subjectBreakdown.map((s) => ({
+              resultId: newResult.id,
+              subjectId: s.subjectId,
+              name: s.name,
+              correct: s.correct,
+              total: s.total,
+            })),
+          }),
+        topicBreakdown.length > 0 &&
+          tx.resultTopicBreakdown.createMany({
+            data: topicBreakdown.map((t) => ({
+              resultId: newResult.id,
+              topicId: t.topicId,
+              name: t.name,
+              correct: t.correct,
+              total: t.total,
+            })),
+          }),
+      ]);
+
+      return newResult;
+    });
 
     return NextResponse.json({ result });
   } catch {

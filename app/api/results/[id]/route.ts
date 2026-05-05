@@ -23,8 +23,6 @@ export async function GET(
         incorrect: true,
         unanswered: true,
         totalQuestions: true,
-        subjectBreakdown: true,
-        topicBreakdown: true,
         createdAt: true,
         examSession: {
           select: {

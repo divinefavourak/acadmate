@@ -1,6 +1,4 @@
-import type { Prisma } from "@prisma/client";
-
-type AnswerWithQuestion = {
+export type ScoringAnswer = {
   questionId: string;
   isCorrect: boolean | null;
   question: {
@@ -11,14 +9,36 @@ type AnswerWithQuestion = {
   };
 };
 
-export function computeScore(answers: AnswerWithQuestion[], totalQuestions: number) {
+export type SubjectBreakdownEntry = {
+  subjectId: string;
+  name: string;
+  correct: number;
+  total: number;
+};
+
+export type TopicBreakdownEntry = {
+  topicId: string;
+  name: string;
+  correct: number;
+  total: number;
+};
+
+export type ScoreResult = {
+  correct: number;
+  incorrect: number;
+  unanswered: number;
+  score: number;
+  subjectBreakdown: SubjectBreakdownEntry[];
+  topicBreakdown: TopicBreakdownEntry[];
+};
+
+export function computeScore(answers: ScoringAnswer[], totalQuestions: number): ScoreResult {
   const correct = answers.filter((a) => a.isCorrect === true).length;
   const incorrect = answers.filter((a) => a.isCorrect === false).length;
   const unanswered = totalQuestions - answers.length;
   const score = totalQuestions > 0 ? (correct / totalQuestions) * 100 : 0;
 
-  // Subject breakdown
-  const subjectMap: Record<string, { subjectId: string; name: string; correct: number; total: number }> = {};
+  const subjectMap: Record<string, SubjectBreakdownEntry> = {};
   for (const answer of answers) {
     const sid = answer.question.subjectId;
     if (!subjectMap[sid]) {
@@ -28,8 +48,7 @@ export function computeScore(answers: AnswerWithQuestion[], totalQuestions: numb
     if (answer.isCorrect) subjectMap[sid].correct++;
   }
 
-  // Topic breakdown
-  const topicMap: Record<string, { topicId: string; name: string; correct: number; total: number }> = {};
+  const topicMap: Record<string, TopicBreakdownEntry> = {};
   for (const answer of answers) {
     if (!answer.question.topicId || !answer.question.topic) continue;
     const tid = answer.question.topicId;
@@ -45,7 +64,7 @@ export function computeScore(answers: AnswerWithQuestion[], totalQuestions: numb
     incorrect,
     unanswered,
     score: Math.round(score * 100) / 100,
-    subjectBreakdown: Object.values(subjectMap) as Prisma.InputJsonValue,
-    topicBreakdown: Object.values(topicMap) as Prisma.InputJsonValue,
+    subjectBreakdown: Object.values(subjectMap),
+    topicBreakdown: Object.values(topicMap),
   };
 }
