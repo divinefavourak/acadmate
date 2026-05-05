@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Role } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 
 @Injectable()
@@ -7,7 +8,7 @@ export class AdminUsersService {
 
   async listUsers(limit = 20, offset = 0, role?: string) {
     const safeLimit = Math.min(limit, 100);
-    const where = role ? { role } : {};
+    const where = role ? { role: role as Role } : {};
     const [users, total] = await this.prisma.$transaction([
       this.prisma.user.findMany({
         take: safeLimit,
