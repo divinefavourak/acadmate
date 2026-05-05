@@ -206,11 +206,11 @@ export default function ResultDetailPage({ params }: { params: Promise<{ id: str
   const [filter, setFilter] = useState<"all" | "correct" | "incorrect" | "unanswered">("all");
 
   useEffect(() => {
-    apiClient<{ result: ResultDetail & {
+    apiClient<ResultDetail & {
       subjectBreakdowns?: { subjectId: string; name: string; correct: number; total: number }[];
       topicBreakdowns?: { topicId: string; name: string; correct: number; total: number }[];
-    } }>(`/results/${id}`)
-      .then(({ result: raw }) => {
+    }>(`/results/${id}`)
+      .then((raw) => {
         // Normalise array → keyed-object shape the page expects
         const subjectBreakdown: SubjectBreakdown = {};
         for (const s of raw.subjectBreakdowns ?? []) {

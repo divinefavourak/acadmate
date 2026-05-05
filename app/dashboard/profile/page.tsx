@@ -35,9 +35,8 @@ export default function ProfilePage() {
   });
 
   useEffect(() => {
-    apiClient<{ user: UserProfile }>("/users/me")
-      .then((data) => {
-        const u = data.user;
+    apiClient<UserProfile>("/users/me")
+      .then((u) => {
         setProfile(u);
         setForm({
           name: u.name ?? "",
