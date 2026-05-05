@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { HealthController } from './health.controller';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -18,6 +19,7 @@ import { SchedulerModule } from './modules/scheduler/scheduler.module';
 import { AdminModule } from './modules/admin/admin.module';
 
 @Module({
+  controllers: [HealthController],
   imports: [
     // ── Load .env FIRST so all modules can read env vars ─────────────────
     ConfigModule.forRoot({ isGlobal: true }),
