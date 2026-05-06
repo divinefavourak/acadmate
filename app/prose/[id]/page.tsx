@@ -44,8 +44,8 @@ export default function ProseDetailPage({ params }: { params: Promise<{ id: stri
 
   useEffect(() => {
     Promise.allSettled([
-      apiClient<{ text: ProseDetail }>(`/prose/${id}`),
-      apiClient<{ questions: ProseQuestion[] }>(`/prose/${id}/questions?limit=100`),
+      apiClient<{ text: ProseDetail }>(`/api/prose/${id}`),
+      apiClient<{ questions: ProseQuestion[] }>(`/api/prose/${id}/questions?limit=100`),
     ]).then(([proseResult, qResult]) => {
       if (proseResult.status === "rejected") { setError("Failed to load prose content."); return; }
       setProse(proseResult.value.text);
@@ -58,7 +58,7 @@ export default function ProseDetailPage({ params }: { params: Promise<{ id: stri
     if (questions.length === 0) return;
     setStarting(true);
     try {
-      const data = await apiClient<{ examSession: { id: string } }>("/exams", {
+      const data = await apiClient<{ examSession: { id: string } }>("/api/exams", {
         method: "POST",
         body: JSON.stringify({ mode: "PRACTICE", proseTextId: id, questionCount: questions.length }),
       });

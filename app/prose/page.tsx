@@ -18,7 +18,7 @@ export default function ProseLandingPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    apiClient<{ texts: ProseText[] }>("/prose")
+    apiClient<{ texts: ProseText[] }>("/api/prose")
       .then((data) => setTexts(data.texts ?? []))
       .catch(() => {})
       .finally(() => setLoading(false));

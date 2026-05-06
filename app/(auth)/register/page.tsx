@@ -21,14 +21,14 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      await apiClient("/auth/register", {
+      await apiClient("/api/auth/register", {
         method: "POST",
         body: JSON.stringify({ name, email, password }),
         skipAuth: true,
       });
 
       const data = await apiClient<{ accessToken: string }>(
-        "/auth/login",
+        "/api/auth/login",
         {
           method: "POST",
           body: JSON.stringify({ email, password }),
