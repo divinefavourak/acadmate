@@ -47,7 +47,7 @@ export class AdminImportsController {
       rows: dto.rows,
     });
 
-    await this.prisma.adminActivityLog.create({
+    this.prisma.adminActivityLog.create({
       data: {
         adminId: user.id,
         action: 'IMPORT_QUESTIONS',
@@ -60,7 +60,7 @@ export class AdminImportsController {
           errors: result.errors.length,
         },
       },
-    });
+    }).catch(() => {});
 
     return result;
   }
@@ -119,7 +119,7 @@ export class AdminImportsController {
       data: { publishedRows: result.count },
     });
 
-    await this.prisma.adminActivityLog.create({
+    this.prisma.adminActivityLog.create({
       data: {
         adminId: user.id,
         action: 'PUBLISH_IMPORT',
@@ -127,7 +127,7 @@ export class AdminImportsController {
         entityId: id,
         details: { publishedCount: result.count },
       },
-    });
+    }).catch(() => {});
 
     return { published: result.count };
   }

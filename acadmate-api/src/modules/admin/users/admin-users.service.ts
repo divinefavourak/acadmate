@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { Role } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 
@@ -6,9 +6,9 @@ import { PrismaService } from '../../../prisma/prisma.service';
 export class AdminUsersService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async listUsers(limit = 20, offset = 0, role?: string) {
+  async listUsers(limit = 20, offset = 0, role?: Role) {
     const safeLimit = Math.min(limit, 100);
-    const where = role ? { role: role as Role } : {};
+    const where = role ? { role } : {};
     const [users, total] = await this.prisma.$transaction([
       this.prisma.user.findMany({
         take: safeLimit,
@@ -60,6 +60,8 @@ export class AdminUsersService {
         },
       }),
     ]);
+
+    if (!user) throw new NotFoundException('User not found');
 
     return {
       user,

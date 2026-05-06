@@ -1,5 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, Logger } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
@@ -8,6 +8,7 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.set('trust proxy', 1);
 
   // ─── Security ──────────────────────────────────────────────────────────────
   app.use(helmet());
@@ -46,9 +47,10 @@ async function bootstrap() {
   // ─── Start ────────────────────────────────────────────────────────────────
   const port = process.env.PORT || 3001;
   await app.listen(port, '0.0.0.0');
-  console.log(`🚀 Acadmate API running on port ${port}`);
+  const logger = new Logger('Bootstrap');
+  logger.log(`Acadmate API running on port ${port}`);
   if (process.env.NODE_ENV !== 'production') {
-    console.log(`📖 Swagger docs: http://localhost:${port}/api/docs`);
+    logger.log(`Swagger docs: http://localhost:${port}/api/docs`);
   }
 }
 

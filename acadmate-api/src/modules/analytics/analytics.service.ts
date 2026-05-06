@@ -1,14 +1,18 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 
-type AnalyticsResult = {
+type TrendPoint  = { id: string; score: number; mode: string; date: Date };
+type SubjectPerf = { subjectId: string; name: string; correct: number; total: number; percentage: number };
+type WeakTopic   = { topicId: string; name: string; correct: number; total: number; percentage: number };
+
+interface AnalyticsResult {
   totalTests: number;
   averageScore: number;
   bestScore: number;
-  recentTrend: unknown[];
-  subjectPerformance: unknown[];
-  weakTopics: unknown[];
-};
+  recentTrend: TrendPoint[];
+  subjectPerformance: SubjectPerf[];
+  weakTopics: WeakTopic[];
+}
 
 @Injectable()
 export class AnalyticsService {

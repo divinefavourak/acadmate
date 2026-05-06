@@ -10,12 +10,19 @@ export class SchedulerService {
 
   @Cron(CronExpression.EVERY_MINUTE)
   async expireStaleExamSessions() {
-    const count = await this.examExpiry.expireStaleSessions();
-    this.logger.debug(
-      JSON.stringify({ job: 'expireStaleExamSessions', expiredCount: count, timestamp: new Date().toISOString() }),
-    );
-    if (count > 0) {
-      this.logger.log(`Expired ${count} stale exam session(s)`);
+    try {
+      const count = await this.examExpiry.expireStaleSessions();
+      this.logger.debug(
+        JSON.stringify({ job: 'expireStaleExamSessions', expiredCount: count, timestamp: new Date().toISOString() }),
+      );
+      if (count > 0) {
+        this.logger.log(`Expired ${count} stale exam session(s)`);
+      }
+    } catch (err) {
+      this.logger.error(
+        'expireStaleExamSessions cron failed',
+        err instanceof Error ? err.stack : String(err),
+      );
     }
   }
 }

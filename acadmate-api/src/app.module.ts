@@ -1,4 +1,4 @@
-import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
+import { Module, NestModule, MiddlewareConsumer, RequestMethod } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
@@ -53,6 +53,6 @@ export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     // Attach a unique requestId to every request before guards/interceptors run.
     // This ensures it's available in exception filters even for 401/403 responses.
-    consumer.apply(RequestIdMiddleware).forRoutes('*');
+    consumer.apply(RequestIdMiddleware).forRoutes({ path: '(.*)', method: RequestMethod.ALL });
   }
 }
