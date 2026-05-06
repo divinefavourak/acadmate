@@ -25,7 +25,7 @@ export class ApiError extends Error {
 export async function apiClient<T = unknown>(
   path: string,
   options: FetchOptions = {},
-): Promise<T extends void ? void : T | undefined> {
+): Promise<T> {
   const { skipAuth, ...init } = options;
 
   const headers = new Headers(init.headers);
@@ -62,7 +62,7 @@ export async function apiClient<T = unknown>(
   // Guard against non-JSON responses (CDN/proxy HTML error pages)
   const text = await res.text();
   try {
-    return JSON.parse(text) as T extends void ? never : T;
+    return JSON.parse(text) as T;
   } catch {
     throw new ApiError(`Server returned non-JSON response (status ${res.status})`, res.status);
   }
