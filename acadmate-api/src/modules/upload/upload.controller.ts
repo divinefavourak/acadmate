@@ -11,6 +11,8 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiConsumes } from '@nestjs/swagger';
 import { memoryStorage } from 'multer';
+
+type UploadedMulterFile = { buffer: Buffer; mimetype: string; size: number; originalname: string };
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -31,7 +33,7 @@ export class UploadController {
   @UseInterceptors(
     FileInterceptor('file', { storage: memoryStorage() }),
   )
-  uploadFile(@UploadedFile() file: Express.Multer.File) {
+  uploadFile(@UploadedFile() file: UploadedMulterFile) {
     if (!file) throw new BadRequestException('No file provided');
     return this.uploadService.uploadImage(file);
   }

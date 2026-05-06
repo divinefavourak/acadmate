@@ -12,13 +12,15 @@ export class SubjectsController {
 
   @Get()
   @ApiOperation({ summary: 'List active subjects' })
-  listSubjects() {
-    return this.subjectsService.listSubjects();
+  async listSubjects() {
+    const subjects = await this.subjectsService.listSubjects();
+    return { subjects };
   }
 
   @Get(':id/topics')
   @ApiOperation({ summary: 'List topics for a subject' })
-  getTopics(@Param('id') id: string) {
-    return this.subjectsService.getTopics(id);
+  async getTopics(@Param('id') id: string) {
+    const topics = await this.subjectsService.getTopics(id);
+    return { topics };
   }
 }

@@ -12,8 +12,9 @@ export class ProseController {
 
   @Get()
   @ApiOperation({ summary: 'List published prose texts' })
-  listProse() {
-    return this.proseService.listProse();
+  async listProse() {
+    const texts = await this.proseService.listProse();
+    return { texts };
   }
 
   @Get(':id')
