@@ -35,7 +35,7 @@ export default function ProfilePage() {
   });
 
   useEffect(() => {
-    apiClient<UserProfile>("/users/me")
+    apiClient<UserProfile>("/api/users/me")
       .then((u) => {
         setProfile(u);
         setForm({
@@ -56,7 +56,7 @@ export default function ProfilePage() {
     setSuccess(false);
 
     try {
-      await apiClient("/users/me", {
+      await apiClient("/api/users/me", {
         method: "PATCH",
         body: JSON.stringify({
           name: form.name || undefined,

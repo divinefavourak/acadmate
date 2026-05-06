@@ -23,7 +23,7 @@ function LoginForm() {
 
     try {
       const data = await apiClient<{ accessToken: string; user: { role: string } }>(
-        "/auth/login",
+        "/api/auth/login",
         {
           method: "POST",
           body: JSON.stringify({ email, password }),

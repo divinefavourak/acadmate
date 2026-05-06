@@ -52,8 +52,8 @@ export default function NewExamPage() {
 
   useEffect(() => {
     Promise.allSettled([
-      apiClient<{ subjects: Subject[] }>("/subjects"),
-      apiClient<{ texts: ProseText[] }>("/prose"),
+      apiClient<{ subjects: Subject[] }>("/api/subjects"),
+      apiClient<{ texts: ProseText[] }>("/api/prose"),
     ]).then(([sResult, pResult]) => {
       const subjList = sResult.status === "fulfilled" ? (sResult.value.subjects ?? []) : [];
       const proseList = pResult.status === "fulfilled" ? (pResult.value.texts ?? []) : [];
@@ -68,7 +68,7 @@ export default function NewExamPage() {
     if (mode !== "TOPIC" || !selectedSubject) return;
     setLoadingTopics(true);
     setSelectedTopic("");
-    apiClient<{ topics: Topic[] }>(`/topics?subjectId=${selectedSubject}`)
+    apiClient<{ topics: Topic[] }>(`/api/topics?subjectId=${selectedSubject}`)
       .then((data) => {
         const list = data.topics ?? [];
         setTopics(list);
@@ -118,7 +118,7 @@ export default function NewExamPage() {
         : { mode: "PRACTICE", subjectId: selectedSubject, questionCount };
 
     try {
-      const data = await apiClient<{ examSession: { id: string } }>("/exams", {
+      const data = await apiClient<{ examSession: { id: string } }>("/api/exams", {
         method: "POST",
         body: JSON.stringify(body),
       });

@@ -64,7 +64,7 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
 
   // Fetch exam session
   useEffect(() => {
-    apiClient<{ examSession: ExamSession }>(`/exams/${id}`)
+    apiClient<{ examSession: ExamSession }>(`/api/exams/${id}`)
       .then(({ examSession: s }) => {
         setSession(s);
         const saved: Record<string, string | null> = {};
@@ -87,7 +87,7 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
   // Auto-save answer to backend
   const saveAnswer = useCallback(
     async (questionId: string, optionId: string | null) => {
-      await apiClient(`/exams/${id}/answers`, {
+      await apiClient(`/api/exams/${id}/answers`, {
         method: "POST",
         body: JSON.stringify({ answers: [{ questionId, optionId }] }),
       }).catch(() => {});
@@ -100,7 +100,7 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
     async (questionId: string) => {
       const next = !markedReview[questionId];
       setMarkedReview((prev) => ({ ...prev, [questionId]: next }));
-      await apiClient(`/exams/${id}/review`, {
+      await apiClient(`/api/exams/${id}/review`, {
         method: "PATCH",
         body: JSON.stringify({ questionId, markedReview: next }),
       }).catch(() => {});
@@ -123,7 +123,7 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
 
     setSubmitting(true);
     try {
-      const data = await apiClient<{ result: { id: string } }>(`/exams/${id}/submit`, { method: "POST" });
+      const data = await apiClient<{ result: { id: string } }>(`/api/exams/${id}/submit`, { method: "POST" });
       router.push(`/results/${data.result.id}`);
     } catch {
       alert("Failed to submit exam. Please try again.");
@@ -135,14 +135,14 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
     async (questionId: string) => {
       if (reportedQuestions.has(questionId)) return;
       setReportedQuestions((prev) => new Set(prev).add(questionId));
-      await apiClient(`/questions/${questionId}/flag`, { method: "POST" }).catch(() => {});
+      await apiClient(`/api/questions/${questionId}/flag`, { method: "POST" }).catch(() => {});
     },
     [reportedQuestions]
   );
 
   const handleExpire = async () => {
     try {
-      const data = await apiClient<{ result: { id: string } }>(`/exams/${id}/submit`, { method: "POST" });
+      const data = await apiClient<{ result: { id: string } }>(`/api/exams/${id}/submit`, { method: "POST" });
       router.push(`/results/${data.result.id}?timeout=1`);
     } catch { /* session already expired */ }
   };

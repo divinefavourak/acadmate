@@ -11,7 +11,7 @@ export default function NotificationBell() {
 
   const fetchCount = useCallback(async () => {
     try {
-      const data = await apiClient<{ unreadCount: number }>("/admin/notifications");
+      const data = await apiClient<{ unreadCount: number }>("/api/admin/notifications");
       setUnreadCount(data.unreadCount ?? 0);
     } catch { /* silent */ }
   }, []);
