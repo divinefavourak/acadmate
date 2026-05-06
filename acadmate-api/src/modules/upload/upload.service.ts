@@ -1,6 +1,8 @@
 import { Injectable, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { createHash } from 'crypto';
 
+type UploadedMulterFile = { buffer: Buffer; mimetype: string; size: number; originalname: string };
+
 @Injectable()
 export class UploadService {
   private readonly cloudName = process.env.CLOUDINARY_CLOUD_NAME;
@@ -16,7 +18,7 @@ export class UploadService {
 
   private readonly maxSizeBytes = 5 * 1024 * 1024; // 5 MB
 
-  async uploadImage(file: Express.Multer.File): Promise<{ url: string }> {
+  async uploadImage(file: UploadedMulterFile): Promise<{ url: string }> {
     if (!this.allowedMimeTypes.includes(file.mimetype)) {
       throw new BadRequestException('Only JPEG, PNG, GIF, or WebP images are allowed');
     }
