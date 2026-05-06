@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { apiClient } from "@/lib/api/client";
-import Loader from "@/app/components/Loader";
 
 interface ResultEntry {
   id: string;
@@ -44,16 +43,21 @@ export default function ResultsPage() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
+  const [error, setError] = useState("");
   const limit = 10;
 
   useEffect(() => {
     setLoading(true);
-    apiClient<{ results: ResultEntry[]; total: number }>(`/results?limit=${limit}&offset=${page * limit}`)
+    setError("");
+    apiClient<{ results: ResultEntry[]; total: number }>(`/api/results?limit=${limit}&offset=${page * limit}`)
       .then((data) => {
-        setResults(data.results ?? []);
-        setTotal(data.total ?? 0);
+        setResults(data?.results ?? []);
+        setTotal(data?.total ?? 0);
       })
-      .catch(() => {})
+      .catch((err) => {
+        console.error("Failed to load results", err);
+        setError("Failed to load exam history. Please refresh.");
+      })
       .finally(() => setLoading(false));
   }, [page]);
 
@@ -67,8 +71,10 @@ export default function ResultsPage() {
       </div>
 
       <div className="glass-panel p-6 rounded-2xl">
-        {loading ? (
-          <Loader />
+        {error ? (
+          <p className="text-red-500 text-sm py-8 text-center">{error}</p>
+        ) : loading ? (
+          <p className="text-slate-500 text-sm py-8 text-center">Loading…</p>
         ) : results.length === 0 ? (
           <div className="py-16 text-center space-y-3">
             <p className="text-slate-500">No exams taken yet.</p>

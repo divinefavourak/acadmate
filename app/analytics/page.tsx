@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { apiClient } from "@/lib/api/client";
-import Loader from "@/app/components/Loader";
 
 interface AnalyticsData {
   totalTests: number;
@@ -24,11 +23,15 @@ function ScoreBar({ percentage, color = "bg-indigo-500" }: { percentage: number;
 export default function AnalyticsPage() {
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    apiClient<AnalyticsData>("/analytics")
-      .then((d) => setData(d))
-      .catch(() => {})
+    apiClient<AnalyticsData>("/api/analytics")
+      .then((d) => { if (d) setData(d); })
+      .catch((err) => {
+        console.error("Failed to load analytics", err);
+        setError("Failed to load analytics. Please refresh.");
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -40,6 +43,8 @@ export default function AnalyticsPage() {
         <h1 className="text-3xl font-bold tracking-tight mb-2">Analytics</h1>
         <p className="text-slate-500 dark:text-slate-400">Track your performance over time.</p>
       </div>
+
+      {error && <p className="text-red-500 text-sm">{error}</p>}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -79,7 +84,7 @@ export default function AnalyticsPage() {
         <div className="glass-panel p-6 rounded-2xl">
           <h2 className="text-xl font-bold mb-6">Subject Performance</h2>
           {loading ? (
-            <Loader className="py-4" />
+            <p className="text-slate-500 text-sm text-center py-4">Loading…</p>
           ) : !data || data.subjectPerformance.length === 0 ? (
             <p className="text-slate-500 text-sm text-center py-4">No data yet. Complete some exams first.</p>
           ) : (
@@ -109,7 +114,7 @@ export default function AnalyticsPage() {
         <div className="glass-panel p-6 rounded-2xl">
           <h2 className="text-xl font-bold mb-6">Topics to Improve</h2>
           {loading ? (
-            <Loader className="py-4" />
+            <p className="text-slate-500 text-sm text-center py-4">Loading…</p>
           ) : !data || data.weakTopics.length === 0 ? (
             <p className="text-slate-500 text-sm text-center py-4">
               {data?.totalTests ? "No weak topics detected — great work!" : "Complete more exams to see weak topics."}

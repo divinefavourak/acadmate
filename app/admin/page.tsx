@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import StatCard from "../dashboard/components/StatCard";
 import MiniBarChart from "./components/MiniBarChart";
 import { apiClient } from "@/lib/api/client";
-import Loader from "@/app/components/Loader";
 
 interface AdminStats {
   totalStudents: number;
@@ -20,11 +19,15 @@ interface AdminStats {
 export default function AdminDashboard() {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    apiClient<AdminStats>("/admin/stats")
-      .then((data) => setStats(data))
-      .catch(() => {})
+    apiClient<AdminStats>("/api/admin/stats")
+      .then((data) => setStats(data ?? null))
+      .catch((err) => {
+        console.error("Failed to load admin stats", err);
+        setError("Failed to load dashboard data. Please refresh.");
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -37,6 +40,8 @@ export default function AdminDashboard() {
           <p className="text-slate-500 dark:text-slate-400">Monitor Acadmate&apos;s overall performance and metrics.</p>
         </div>
       </div>
+
+      {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -75,7 +80,7 @@ export default function AdminDashboard() {
         <div className="lg:col-span-2 glass-panel border border-slate-200 dark:border-slate-800 p-6 rounded-2xl">
           <h2 className="text-xl font-bold mb-6">Exam Activity (Last 7 Days)</h2>
           {loading ? (
-            <Loader className="h-64" />
+            <div className="h-64 flex items-center justify-center text-slate-500 text-sm">Loading…</div>
           ) : (
             <MiniBarChart
               data={stats?.dailyExamActivity ?? []}
@@ -133,7 +138,7 @@ export default function AdminDashboard() {
           <h2 className="text-xl font-bold mb-2">Questions per Subject</h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">Published questions in the question bank</p>
           {loading ? (
-            <Loader className="h-64" />
+            <div className="h-64 flex items-center justify-center text-slate-500 text-sm">Loading…</div>
           ) : (
             <MiniBarChart
               data={stats?.questionsBySubject ?? []}
@@ -149,7 +154,7 @@ export default function AdminDashboard() {
           <h2 className="text-xl font-bold mb-2">Score Distribution</h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">How students score across all completed exams</p>
           {loading ? (
-            <Loader className="h-64" />
+            <div className="h-64 flex items-center justify-center text-slate-500 text-sm">Loading…</div>
           ) : (
             <MiniBarChart
               data={stats?.scoreDistribution ?? []}

@@ -3,9 +3,7 @@
 import { useEffect, useState, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import MathText from "@/app/components/MathText";
-import { apiClient, ApiError } from "@/lib/api/client";
 import MiniBarChart from "@/app/admin/components/MiniBarChart";
-import Loader from "@/app/components/Loader";
 
 interface QuestionEntry {
   id: string;
@@ -44,20 +42,6 @@ interface SubjectOption {
 interface TopicOption {
   id: string;
   name: string;
-}
-
-interface YearOption {
-  year: number | null;
-  count: number;
-}
-
-interface QuestionsResponse {
-  questions: QuestionEntry[];
-  total: number;
-}
-
-interface FlaggedQuestionsResponse {
-  questions: QuestionEntry[];
 }
 
 const difficultyColors: Record<string, string> = {
@@ -105,7 +89,7 @@ function QuestionsPage() {
   // Navigation state
   const [activeSubject, setActiveSubject] = useState<SubjectOption | null>(null);
   const [activeYear, setActiveYear] = useState<number | "unknown" | null>(null);
-  const [years, setYears] = useState<YearOption[]>([]);
+  const [years, setYears] = useState<{ year: number | null; count: number }[]>([]);
 
   const [formError, setFormError] = useState("");
 
@@ -151,27 +135,41 @@ function QuestionsPage() {
     setUploading: (v: boolean) => void
   ) {
     setUploading(true);
-    const fd = new FormData();
-    fd.append("file", file);
     try {
-      const data = await apiClient<{ url: string }>("/upload", { method: "POST", body: fd });
-      setter(data.url);
-    } catch { /* upload failed silently */ } finally {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/upload", { method: "POST", body: fd });
+      if (res.ok) {
+        const data = await res.json();
+        setter(data.url);
+      } else {
+        throw new Error(`Upload failed with status ${res.status}`);
+      }
+    } catch (err) {
+      console.error("Image upload failed", err);
+      setFormError("Image upload failed. Please try again.");
+    } finally {
       setUploading(false);
     }
   }
 
   useEffect(() => {
-    apiClient<{ subjects: { id: string; name: string; code: string }[] }>("/admin/subjects")
-      .then((data) => setSubjects(data.subjects ?? [])).catch(() => {});
-    apiClient<FlaggedQuestionsResponse>("/admin/questions?flagged=true&limit=500")
-      .then((data) => setFlaggedQuestions(data.questions ?? [])).catch(() => {});
+    fetch("/api/admin/subjects")
+      .then((r) => r.ok ? r.json() : { subjects: [] })
+      .then((data) => setSubjects(data.subjects ?? []))
+      .catch((err) => console.error("Failed to load subjects", err));
+    // Preload flagged count for the tab badge
+    fetch("/api/admin/questions?flagged=true&limit=500")
+      .then((r) => r.ok ? r.json() : { questions: [] })
+      .then((data) => setFlaggedQuestions(data.questions ?? []))
+      .catch((err) => console.error("Failed to load flagged questions", err));
   }, []);
 
   useEffect(() => {
     if (!activeSubject) return;
-    apiClient<{ years: YearOption[] }>(`/admin/subjects/${activeSubject.id}/years`)
-      .then((data) => setYears(data.years ?? [])).catch(() => {});
+    fetch(`/api/admin/subjects/${activeSubject.id}/years`)
+      .then((r) => r.ok ? r.json() : { years: [] })
+      .then((data) => setYears(data.years ?? []));
   }, [activeSubject]);
 
   useEffect(() => {
@@ -192,19 +190,20 @@ function QuestionsPage() {
     if (publishedFilter !== "") params.set("isPublished", publishedFilter);
     if (flaggedFilter) params.set("flagged", "true");
 
-    apiClient<QuestionsResponse>(`/admin/questions?${params}`)
+    fetch(`/api/admin/questions?${params}`)
+      .then((r) => r.ok ? r.json() : { questions: [], total: 0 })
       .then((data) => {
         setQuestions(data.questions ?? []);
         setTotal(data.total ?? 0);
       })
-      .catch(() => {})
       .finally(() => setLoading(false));
   }, [page, publishedFilter, flaggedFilter, activeSubject, activeYear]);
 
   useEffect(() => {
     if (!form.subjectId) { setTopics([]); return; }
-    apiClient<{ topics: { id: string; name: string }[] }>(`/topics?subjectId=${form.subjectId}`)
-      .then((data) => setTopics(data.topics ?? [])).catch(() => {});
+    fetch(`/api/topics?subjectId=${form.subjectId}`)
+      .then((r) => r.ok ? r.json() : { topics: [] })
+      .then((data) => setTopics(data.topics ?? []));
   }, [form.subjectId]);
 
   const totalPages = Math.ceil(total / limit);
@@ -212,11 +211,12 @@ function QuestionsPage() {
   useEffect(() => {
     if (activeTab !== "flagged") return;
     setLoadingFlagged(true);
-    apiClient<FlaggedQuestionsResponse>("/admin/questions?flagged=true&limit=500")
+    fetch("/api/admin/questions?flagged=true&limit=500")
+      .then((r) => r.ok ? r.json() : { questions: [] })
       .then((data) => setFlaggedQuestions(data.questions ?? []))
-      .catch(() => {})
+      .catch((err) => console.error("Failed to load flagged questions", err))
       .finally(() => setLoadingFlagged(false));
-  }, [activeTab]);
+  }, [activeTab]); // re-fetch every time the user opens the tab
 
   // Analytics data is derived from already-loaded subjects + flaggedQuestions — no extra fetches needed
   useEffect(() => {
@@ -410,27 +410,31 @@ function QuestionsPage() {
     if (form.imageUrl) payload.imageUrl = form.imageUrl;
     if (form.explanation.trim()) payload.explanation = form.explanation.trim();
 
-    try {
-      await apiClient("/admin/questions", {
-        method: "POST",
-        body: JSON.stringify(payload),
-      });
-      setShowForm(false);
-      setForm(emptyForm);
-      setTopics([]);
-      setPage(0);
-      const params = new URLSearchParams({ limit: String(limit), offset: "0" });
-      if (publishedFilter !== "") params.set("isPublished", publishedFilter);
-      setLoading(true);
-      apiClient<QuestionsResponse>(`/admin/questions?${params}`)
-        .then((d) => { setQuestions(d.questions ?? []); setTotal(d.total ?? 0); })
-        .catch(() => {})
-        .finally(() => setLoading(false));
-    } catch (e) {
-      setFormError(e instanceof ApiError ? e.message : "Failed to create question.");
-    } finally {
-      setSaving(false);
+    const res = await fetch("/api/admin/questions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    setSaving(false);
+
+    if (!res.ok) {
+      setFormError(data.error ?? "Failed to create question.");
+      return;
     }
+
+    setShowForm(false);
+    setForm(emptyForm);
+    setTopics([]);
+    setPage(0);
+    // Reload list
+    const params = new URLSearchParams({ limit: String(limit), offset: "0" });
+    if (publishedFilter !== "") params.set("isPublished", publishedFilter);
+    setLoading(true);
+    fetch(`/api/admin/questions?${params}`)
+      .then((r) => r.ok ? r.json() : { questions: [], total: 0 })
+      .then((d) => { setQuestions(d.questions ?? []); setTotal(d.total ?? 0); })
+      .finally(() => setLoading(false));
   }
 
   return (
@@ -710,7 +714,7 @@ function QuestionsPage() {
           ))}
         </div>
       ) : activeYear === null ? (
-        <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 flex flex-col items-center justify-center min-h-75">
+        <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 flex flex-col items-center justify-center min-h-[300px]">
           <h2 className="text-lg font-medium text-white mb-6">Select a Year for {activeSubject.name}</h2>
           {years.length === 0 ? (
             <p className="text-slate-400 text-sm">No questions available for this subject.</p>
@@ -734,7 +738,7 @@ function QuestionsPage() {
       ) : (
         <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6">
           {loading ? (
-            <Loader />
+            <p className="text-slate-400 text-sm py-8 text-center">Loading…</p>
           ) : questions.length === 0 ? (
             <p className="text-slate-400 text-sm py-8 text-center">No questions found.</p>
           ) : (
@@ -859,7 +863,7 @@ function QuestionsPage() {
       {activeTab === "flagged" && (
         <div className="space-y-6">
           {loadingFlagged ? (
-            <Loader />
+            <p className="text-slate-400 text-sm py-8 text-center">Loading…</p>
           ) : flaggedQuestions.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-slate-500 gap-2">
               <span className="text-3xl">🎉</span>
@@ -930,7 +934,7 @@ function QuestionsPage() {
       {activeTab === "analytics" && (
         <div className="space-y-6">
           {loadingAnalytics ? (
-            <Loader />
+            <p className="text-slate-400 text-sm py-8 text-center">Loading…</p>
           ) : (
             <>
               <div className="glass-panel border border-slate-200 dark:border-slate-800 p-6 rounded-2xl">

@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import MathText from "@/app/components/MathText";
 import { apiClient } from "@/lib/api/client";
-import Loader from "@/app/components/Loader";
 
 interface FlagEntry {
   id: string;
@@ -31,11 +30,15 @@ function formatDate(iso: string) {
 export default function MyFlagsPage() {
   const [flags, setFlags] = useState<FlagEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    apiClient<{ flags: FlagEntry[] }>("/flags")
-      .then((data) => setFlags(data.flags ?? []))
-      .catch(() => {})
+    apiClient<{ flags: FlagEntry[] }>("/api/my-flags")
+      .then((data) => setFlags(data?.flags ?? []))
+      .catch((err) => {
+        console.error("Failed to load flagged questions", err);
+        setError("Failed to load your reported questions. Please refresh.");
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -51,8 +54,10 @@ export default function MyFlagsPage() {
         </p>
       </div>
 
-      {loading ? (
-        <Loader className="py-16" />
+      {error ? (
+        <p className="text-red-500 text-sm py-16 text-center">{error}</p>
+      ) : loading ? (
+        <p className="text-slate-500 text-sm py-16 text-center">Loading…</p>
       ) : flags.length === 0 ? (
         <div className="glass-panel p-12 rounded-2xl text-center space-y-2">
           <p className="text-2xl">🚩</p>

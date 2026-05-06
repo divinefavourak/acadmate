@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { apiClient, ApiError } from "@/lib/api/client";
-import Loader from "@/app/components/Loader";
 
 interface ProseEntry {
   id: string;
@@ -16,6 +14,7 @@ interface ProseEntry {
 export default function ProsePage() {
   const [texts, setTexts] = useState<ProseEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
@@ -23,9 +22,13 @@ export default function ProsePage() {
 
   function loadTexts() {
     setLoading(true);
-    apiClient<{ texts: ProseEntry[] }>("/admin/prose")
+    fetch("/api/admin/prose")
+      .then((r) => r.ok ? r.json() : { texts: [] })
       .then((data) => setTexts(data.texts ?? []))
-      .catch(() => {})
+      .catch((err) => {
+        console.error("Failed to load prose texts", err);
+        setLoadError("Failed to load prose library. Please refresh.");
+      })
       .finally(() => setLoading(false));
   }
 
@@ -37,24 +40,27 @@ export default function ProsePage() {
     if (!form.title.trim()) { setFormError("Title is required."); return; }
 
     setSaving(true);
-    try {
-      await apiClient("/admin/prose", {
-        method: "POST",
-        body: JSON.stringify({
-          title: form.title,
-          author: form.author || undefined,
-          year: form.year ? Number(form.year) : undefined,
-          summary: form.summary || undefined,
-          themes: form.themes || undefined,
-        }),
-      });
+    const res = await fetch("/api/admin/prose", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: form.title,
+        author: form.author || undefined,
+        year: form.year ? Number(form.year) : undefined,
+        summary: form.summary || undefined,
+        themes: form.themes || undefined,
+      }),
+    });
+
+    const data = await res.json();
+    setSaving(false);
+
+    if (res.ok) {
       setForm({ title: "", author: "", year: "", summary: "", themes: "" });
       setShowForm(false);
       loadTexts();
-    } catch (e) {
-      setFormError(e instanceof ApiError ? e.message : "Failed to create prose text.");
-    } finally {
-      setSaving(false);
+    } else {
+      setFormError(data.error ?? "Failed to create prose text.");
     }
   }
 
@@ -167,8 +173,9 @@ export default function ProsePage() {
 
       {/* Table */}
       <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6">
+        {loadError && <p className="text-red-500 text-sm mb-4">{loadError}</p>}
         {loading ? (
-          <Loader />
+          <p className="text-slate-400 text-sm py-8 text-center">Loading…</p>
         ) : texts.length === 0 ? (
           <p className="text-slate-400 text-sm py-8 text-center">No prose texts added yet.</p>
         ) : (

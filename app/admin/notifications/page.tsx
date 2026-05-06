@@ -2,8 +2,6 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { apiClient } from "@/lib/api/client";
-import Loader from "@/app/components/Loader";
 
 interface Notification {
   id: string;
@@ -37,14 +35,23 @@ export default function AdminNotificationsPage() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "unread">("all");
+  const [error, setError] = useState("");
   const router = useRouter();
 
   const fetchNotifications = useCallback(async () => {
     try {
-      const data = await apiClient<{ notifications: Notification[]; unreadCount: number }>("/admin/notifications");
-      setNotifications(data.notifications ?? []);
-      setUnreadCount(data.unreadCount ?? 0);
-    } catch { /* silent */ } finally {
+      const res = await fetch("/api/admin/notifications");
+      if (res.ok) {
+        const data = await res.json();
+        setNotifications(data.notifications ?? []);
+        setUnreadCount(data.unreadCount ?? 0);
+      } else {
+        throw new Error(`HTTP ${res.status}`);
+      }
+    } catch (err) {
+      console.error("Failed to load notifications", err);
+      setError("Failed to load notifications. Please refresh.");
+    } finally {
       setLoading(false);
     }
   }, []);
@@ -52,9 +59,15 @@ export default function AdminNotificationsPage() {
   useEffect(() => { fetchNotifications(); }, [fetchNotifications]);
 
   async function markAllRead() {
-    await apiClient("/admin/notifications/read-all", { method: "PATCH" }).catch(() => {});
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-    setUnreadCount(0);
+    try {
+      const res = await fetch("/api/admin/notifications", { method: "PATCH" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+      setUnreadCount(0);
+    } catch (err) {
+      console.error("Failed to mark all read", err);
+      setError("Failed to mark notifications as read. Please try again.");
+    }
   }
 
   function handleClick(n: Notification) {
@@ -67,6 +80,7 @@ export default function AdminNotificationsPage() {
 
   return (
     <div className="space-y-6">
+      {error && <p className="text-red-500 text-sm">{error}</p>}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight mb-1">Notifications</h1>
@@ -107,7 +121,7 @@ export default function AdminNotificationsPage() {
       </div>
 
       {loading ? (
-        <Loader className="py-16" />
+        <p className="text-slate-500 text-sm py-16 text-center">Loading…</p>
       ) : shown.length === 0 ? (
         <div className="glass-panel p-12 rounded-2xl text-center space-y-2">
           <p className="text-2xl">🔔</p>

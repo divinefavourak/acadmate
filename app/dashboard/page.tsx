@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import StatCard from "./components/StatCard";
-import Loader from "@/app/components/Loader";
 import { apiClient } from "@/lib/api/client";
 
 interface AnalyticsData {
@@ -43,16 +42,19 @@ export default function DashboardPage() {
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [results, setResults] = useState<ResultEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     async function fetchData() {
       try {
         const [analyticsData, resultsData] = await Promise.allSettled([
-          apiClient<AnalyticsData>("/analytics"),
-          apiClient<{ results: ResultEntry[] }>("/results?limit=5"),
+          apiClient<AnalyticsData>("/api/analytics"),
+          apiClient<{ results: ResultEntry[] }>("/api/results?limit=5"),
         ]);
-        if (analyticsData.status === "fulfilled") setAnalytics(analyticsData.value);
-        if (resultsData.status === "fulfilled") setResults(resultsData.value.results ?? []);
+        if (analyticsData.status === "fulfilled") setAnalytics(analyticsData.value ?? null);
+        else console.error("Failed to load analytics", analyticsData.reason);
+        if (resultsData.status === "fulfilled") setResults(resultsData.value?.results ?? []);
+        else console.error("Failed to load results", resultsData.reason);
       } finally {
         setLoading(false);
       }
@@ -116,7 +118,7 @@ export default function DashboardPage() {
         </div>
 
         {loading ? (
-          <Loader />
+          <p className="text-slate-500 text-sm py-4 text-center">Loading results…</p>
         ) : results.length === 0 ? (
           <p className="text-slate-500 text-sm py-4 text-center">No exams taken yet. Start your first exam above!</p>
         ) : (

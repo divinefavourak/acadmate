@@ -5,7 +5,7 @@ type TrendPoint  = { id: string; score: number; mode: string; date: Date };
 type SubjectPerf = { subjectId: string; name: string; correct: number; total: number; percentage: number };
 type WeakTopic   = { topicId: string; name: string; correct: number; total: number; percentage: number };
 
-interface AnalyticsResult {
+export interface AnalyticsResult {
   totalTests: number;
   averageScore: number;
   bestScore: number;

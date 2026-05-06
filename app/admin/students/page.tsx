@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { apiClient } from "@/lib/api/client";
-import Loader from "@/app/components/Loader";
+import { ApiError } from "@/lib/api/client";
 
 interface UserEntry {
   id: string;
@@ -21,6 +20,7 @@ interface UserDetail {
     role: string;
     createdAt: string;
     studentProfile: { targetYear: number | null; courseChoice: string | null; institution: string | null } | null;
+    _count: { examSessions: number };
   };
   recentSessions: {
     id: string;
@@ -47,23 +47,27 @@ export default function StudentsPage() {
   const [page, setPage] = useState(0);
   const [detail, setDetail] = useState<UserDetail | null>(null);
   const [loadingDetail, setLoadingDetail] = useState<string | null>(null);
+  const [detailError, setDetailError] = useState("");
   const limit = 20;
 
   useEffect(() => {
     setLoading(true);
-    apiClient<{ users: UserEntry[]; total: number }>(`/admin/users?role=STUDENT&limit=${limit}&offset=${page * limit}`)
+    fetch(`/api/admin/users?role=STUDENT&limit=${limit}&offset=${page * limit}`)
+      .then((r) => r.ok ? r.json() : { users: [], total: 0 })
       .then((data) => { setUsers(data.users ?? []); setTotal(data.total ?? 0); })
-      .catch(() => { setUsers([]); setTotal(0); })
       .finally(() => setLoading(false));
   }, [page]);
 
   async function openDetail(id: string) {
     setLoadingDetail(id);
+    setDetailError("");
     try {
-      const data = await apiClient<UserDetail>(`/admin/users/${id}/stats`);
-      setDetail(data);
-    } catch {
-      // ignore
+      const res = await fetch(`/api/admin/users/${id}`);
+      if (res.ok) setDetail(await res.json());
+      else throw new Error(`HTTP ${res.status}`);
+    } catch (err) {
+      console.error("Failed to load student details", err);
+      setDetailError(err instanceof ApiError ? err.message : "Failed to load student details.");
     } finally {
       setLoadingDetail(null);
     }
@@ -78,9 +82,11 @@ export default function StudentsPage() {
         <p className="text-slate-400">All registered student accounts.</p>
       </div>
 
+      {detailError && <p className="text-red-500 text-sm mb-4">{detailError}</p>}
+
       <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6">
         {loading ? (
-          <Loader />
+          <p className="text-slate-400 text-sm py-8 text-center">Loading…</p>
         ) : users.length === 0 ? (
           <p className="text-slate-400 text-sm py-8 text-center">No students found.</p>
         ) : (

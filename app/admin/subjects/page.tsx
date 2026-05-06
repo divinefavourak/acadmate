@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { apiClient } from "@/lib/api/client";
-import Loader from "@/app/components/Loader";
+import { apiClient, ApiError } from "@/lib/api/client";
 
 interface SubjectEntry {
   id: string;
@@ -17,22 +16,31 @@ interface SubjectEntry {
 export default function SubjectsPage() {
   const [subjects, setSubjects] = useState<SubjectEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    apiClient<{ subjects: SubjectEntry[] }>("/admin/subjects")
-      .then((data) => setSubjects(data.subjects ?? []))
-      .catch(() => {})
+    apiClient<{ subjects: SubjectEntry[] }>("/api/admin/subjects")
+      .then((data) => setSubjects(data?.subjects ?? []))
+      .catch((err) => {
+        console.error("Failed to load subjects", err);
+        setError("Failed to load subjects. Please refresh.");
+      })
       .finally(() => setLoading(false));
   }, []);
 
   async function toggleActive(id: string, current: boolean) {
-    await apiClient(`/admin/subjects/${id}`, {
-      method: "PATCH",
-      body: JSON.stringify({ isActive: !current }),
-    }).catch(() => {});
-    setSubjects((prev) =>
-      prev.map((s) => s.id === id ? { ...s, isActive: !current } : s)
-    );
+    try {
+      await apiClient(`/api/admin/subjects/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ isActive: !current }),
+      });
+      setSubjects((prev) =>
+        prev.map((s) => s.id === id ? { ...s, isActive: !current } : s)
+      );
+    } catch (err) {
+      console.error("Failed to update subject", err);
+      setError(err instanceof ApiError ? err.message : "Failed to update subject status.");
+    }
   }
 
   return (
@@ -42,9 +50,11 @@ export default function SubjectsPage() {
         <p className="text-slate-400">Manage UTME subjects.</p>
       </div>
 
+      {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
+
       <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6">
         {loading ? (
-          <Loader />
+          <p className="text-slate-400 text-sm py-8 text-center">Loading…</p>
         ) : subjects.length === 0 ? (
           <p className="text-slate-400 text-sm py-8 text-center">No subjects found.</p>
         ) : (

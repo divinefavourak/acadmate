@@ -1,10 +1,16 @@
 import { getToken, removeToken } from './auth';
 
+if (typeof window !== 'undefined' && !process.env.NEXT_PUBLIC_API_URL) {
+  console.error('[apiClient] NEXT_PUBLIC_API_URL is not set — API calls will fail in production');
+}
+
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
 
 type FetchOptions = RequestInit & { skipAuth?: boolean };
 
 export class ApiError extends Error {
+  readonly category: 'client' | 'server';
+
   constructor(
     message: string,
     public readonly status: number,
@@ -12,13 +18,14 @@ export class ApiError extends Error {
   ) {
     super(message);
     this.name = 'ApiError';
+    this.category = status >= 500 ? 'server' : 'client';
   }
 }
 
 export async function apiClient<T = unknown>(
   path: string,
   options: FetchOptions = {},
-): Promise<T> {
+): Promise<T extends void ? void : T | undefined> {
   const { skipAuth, ...init } = options;
 
   const headers = new Headers(init.headers);
@@ -31,7 +38,7 @@ export async function apiClient<T = unknown>(
     if (token) headers.set('Authorization', `Bearer ${token}`);
   }
 
-  const res = await fetch(`${BASE_URL}${path}`, { ...init, headers });
+  const res = await fetch(`${BASE_URL}${path}`, { ...init, headers, credentials: 'include' });
 
   if (res.status === 401) {
     removeToken();
@@ -43,10 +50,20 @@ export async function apiClient<T = unknown>(
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({})) as Record<string, unknown>;
-    const message = (body.message as string) ?? (body.error as string) ?? 'Request failed';
+    const rawMessage = body.message;
+    const message = Array.isArray(rawMessage)
+      ? rawMessage.join('; ')
+      : (rawMessage as string) ?? (body.error as string) ?? 'Request failed';
     throw new ApiError(message, res.status, body);
   }
 
-  if (res.status === 204) return undefined as T;
-  return res.json() as Promise<T>;
+  if (res.status === 204) return undefined as never;
+
+  // Guard against non-JSON responses (CDN/proxy HTML error pages)
+  const text = await res.text();
+  try {
+    return JSON.parse(text) as T extends void ? never : T;
+  } catch {
+    throw new ApiError(`Server returned non-JSON response (status ${res.status})`, res.status);
+  }
 }

@@ -2,8 +2,6 @@
 
 import { useEffect, useState, useRef } from "react";
 import MathText from "@/app/components/MathText";
-import { apiClient, ApiError } from "@/lib/api/client";
-import Loader from "@/app/components/Loader";
 
 interface ImportEntry {
   id: string;
@@ -220,6 +218,7 @@ export default function ImportsPage() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
+  const [loadError, setLoadError] = useState("");
   const limit = 20;
 
   // Publish state
@@ -230,11 +229,16 @@ export default function ImportsPage() {
     setPublishingId(imp.id);
     setPublishResult(null);
     try {
-      const data = await apiClient<{ published: number }>(`/admin/imports/${imp.id}/publish`, { method: "POST" });
-      setPublishResult({ id: imp.id, success: true, message: `${data.published} questions published.` });
-      loadImports(page);
+      const res = await fetch(`/api/admin/imports/${imp.id}/publish`, { method: "POST" });
+      const data = await res.json();
+      if (res.ok) {
+        setPublishResult({ id: imp.id, success: true, message: `${data.published} questions published.` });
+        loadImports(page);
+      } else {
+        setPublishResult({ id: imp.id, success: false, message: data.error ?? "Publish failed." });
+      }
     } catch (e) {
-      setPublishResult({ id: imp.id, success: false, message: e instanceof ApiError ? e.message : "Publish failed." });
+      setPublishResult({ id: imp.id, success: false, message: (e as Error).message });
     } finally {
       setPublishingId(null);
     }
@@ -253,12 +257,16 @@ export default function ImportsPage() {
 
   function loadImports(p = 0) {
     setLoading(true);
-    apiClient<{ imports: ImportEntry[]; total: number }>(`/admin/imports?limit=${limit}&offset=${p * limit}`)
+    fetch(`/api/admin/imports?limit=${limit}&offset=${p * limit}`)
+      .then((r) => r.ok ? r.json() : { imports: [], total: 0 })
       .then((data) => {
         setImports(data.imports ?? []);
         setTotal(data.total ?? 0);
       })
-      .catch(() => {})
+      .catch((err) => {
+        console.error("Failed to load imports", err);
+        setLoadError("Failed to load import history. Please refresh.");
+      })
       .finally(() => setLoading(false));
   }
 
@@ -294,24 +302,31 @@ export default function ImportsPage() {
     setUploading(true);
 
     try {
-      const data = await apiClient<{ created: number; totalRows: number; errors: unknown[] }>("/admin/imports", {
+      const res = await fetch("/api/admin/imports", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ filename: file.name, rows: previewRows }),
       });
 
+      const data = await res.json();
+
       setPreviewRows(null);
-      setUploadResult({
-        success: true,
-        message: `✅ Import complete: ${data.created} questions created from ${data.totalRows} rows.`,
-        details: data.errors?.length > 0 ? `${data.errors.length} rows had errors and were skipped.` : undefined,
-      });
-      if (fileRef.current) fileRef.current.value = "";
-      setFileLabel("Click to choose CSV or JSON file");
-      loadImports(0);
-      setPage(0);
+
+      if (res.ok) {
+        setUploadResult({
+          success: true,
+          message: `✅ Import complete: ${data.created} questions created from ${data.totalRows} rows.`,
+          details: data.errors?.length > 0 ? `${data.errors.length} rows had errors and were skipped.` : undefined,
+        });
+        if (fileRef.current) fileRef.current.value = "";
+        setFileLabel("Click to choose CSV or JSON file");
+        loadImports(0);
+        setPage(0);
+      } else {
+        setUploadResult({ success: false, message: `❌ ${data.error ?? "Upload failed."}` });
+      }
     } catch (e) {
-      setPreviewRows(null);
-      setUploadResult({ success: false, message: `❌ ${e instanceof ApiError ? e.message : "Upload failed."}` });
+      setUploadResult({ success: false, message: `❌ Upload failed: ${(e as Error).message}` });
     } finally {
       setUploading(false);
     }
@@ -399,8 +414,9 @@ export default function ImportsPage() {
       {/* History Table */}
       <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6">
         <h2 className="text-lg font-bold text-white mb-4">Import History</h2>
+        {loadError && <p className="text-red-500 text-sm mb-4">{loadError}</p>}
         {loading ? (
-          <Loader />
+          <p className="text-slate-400 text-sm py-8 text-center">Loading…</p>
         ) : imports.length === 0 ? (
           <p className="text-slate-400 text-sm py-8 text-center">No imports yet.</p>
         ) : (
