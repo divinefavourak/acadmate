@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import MathText from "@/app/components/MathText";
 import { apiClient, ApiError } from "@/lib/api/client";
+import Loader from "@/app/components/Loader";
 
 interface ImportEntry {
   id: string;
@@ -399,7 +400,7 @@ export default function ImportsPage() {
       <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6">
         <h2 className="text-lg font-bold text-white mb-4">Import History</h2>
         {loading ? (
-          <p className="text-slate-400 text-sm py-8 text-center">Loading…</p>
+          <Loader />
         ) : imports.length === 0 ? (
           <p className="text-slate-400 text-sm py-8 text-center">No imports yet.</p>
         ) : (

@@ -5,6 +5,7 @@ import Link from "next/link";
 import MathText from "@/app/components/MathText";
 import { useSearchParams } from "next/navigation";
 import { apiClient } from "@/lib/api/client";
+import Loader from "@/app/components/Loader";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -228,9 +229,7 @@ export default function ResultDetailPage({ params }: { params: Promise<{ id: str
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="text-slate-500">Loading results…</div>
-      </div>
+      <Loader className="h-screen" />
     );
   }
 

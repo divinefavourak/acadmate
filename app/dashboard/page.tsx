@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import StatCard from "./components/StatCard";
+import Loader from "@/app/components/Loader";
 import { apiClient } from "@/lib/api/client";
 
 interface AnalyticsData {
@@ -115,7 +116,7 @@ export default function DashboardPage() {
         </div>
 
         {loading ? (
-          <p className="text-slate-500 text-sm py-4 text-center">Loading results…</p>
+          <Loader />
         ) : results.length === 0 ? (
           <p className="text-slate-500 text-sm py-4 text-center">No exams taken yet. Start your first exam above!</p>
         ) : (

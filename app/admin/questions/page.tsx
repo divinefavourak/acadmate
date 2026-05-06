@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import MathText from "@/app/components/MathText";
 import { apiClient, ApiError } from "@/lib/api/client";
 import MiniBarChart from "@/app/admin/components/MiniBarChart";
+import Loader from "@/app/components/Loader";
 
 interface QuestionEntry {
   id: string;
@@ -43,6 +44,20 @@ interface SubjectOption {
 interface TopicOption {
   id: string;
   name: string;
+}
+
+interface YearOption {
+  year: number | null;
+  count: number;
+}
+
+interface QuestionsResponse {
+  questions: QuestionEntry[];
+  total: number;
+}
+
+interface FlaggedQuestionsResponse {
+  questions: QuestionEntry[];
 }
 
 const difficultyColors: Record<string, string> = {
@@ -90,7 +105,7 @@ function QuestionsPage() {
   // Navigation state
   const [activeSubject, setActiveSubject] = useState<SubjectOption | null>(null);
   const [activeYear, setActiveYear] = useState<number | "unknown" | null>(null);
-  const [years, setYears] = useState<{ year: number | null; count: number }[]>([]);
+  const [years, setYears] = useState<YearOption[]>([]);
 
   const [formError, setFormError] = useState("");
 
@@ -149,13 +164,13 @@ function QuestionsPage() {
   useEffect(() => {
     apiClient<{ subjects: { id: string; name: string; code: string }[] }>("/admin/subjects")
       .then((data) => setSubjects(data.subjects ?? [])).catch(() => {});
-    apiClient<{ questions: unknown[] }>("/admin/questions?flagged=true&limit=500")
+    apiClient<FlaggedQuestionsResponse>("/admin/questions?flagged=true&limit=500")
       .then((data) => setFlaggedQuestions(data.questions ?? [])).catch(() => {});
   }, []);
 
   useEffect(() => {
     if (!activeSubject) return;
-    apiClient<{ years: (number | null)[] }>(`/admin/subjects/${activeSubject.id}/years`)
+    apiClient<{ years: YearOption[] }>(`/admin/subjects/${activeSubject.id}/years`)
       .then((data) => setYears(data.years ?? [])).catch(() => {});
   }, [activeSubject]);
 
@@ -177,7 +192,7 @@ function QuestionsPage() {
     if (publishedFilter !== "") params.set("isPublished", publishedFilter);
     if (flaggedFilter) params.set("flagged", "true");
 
-    apiClient<{ questions: unknown[]; total: number }>(`/admin/questions?${params}`)
+    apiClient<QuestionsResponse>(`/admin/questions?${params}`)
       .then((data) => {
         setQuestions(data.questions ?? []);
         setTotal(data.total ?? 0);
@@ -197,7 +212,7 @@ function QuestionsPage() {
   useEffect(() => {
     if (activeTab !== "flagged") return;
     setLoadingFlagged(true);
-    apiClient<{ questions: unknown[] }>("/admin/questions?flagged=true&limit=500")
+    apiClient<FlaggedQuestionsResponse>("/admin/questions?flagged=true&limit=500")
       .then((data) => setFlaggedQuestions(data.questions ?? []))
       .catch(() => {})
       .finally(() => setLoadingFlagged(false));
@@ -407,7 +422,7 @@ function QuestionsPage() {
       const params = new URLSearchParams({ limit: String(limit), offset: "0" });
       if (publishedFilter !== "") params.set("isPublished", publishedFilter);
       setLoading(true);
-      apiClient<{ questions: unknown[]; total: number }>(`/admin/questions?${params}`)
+      apiClient<QuestionsResponse>(`/admin/questions?${params}`)
         .then((d) => { setQuestions(d.questions ?? []); setTotal(d.total ?? 0); })
         .catch(() => {})
         .finally(() => setLoading(false));
@@ -695,7 +710,7 @@ function QuestionsPage() {
           ))}
         </div>
       ) : activeYear === null ? (
-        <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 flex flex-col items-center justify-center min-h-[300px]">
+        <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 flex flex-col items-center justify-center min-h-75">
           <h2 className="text-lg font-medium text-white mb-6">Select a Year for {activeSubject.name}</h2>
           {years.length === 0 ? (
             <p className="text-slate-400 text-sm">No questions available for this subject.</p>
@@ -719,7 +734,7 @@ function QuestionsPage() {
       ) : (
         <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6">
           {loading ? (
-            <p className="text-slate-400 text-sm py-8 text-center">Loading…</p>
+            <Loader />
           ) : questions.length === 0 ? (
             <p className="text-slate-400 text-sm py-8 text-center">No questions found.</p>
           ) : (
@@ -844,7 +859,7 @@ function QuestionsPage() {
       {activeTab === "flagged" && (
         <div className="space-y-6">
           {loadingFlagged ? (
-            <p className="text-slate-400 text-sm py-8 text-center">Loading…</p>
+            <Loader />
           ) : flaggedQuestions.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-slate-500 gap-2">
               <span className="text-3xl">🎉</span>
@@ -915,7 +930,7 @@ function QuestionsPage() {
       {activeTab === "analytics" && (
         <div className="space-y-6">
           {loadingAnalytics ? (
-            <p className="text-slate-400 text-sm py-8 text-center">Loading…</p>
+            <Loader />
           ) : (
             <>
               <div className="glass-panel border border-slate-200 dark:border-slate-800 p-6 rounded-2xl">

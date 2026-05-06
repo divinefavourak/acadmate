@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import StatCard from "../dashboard/components/StatCard";
 import MiniBarChart from "./components/MiniBarChart";
 import { apiClient } from "@/lib/api/client";
+import Loader from "@/app/components/Loader";
 
 interface AdminStats {
   totalStudents: number;
@@ -74,7 +75,7 @@ export default function AdminDashboard() {
         <div className="lg:col-span-2 glass-panel border border-slate-200 dark:border-slate-800 p-6 rounded-2xl">
           <h2 className="text-xl font-bold mb-6">Exam Activity (Last 7 Days)</h2>
           {loading ? (
-            <div className="h-64 flex items-center justify-center text-slate-500 text-sm">Loading…</div>
+            <Loader className="h-64" />
           ) : (
             <MiniBarChart
               data={stats?.dailyExamActivity ?? []}
@@ -132,7 +133,7 @@ export default function AdminDashboard() {
           <h2 className="text-xl font-bold mb-2">Questions per Subject</h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">Published questions in the question bank</p>
           {loading ? (
-            <div className="h-64 flex items-center justify-center text-slate-500 text-sm">Loading…</div>
+            <Loader className="h-64" />
           ) : (
             <MiniBarChart
               data={stats?.questionsBySubject ?? []}
@@ -148,7 +149,7 @@ export default function AdminDashboard() {
           <h2 className="text-xl font-bold mb-2">Score Distribution</h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">How students score across all completed exams</p>
           {loading ? (
-            <div className="h-64 flex items-center justify-center text-slate-500 text-sm">Loading…</div>
+            <Loader className="h-64" />
           ) : (
             <MiniBarChart
               data={stats?.scoreDistribution ?? []}

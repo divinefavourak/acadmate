@@ -7,7 +7,7 @@ export class AdminSubjectsService {
 
   // ─── Subjects ─────────────────────────────────────────────────────────────
   async listSubjects() {
-    return this.prisma.subject.findMany({
+    const subjects = await this.prisma.subject.findMany({
       orderBy: { sortOrder: 'asc' },
       select: {
         id: true, name: true, code: true, description: true,
@@ -15,6 +15,18 @@ export class AdminSubjectsService {
         _count: { select: { questions: true, topics: true } },
       },
     });
+    return { subjects };
+  }
+
+  async getSubjectYears(subjectId: string) {
+    const rows = await this.prisma.question.groupBy({
+      by: ['year'],
+      where: { subjectId },
+      _count: { id: true },
+      orderBy: { year: 'desc' },
+    });
+    const years = rows.map((r) => ({ year: r.year, count: r._count.id }));
+    return { years };
   }
 
   async createSubject(dto: {

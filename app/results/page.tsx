@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { apiClient } from "@/lib/api/client";
+import Loader from "@/app/components/Loader";
 
 interface ResultEntry {
   id: string;
@@ -67,7 +68,7 @@ export default function ResultsPage() {
 
       <div className="glass-panel p-6 rounded-2xl">
         {loading ? (
-          <p className="text-slate-500 text-sm py-8 text-center">Loading…</p>
+          <Loader />
         ) : results.length === 0 ? (
           <div className="py-16 text-center space-y-3">
             <p className="text-slate-500">No exams taken yet.</p>

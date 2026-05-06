@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiClient, ApiError } from "@/lib/api/client";
+import Loader from "@/app/components/Loader";
 
 interface Subject {
   id: string;
@@ -154,7 +155,7 @@ export default function NewExamPage() {
       </div>
 
       {loadingData ? (
-        <p className="text-slate-500 text-sm">Loading…</p>
+        <Loader className="py-4" />
       ) : (
         <div className="max-w-2xl space-y-6">
           {/* Mode Selection */}
