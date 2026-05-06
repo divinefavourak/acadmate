@@ -1,3 +1,7 @@
+// NOTE: JWT signature is currently verified via next-auth. If this middleware is
+// replaced with a custom token-cookie approach, install `jose` (npm i jose) and
+// use `jwtVerify` from 'jose' to cryptographically verify tokens instead of
+// relying on base64 decoding alone.
 import NextAuth from "next-auth";
 import { authConfig } from "@/lib/auth/auth.config";
 import { NextResponse } from "next/server";

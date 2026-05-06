@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { apiClient, ApiError } from "@/lib/api/client";
 
 interface UserProfile {
   id: string;
@@ -34,11 +35,8 @@ export default function ProfilePage() {
   });
 
   useEffect(() => {
-    fetch("/api/me")
-      .then((r) => r.ok ? r.json() : null)
-      .then((data) => {
-        if (!data) return;
-        const u: UserProfile = data.user;
+    apiClient<UserProfile>("/users/me")
+      .then((u) => {
         setProfile(u);
         setForm({
           name: u.name ?? "",
@@ -47,6 +45,7 @@ export default function ProfilePage() {
           institution: u.studentProfile?.institution ?? "",
         });
       })
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
@@ -56,25 +55,22 @@ export default function ProfilePage() {
     setError("");
     setSuccess(false);
 
-    const res = await fetch("/api/me/profile", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: form.name || undefined,
-        targetYear: form.targetYear ? Number(form.targetYear) : undefined,
-        courseChoice: form.courseChoice || undefined,
-        institution: form.institution || undefined,
-      }),
-    });
-
-    setSaving(false);
-
-    if (res.ok) {
+    try {
+      await apiClient("/users/me", {
+        method: "PATCH",
+        body: JSON.stringify({
+          name: form.name || undefined,
+          targetYear: form.targetYear ? Number(form.targetYear) : undefined,
+          courseChoice: form.courseChoice || undefined,
+          institution: form.institution || undefined,
+        }),
+      });
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
-    } else {
-      const data = await res.json();
-      setError(data.error ?? "Failed to save profile.");
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to save profile.");
+    } finally {
+      setSaving(false);
     }
   }
 

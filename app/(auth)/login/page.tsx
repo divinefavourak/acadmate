@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, Suspense } from "react";
-import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { apiClient, ApiError } from "@/lib/api/client";
+import { setToken } from "@/lib/api/auth";
 
 function LoginForm() {
   const router = useRouter();
@@ -20,23 +21,23 @@ function LoginForm() {
     setError("");
     setLoading(true);
 
-    const result = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-    });
+    try {
+      const data = await apiClient<{ accessToken: string; user: { role: string } }>(
+        "/auth/login",
+        {
+          method: "POST",
+          body: JSON.stringify({ email, password }),
+          skipAuth: true,
+        },
+      );
 
-    setLoading(false);
-
-    if (result?.error) {
-      setError("Invalid email or password.");
-    } else {
-      const meRes = await fetch("/api/me");
-      const meData = meRes.ok ? await meRes.json() : null;
-      const role = meData?.user?.role;
-      const destination = role === "ADMIN" ? "/admin" : callbackUrl;
+      setToken(data.accessToken);
+      const destination = data.user.role === "ADMIN" ? "/admin" : callbackUrl;
       router.push(destination);
       router.refresh();
+    } catch (err) {
+      setLoading(false);
+      setError(err instanceof ApiError ? err.message : "Invalid email or password.");
     }
   }
 

@@ -13,7 +13,7 @@ class QuestionQueryDto {
   @IsOptional() @IsString() subjectId?: string;
   @IsOptional() @IsString() topicId?: string;
   @IsOptional() @IsEnum(Difficulty) difficulty?: Difficulty;
-  @IsOptional() @IsInt() @Min(1) @Max(500) @Type(() => Number) limit?: number = 20;
+  @IsOptional() @IsInt() @Min(1) @Max(100) @Type(() => Number) limit?: number = 20;
   @IsOptional() @IsInt() @Min(0) @Type(() => Number) offset?: number = 0;
 }
 

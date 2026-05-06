@@ -3,6 +3,7 @@
 import { useEffect, useState, use } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { apiClient } from "@/lib/api/client";
 
 interface ProseSection {
   id: string;
@@ -42,13 +43,13 @@ export default function ProseDetailPage({ params }: { params: Promise<{ id: stri
   const [starting, setStarting] = useState(false);
 
   useEffect(() => {
-    Promise.all([
-      fetch(`/api/prose/${id}`).then((r) => r.json()),
-      fetch(`/api/prose/${id}/questions?limit=100`).then((r) => r.json()),
-    ]).then(([proseData, qData]) => {
-      if (proseData.error) { setError(proseData.error); return; }
-      setProse(proseData.text);
-      setQuestions(qData.questions ?? []);
+    Promise.allSettled([
+      apiClient<{ text: ProseDetail }>(`/prose/${id}`),
+      apiClient<{ questions: ProseQuestion[] }>(`/prose/${id}/questions?limit=100`),
+    ]).then(([proseResult, qResult]) => {
+      if (proseResult.status === "rejected") { setError("Failed to load prose content."); return; }
+      setProse(proseResult.value.text);
+      if (qResult.status === "fulfilled") setQuestions(qResult.value.questions ?? []);
     }).catch(() => setError("Failed to load prose content."))
       .finally(() => setLoading(false));
   }, [id]);
@@ -56,16 +57,14 @@ export default function ProseDetailPage({ params }: { params: Promise<{ id: stri
   async function handleStartPractice() {
     if (questions.length === 0) return;
     setStarting(true);
-    const res = await fetch("/api/exams", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ mode: "PRACTICE", proseTextId: id, questionCount: questions.length }),
-    });
-    const data = await res.json();
-    if (res.ok && data.examSession?.id) {
+    try {
+      const data = await apiClient<{ examSession: { id: string } }>("/exams", {
+        method: "POST",
+        body: JSON.stringify({ mode: "PRACTICE", proseTextId: id, questionCount: questions.length }),
+      });
       router.push(`/exam/${data.examSession.id}`);
-    } else {
-      alert(data.error ?? "Failed to start practice session.");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to start practice session.");
       setStarting(false);
     }
   }

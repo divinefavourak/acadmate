@@ -135,24 +135,34 @@ function QuestionsPage() {
     setUploading: (v: boolean) => void
   ) {
     setUploading(true);
-    const fd = new FormData();
-    fd.append("file", file);
-    const res = await fetch("/api/upload", { method: "POST", body: fd });
-    setUploading(false);
-    if (res.ok) {
-      const data = await res.json();
-      setter(data.url);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/upload", { method: "POST", body: fd });
+      if (res.ok) {
+        const data = await res.json();
+        setter(data.url);
+      } else {
+        throw new Error(`Upload failed with status ${res.status}`);
+      }
+    } catch (err) {
+      console.error("Image upload failed", err);
+      setFormError("Image upload failed. Please try again.");
+    } finally {
+      setUploading(false);
     }
   }
 
   useEffect(() => {
     fetch("/api/admin/subjects")
       .then((r) => r.ok ? r.json() : { subjects: [] })
-      .then((data) => setSubjects(data.subjects ?? []));
+      .then((data) => setSubjects(data.subjects ?? []))
+      .catch((err) => console.error("Failed to load subjects", err));
     // Preload flagged count for the tab badge
     fetch("/api/admin/questions?flagged=true&limit=500")
       .then((r) => r.ok ? r.json() : { questions: [] })
-      .then((data) => setFlaggedQuestions(data.questions ?? []));
+      .then((data) => setFlaggedQuestions(data.questions ?? []))
+      .catch((err) => console.error("Failed to load flagged questions", err));
   }, []);
 
   useEffect(() => {
@@ -204,6 +214,7 @@ function QuestionsPage() {
     fetch("/api/admin/questions?flagged=true&limit=500")
       .then((r) => r.ok ? r.json() : { questions: [] })
       .then((data) => setFlaggedQuestions(data.questions ?? []))
+      .catch((err) => console.error("Failed to load flagged questions", err))
       .finally(() => setLoadingFlagged(false));
   }, [activeTab]); // re-fetch every time the user opens the tab
 

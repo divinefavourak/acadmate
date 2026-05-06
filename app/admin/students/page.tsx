@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ApiError } from "@/lib/api/client";
 
 interface UserEntry {
   id: string;
@@ -46,6 +47,7 @@ export default function StudentsPage() {
   const [page, setPage] = useState(0);
   const [detail, setDetail] = useState<UserDetail | null>(null);
   const [loadingDetail, setLoadingDetail] = useState<string | null>(null);
+  const [detailError, setDetailError] = useState("");
   const limit = 20;
 
   useEffect(() => {
@@ -58,9 +60,14 @@ export default function StudentsPage() {
 
   async function openDetail(id: string) {
     setLoadingDetail(id);
+    setDetailError("");
     try {
       const res = await fetch(`/api/admin/users/${id}`);
       if (res.ok) setDetail(await res.json());
+      else throw new Error(`HTTP ${res.status}`);
+    } catch (err) {
+      console.error("Failed to load student details", err);
+      setDetailError(err instanceof ApiError ? err.message : "Failed to load student details.");
     } finally {
       setLoadingDetail(null);
     }
@@ -74,6 +81,8 @@ export default function StudentsPage() {
         <h1 className="text-3xl font-bold tracking-tight mb-2">Students</h1>
         <p className="text-slate-400">All registered student accounts.</p>
       </div>
+
+      {detailError && <p className="text-red-500 text-sm mb-4">{detailError}</p>}
 
       <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6">
         {loading ? (

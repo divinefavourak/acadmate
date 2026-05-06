@@ -4,6 +4,8 @@ import { useEffect, useState, use } from "react";
 import Link from "next/link";
 import MathText from "@/app/components/MathText";
 import { useSearchParams } from "next/navigation";
+import { apiClient } from "@/lib/api/client";
+import Loader from "@/app/components/Loader";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -205,11 +207,21 @@ export default function ResultDetailPage({ params }: { params: Promise<{ id: str
   const [filter, setFilter] = useState<"all" | "correct" | "incorrect" | "unanswered">("all");
 
   useEffect(() => {
-    fetch(`/api/results/${id}`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.error) { setError(data.error); return; }
-        setResult(data.result);
+    apiClient<ResultDetail & {
+      subjectBreakdowns?: { subjectId: string; name: string; correct: number; total: number }[];
+      topicBreakdowns?: { topicId: string; name: string; correct: number; total: number }[];
+    }>(`/results/${id}`)
+      .then((raw) => {
+        // Normalise array → keyed-object shape the page expects
+        const subjectBreakdown: SubjectBreakdown = {};
+        for (const s of raw.subjectBreakdowns ?? []) {
+          subjectBreakdown[s.subjectId] = { name: s.name, correct: s.correct, total: s.total };
+        }
+        const topicBreakdown: TopicBreakdown = {};
+        for (const t of raw.topicBreakdowns ?? []) {
+          topicBreakdown[t.topicId] = { name: t.name, correct: t.correct, total: t.total };
+        }
+        setResult({ ...raw, subjectBreakdown, topicBreakdown });
       })
       .catch(() => setError("Failed to load result."))
       .finally(() => setLoading(false));
@@ -217,9 +229,7 @@ export default function ResultDetailPage({ params }: { params: Promise<{ id: str
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="text-slate-500">Loading results…</div>
-      </div>
+      <Loader className="h-screen" />
     );
   }
 

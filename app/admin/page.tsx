@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import StatCard from "../dashboard/components/StatCard";
 import MiniBarChart from "./components/MiniBarChart";
+import { apiClient } from "@/lib/api/client";
 
 interface AdminStats {
   totalStudents: number;
@@ -18,11 +19,15 @@ interface AdminStats {
 export default function AdminDashboard() {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    fetch("/api/admin/stats")
-      .then((r) => r.ok ? r.json() : null)
-      .then((data) => { if (data) setStats(data); })
+    apiClient<AdminStats>("/api/admin/stats")
+      .then((data) => setStats(data ?? null))
+      .catch((err) => {
+        console.error("Failed to load admin stats", err);
+        setError("Failed to load dashboard data. Please refresh.");
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -35,6 +40,8 @@ export default function AdminDashboard() {
           <p className="text-slate-500 dark:text-slate-400">Monitor Acadmate&apos;s overall performance and metrics.</p>
         </div>
       </div>
+
+      {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

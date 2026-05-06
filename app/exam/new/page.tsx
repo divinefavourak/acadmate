@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { apiClient, ApiError } from "@/lib/api/client";
+import Loader from "@/app/components/Loader";
 
 interface Subject {
   id: string;
@@ -49,12 +51,12 @@ export default function NewExamPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    Promise.all([
-      fetch("/api/subjects").then((r) => r.ok ? r.json() : { subjects: [] }),
-      fetch("/api/prose").then((r) => r.ok ? r.json() : { texts: [] }),
-    ]).then(([sData, pData]) => {
-      const subjList: Subject[] = sData.subjects ?? [];
-      const proseList: ProseText[] = pData.texts ?? [];
+    Promise.allSettled([
+      apiClient<{ subjects: Subject[] }>("/subjects"),
+      apiClient<{ texts: ProseText[] }>("/prose"),
+    ]).then(([sResult, pResult]) => {
+      const subjList = sResult.status === "fulfilled" ? (sResult.value.subjects ?? []) : [];
+      const proseList = pResult.status === "fulfilled" ? (pResult.value.texts ?? []) : [];
       setSubjects(subjList);
       setProseTexts(proseList);
       if (subjList.length > 0) setSelectedSubject(subjList[0].id);
@@ -66,13 +68,13 @@ export default function NewExamPage() {
     if (mode !== "TOPIC" || !selectedSubject) return;
     setLoadingTopics(true);
     setSelectedTopic("");
-    fetch(`/api/topics?subjectId=${selectedSubject}`)
-      .then((r) => r.ok ? r.json() : { topics: [] })
+    apiClient<{ topics: Topic[] }>(`/topics?subjectId=${selectedSubject}`)
       .then((data) => {
-        const list: Topic[] = data.topics ?? [];
+        const list = data.topics ?? [];
         setTopics(list);
         if (list.length > 0) setSelectedTopic(list[0].id);
       })
+      .catch(() => setTopics([]))
       .finally(() => setLoadingTopics(false));
   }, [mode, selectedSubject]);
 
@@ -115,21 +117,16 @@ export default function NewExamPage() {
         ? { mode: "TOPIC", subjectId: selectedSubject, topicId: selectedTopic, questionCount }
         : { mode: "PRACTICE", subjectId: selectedSubject, questionCount };
 
-    const res = await fetch("/api/exams", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      setError(data.error ?? "Failed to start exam. Please try again.");
+    try {
+      const data = await apiClient<{ examSession: { id: string } }>("/exams", {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+      router.push(`/exam/${data.examSession.id}`);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to start exam. Please try again.");
       setStarting(false);
-      return;
     }
-
-    router.push(`/exam/${data.examSession.id}`);
   }
 
   const englishSubject = subjects.find((s) => s.code === "ENG");
@@ -158,7 +155,7 @@ export default function NewExamPage() {
       </div>
 
       {loadingData ? (
-        <p className="text-slate-500 text-sm">Loading…</p>
+        <Loader className="py-4" />
       ) : (
         <div className="max-w-2xl space-y-6">
           {/* Mode Selection */}

@@ -14,6 +14,7 @@ interface ProseEntry {
 export default function ProsePage() {
   const [texts, setTexts] = useState<ProseEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
@@ -24,6 +25,10 @@ export default function ProsePage() {
     fetch("/api/admin/prose")
       .then((r) => r.ok ? r.json() : { texts: [] })
       .then((data) => setTexts(data.texts ?? []))
+      .catch((err) => {
+        console.error("Failed to load prose texts", err);
+        setLoadError("Failed to load prose library. Please refresh.");
+      })
       .finally(() => setLoading(false));
   }
 
@@ -168,6 +173,7 @@ export default function ProsePage() {
 
       {/* Table */}
       <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6">
+        {loadError && <p className="text-red-500 text-sm mb-4">{loadError}</p>}
         {loading ? (
           <p className="text-slate-400 text-sm py-8 text-center">Loading…</p>
         ) : texts.length === 0 ? (

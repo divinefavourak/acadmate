@@ -218,6 +218,7 @@ export default function ImportsPage() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
+  const [loadError, setLoadError] = useState("");
   const limit = 20;
 
   // Publish state
@@ -261,6 +262,10 @@ export default function ImportsPage() {
       .then((data) => {
         setImports(data.imports ?? []);
         setTotal(data.total ?? 0);
+      })
+      .catch((err) => {
+        console.error("Failed to load imports", err);
+        setLoadError("Failed to load import history. Please refresh.");
       })
       .finally(() => setLoading(false));
   }
@@ -409,6 +414,7 @@ export default function ImportsPage() {
       {/* History Table */}
       <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6">
         <h2 className="text-lg font-bold text-white mb-4">Import History</h2>
+        {loadError && <p className="text-red-500 text-sm mb-4">{loadError}</p>}
         {loading ? (
           <p className="text-slate-400 text-sm py-8 text-center">Loading…</p>
         ) : imports.length === 0 ? (

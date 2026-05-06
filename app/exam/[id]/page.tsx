@@ -7,6 +7,7 @@ import Timer from "../components/Timer";
 import QuestionGrid from "../components/QuestionGrid";
 import Calculator from "../components/Calculator";
 import MathText from "@/app/components/MathText";
+import { apiClient } from "@/lib/api/client";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -63,17 +64,12 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
 
   // Fetch exam session
   useEffect(() => {
-    fetch(`/api/exams/${id}`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.error) { setError(data.error); return; }
-        const s: ExamSession = data.examSession;
+    apiClient<{ examSession: ExamSession }>(`/exams/${id}`)
+      .then(({ examSession: s }) => {
         setSession(s);
-        // Pre-populate saved answers
         const saved: Record<string, string | null> = {};
         for (const a of s.userAnswers) saved[a.questionId] = a.optionId;
         setAnswers(saved);
-        // Pre-populate marked review
         const marked: Record<string, boolean> = {};
         for (const sq of s.questions) {
           if (sq.markedReview) marked[sq.question.id] = true;
@@ -91,11 +87,10 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
   // Auto-save answer to backend
   const saveAnswer = useCallback(
     async (questionId: string, optionId: string | null) => {
-      await fetch(`/api/exams/${id}/answers`, {
+      await apiClient(`/exams/${id}/answers`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ answers: [{ questionId, optionId }] }),
-      });
+      }).catch(() => {});
     },
     [id]
   );
@@ -105,11 +100,10 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
     async (questionId: string) => {
       const next = !markedReview[questionId];
       setMarkedReview((prev) => ({ ...prev, [questionId]: next }));
-      await fetch(`/api/exams/${id}/review`, {
+      await apiClient(`/exams/${id}/review`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ questionId, markedReview: next }),
-      });
+      }).catch(() => {});
     },
     [id, markedReview]
   );
@@ -128,12 +122,10 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
     if (!confirmed) return;
 
     setSubmitting(true);
-    const res = await fetch(`/api/exams/${id}/submit`, { method: "POST" });
-    const data = await res.json();
-
-    if (res.ok && data.result?.id) {
+    try {
+      const data = await apiClient<{ result: { id: string } }>(`/exams/${id}/submit`, { method: "POST" });
       router.push(`/results/${data.result.id}`);
-    } else {
+    } catch {
       alert("Failed to submit exam. Please try again.");
       setSubmitting(false);
     }
@@ -143,17 +135,16 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
     async (questionId: string) => {
       if (reportedQuestions.has(questionId)) return;
       setReportedQuestions((prev) => new Set(prev).add(questionId));
-      await fetch(`/api/questions/${questionId}/flag`, { method: "POST" });
+      await apiClient(`/questions/${questionId}/flag`, { method: "POST" }).catch(() => {});
     },
     [reportedQuestions]
   );
 
   const handleExpire = async () => {
-    const res = await fetch(`/api/exams/${id}/submit`, { method: "POST" });
-    const data = await res.json();
-    if (res.ok && data.result?.id) {
+    try {
+      const data = await apiClient<{ result: { id: string } }>(`/exams/${id}/submit`, { method: "POST" });
       router.push(`/results/${data.result.id}?timeout=1`);
-    }
+    } catch { /* session already expired */ }
   };
 
   if (loading) {

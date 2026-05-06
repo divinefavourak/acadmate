@@ -1,5 +1,6 @@
 import {
-  Controller, Post, Get, Body, Query, UseGuards, HttpCode, HttpStatus, BadRequestException,
+  Controller, Post, Get, Body, Query, Param, UseGuards, HttpCode, HttpStatus,
+  BadRequestException, NotFoundException, ConflictException,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { IsString, IsArray, IsInt, IsOptional, Min, Max } from 'class-validator';
@@ -46,7 +47,7 @@ export class AdminImportsController {
       rows: dto.rows,
     });
 
-    await this.prisma.adminActivityLog.create({
+    this.prisma.adminActivityLog.create({
       data: {
         adminId: user.id,
         action: 'IMPORT_QUESTIONS',
@@ -59,7 +60,7 @@ export class AdminImportsController {
           errors: result.errors.length,
         },
       },
-    });
+    }).catch(() => {});
 
     return result;
   }
@@ -92,5 +93,42 @@ export class AdminImportsController {
     ]);
 
     return { imports, total, limit, offset };
+  }
+
+  @Post(':id/publish')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Publish all valid questions from an import' })
+  async publishImport(@CurrentUser() user: JwtUser, @Param('id') id: string) {
+    const importRecord = await this.prisma.import.findUnique({
+      where: { id },
+      select: { id: true, status: true },
+    });
+
+    if (!importRecord) throw new NotFoundException('Import not found');
+    if (importRecord.status !== 'DONE') {
+      throw new ConflictException('Import must be in DONE status before publishing');
+    }
+
+    const result = await this.prisma.question.updateMany({
+      where: { importId: id, isPublished: false },
+      data: { isPublished: true, reviewedAt: new Date(), reviewedById: user.id },
+    });
+
+    await this.prisma.import.update({
+      where: { id },
+      data: { publishedRows: result.count },
+    });
+
+    this.prisma.adminActivityLog.create({
+      data: {
+        adminId: user.id,
+        action: 'PUBLISH_IMPORT',
+        entityType: 'import',
+        entityId: id,
+        details: { publishedCount: result.count },
+      },
+    }).catch(() => {});
+
+    return { published: result.count };
   }
 }

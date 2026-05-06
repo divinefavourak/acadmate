@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { apiClient } from "@/lib/api/client";
 
 interface ProseText {
   id: string;
@@ -17,9 +18,9 @@ export default function ProseLandingPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/prose")
-      .then((r) => r.ok ? r.json() : { texts: [] })
+    apiClient<{ texts: ProseText[] }>("/prose")
       .then((data) => setTexts(data.texts ?? []))
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 

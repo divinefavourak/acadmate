@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { apiClient } from "@/lib/api/client";
 
 interface AnalyticsData {
   totalTests: number;
@@ -22,11 +23,15 @@ function ScoreBar({ percentage, color = "bg-indigo-500" }: { percentage: number;
 export default function AnalyticsPage() {
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    fetch("/api/analytics")
-      .then((r) => r.ok ? r.json() : null)
+    apiClient<AnalyticsData>("/api/analytics")
       .then((d) => { if (d) setData(d); })
+      .catch((err) => {
+        console.error("Failed to load analytics", err);
+        setError("Failed to load analytics. Please refresh.");
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -38,6 +43,8 @@ export default function AnalyticsPage() {
         <h1 className="text-3xl font-bold tracking-tight mb-2">Analytics</h1>
         <p className="text-slate-500 dark:text-slate-400">Track your performance over time.</p>
       </div>
+
+      {error && <p className="text-red-500 text-sm">{error}</p>}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
