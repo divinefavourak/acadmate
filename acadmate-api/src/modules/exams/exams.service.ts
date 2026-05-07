@@ -9,6 +9,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import {
   ExamFactoryService,
   ExamFactoryError,
+  PostUtmeExamInput,
 } from './exam-factory.service';
 import { ExamExpiryService } from './exam-expiry.service';
 import { ScoringService } from './scoring.service';
@@ -19,7 +20,8 @@ import { MarkReviewDto } from './dto/mark-review.dto';
 type CreateExamInput =
   | { mode: 'MOCK'; subjectIds: string[]; proseTextId?: string }
   | { mode: 'PRACTICE'; subjectId: string; questionCount?: number }
-  | { mode: 'TOPIC'; subjectId: string; topicId: string; questionCount?: number };
+  | { mode: 'TOPIC'; subjectId: string; topicId: string; questionCount?: number }
+  | { mode: 'POST_UTME'; school: string; year?: number; questionCount?: number };
 
 @Injectable()
 export class ExamsService {
@@ -39,8 +41,15 @@ export class ExamsService {
       factoryInput = { mode: 'MOCK', subjectIds: input.subjectIds, proseTextId: input.proseTextId };
     } else if (input.mode === 'PRACTICE') {
       factoryInput = { mode: 'PRACTICE', subjectId: input.subjectId, questionCount: input.questionCount ?? 40 };
-    } else {
+    } else if (input.mode === 'TOPIC') {
       factoryInput = { mode: 'TOPIC', subjectId: input.subjectId, topicId: input.topicId, questionCount: input.questionCount ?? 20 };
+    } else {
+      factoryInput = {
+        mode: 'POST_UTME',
+        school: input.school,
+        year: input.year,
+        questionCount: input.questionCount ?? 40,
+      } satisfies PostUtmeExamInput;
     }
 
     try {
@@ -55,6 +64,7 @@ export class ExamsService {
           mode: input.mode,
           subjectId: 'subjectId' in input ? input.subjectId : undefined,
           topicId: 'topicId' in input ? input.topicId : undefined,
+          school: 'school' in input ? input.school : undefined,
           totalQuestions: questionIds.length,
           durationMinutes,
           expiresAt,

@@ -26,7 +26,7 @@ interface ProseText {
   _count: { questions: number };
 }
 
-type Mode = "MOCK" | "PRACTICE" | "TOPIC";
+type Mode = "MOCK" | "PRACTICE" | "TOPIC" | "POST_UTME";
 
 export default function NewExamPage() {
   const router = useRouter();
@@ -91,6 +91,11 @@ export default function NewExamPage() {
   async function handleStart() {
     setError("");
 
+    if (mode === "POST_UTME") {
+      router.push("/exam/post-utme/schools");
+      return;
+    }
+
     if (mode === "MOCK" && selectedSubjectIds.length !== 3) {
       setError("Please select exactly 3 subjects (Use of English is already included).");
       return;
@@ -137,6 +142,7 @@ export default function NewExamPage() {
     { id: "MOCK", title: "Full UTME Mock", description: "Timed exam across all 4 subjects, just like the real UTME." },
     { id: "PRACTICE", title: "Subject Practice", description: "Focus on a single subject at your own pace." },
     { id: "TOPIC", title: "Topic Drill", description: "Deep-dive into a specific topic within a subject." },
+    { id: "POST_UTME", title: "Post-UTME", description: "Practice with real past questions from your target institution." },
   ];
 
   const startDisabled =
@@ -145,6 +151,8 @@ export default function NewExamPage() {
       ? selectedSubjectIds.length !== 3
       : mode === "TOPIC"
       ? !selectedTopic
+      : mode === "POST_UTME"
+      ? false // never disabled — card click handles navigation
       : !selectedSubject);
 
   return (
@@ -428,6 +436,25 @@ export default function NewExamPage() {
             </div>
           )}
 
+          {/* POST_UTME — info banner (no inline config, wizard handles it) */}
+          {mode === "POST_UTME" && (
+            <div className="glass-panel p-5 rounded-2xl flex items-start gap-4">
+              <div className="flex-shrink-0 w-9 h-9 rounded-xl bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center mt-0.5">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-600 dark:text-indigo-400">
+                  <path d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Z"/>
+                  <path d="m3 9 2.45-4.9A2 2 0 0 1 7.24 3h9.52a2 2 0 0 1 1.8 1.1L21 9"/>
+                  <path d="M12 3v6"/>
+                </svg>
+              </div>
+              <div className="min-w-0">
+                <div className="font-semibold text-sm mb-1">Institution-specific past papers</div>
+                <div className="text-xs text-slate-500 dark:text-slate-400">
+                  Click &quot;Continue&quot; to choose your school and the year of paper you want to practice.
+                </div>
+              </div>
+            </div>
+          )}
+
           {error && (
             <div className="px-4 py-3 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-sm">
               {error}
@@ -441,6 +468,13 @@ export default function NewExamPage() {
           >
             {starting ? (
               "Starting…"
+            ) : mode === "POST_UTME" ? (
+              <>
+                Continue
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="m9 18 6-6-6-6" />
+                </svg>
+              </>
             ) : (
               <>
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

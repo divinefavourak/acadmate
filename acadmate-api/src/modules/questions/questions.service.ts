@@ -1,11 +1,13 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { Difficulty } from '@prisma/client';
+import { Difficulty, ExamType } from '@prisma/client';
 
 export interface QuestionQuery {
   subjectId?: string;
   topicId?: string;
   difficulty?: Difficulty;
+  school?: string;
+  examType?: ExamType;
   limit?: number;
   offset?: number;
 }
@@ -24,6 +26,8 @@ export class QuestionsService {
       ...(query.subjectId && { subjectId: query.subjectId }),
       ...(query.topicId && { topicId: query.topicId }),
       ...(query.difficulty && { difficulty: query.difficulty }),
+      ...(query.school && { school: query.school }),
+      ...(query.examType && { examType: query.examType }),
     };
 
     const [questions, total] = await this.prisma.$transaction([
@@ -36,6 +40,8 @@ export class QuestionsService {
           text: true,
           difficulty: true,
           year: true,
+          school: true,
+          examType: true,
           subject: { select: { id: true, name: true, code: true } },
           topic: { select: { id: true, name: true } },
           options: {

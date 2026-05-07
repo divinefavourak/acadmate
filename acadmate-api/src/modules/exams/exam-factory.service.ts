@@ -8,6 +8,8 @@ const UTME_SUBJECT_QUESTIONS = 40;
 const UTME_DURATION_MINUTES = 120;
 const ENGLISH_CODE = 'ENG';
 
+const POST_UTME_DEFAULT_QUESTIONS = 40;
+
 // ─── Input types (identical to original lib/services/exam-factory.ts) ─────────
 export type MockExamInput = {
   mode: 'MOCK';
@@ -28,7 +30,18 @@ export type TopicExamInput = {
   questionCount: number;
 };
 
-export type ExamFactoryInput = MockExamInput | PracticeExamInput | TopicExamInput;
+export type PostUtmeExamInput = {
+  mode: 'POST_UTME';
+  school: string;
+  year?: number;
+  questionCount: number;
+};
+
+export type ExamFactoryInput =
+  | MockExamInput
+  | PracticeExamInput
+  | TopicExamInput
+  | PostUtmeExamInput;
 
 export type ExamFactoryResult = {
   questionIds: string[];
@@ -58,6 +71,8 @@ export class ExamFactoryService {
         return this.buildPractice(input);
       case 'TOPIC':
         return this.buildTopic(input);
+      case 'POST_UTME':
+        return this.buildPostUtme(input);
     }
   }
 
@@ -203,6 +218,81 @@ export class ExamFactoryService {
         422,
       );
     }
+
+    return { questionIds, durationMinutes: input.questionCount * 2 };
+  }
+
+  private async buildPostUtme(
+    input: PostUtmeExamInput,
+  ): Promise<ExamFactoryResult> {
+    // Count available pool before sampling so we can surface a clear error
+    // instead of silently returning a short exam when the bank is too small.
+    const [countResult, rows] = await (input.year != null
+      ? Promise.all([
+          this.prisma.$queryRaw<[{ count: bigint }]>`
+            SELECT COUNT(*) AS count FROM questions q
+            WHERE q."school" = ${input.school}
+              AND q."examType" = 'POST_UTME'::"ExamType"
+              AND q."year" = ${input.year}
+              AND q."isPublished" = true
+              AND q."isFlagged" = false
+              AND EXISTS (
+                SELECT 1 FROM question_options qo
+                WHERE qo."questionId" = q.id AND qo."isCorrect" = true
+              )
+          `,
+          this.prisma.$queryRaw<{ id: string }[]>`
+            SELECT q.id FROM questions q
+            WHERE q."school" = ${input.school}
+              AND q."examType" = 'POST_UTME'::"ExamType"
+              AND q."year" = ${input.year}
+              AND q."isPublished" = true
+              AND q."isFlagged" = false
+              AND EXISTS (
+                SELECT 1 FROM question_options qo
+                WHERE qo."questionId" = q.id AND qo."isCorrect" = true
+              )
+            ORDER BY RANDOM()
+            LIMIT ${input.questionCount}
+          `,
+        ])
+      : Promise.all([
+          this.prisma.$queryRaw<[{ count: bigint }]>`
+            SELECT COUNT(*) AS count FROM questions q
+            WHERE q."school" = ${input.school}
+              AND q."examType" = 'POST_UTME'::"ExamType"
+              AND q."isPublished" = true
+              AND q."isFlagged" = false
+              AND EXISTS (
+                SELECT 1 FROM question_options qo
+                WHERE qo."questionId" = q.id AND qo."isCorrect" = true
+              )
+          `,
+          this.prisma.$queryRaw<{ id: string }[]>`
+            SELECT q.id FROM questions q
+            WHERE q."school" = ${input.school}
+              AND q."examType" = 'POST_UTME'::"ExamType"
+              AND q."isPublished" = true
+              AND q."isFlagged" = false
+              AND EXISTS (
+                SELECT 1 FROM question_options qo
+                WHERE qo."questionId" = q.id AND qo."isCorrect" = true
+              )
+            ORDER BY RANDOM()
+            LIMIT ${input.questionCount}
+          `,
+        ]));
+
+    const poolSize = Number(countResult[0].count);
+    if (poolSize < input.questionCount) {
+      throw new ExamFactoryError(
+        `Not enough POST-UTME questions for "${input.school}"${input.year ? ` (${input.year})` : ''}. ` +
+          `Required: ${input.questionCount}, available: ${poolSize}.`,
+        422,
+      );
+    }
+
+    const questionIds = fisherYates(rows.map((r) => r.id));
 
     return { questionIds, durationMinutes: input.questionCount * 2 };
   }

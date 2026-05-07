@@ -143,6 +143,8 @@ model Question {
   text             String           @db.Text
   imageUrl         String?          @db.Text
   year             Int?
+  school           String?
+  examType         ExamType?
   difficulty       Difficulty       @default(MEDIUM)
   sourceType       SourceType       @default(MANUAL)
   sourceRef        String?
@@ -173,6 +175,10 @@ model Question {
   @@index([isPublished])
   @@index([isFlagged])
   @@index([year])
+  @@index([school])
+  @@index([examType])
+  @@index([school, examType])
+  @@index([school, examType, year])
   @@index([subjectId, year])
   @@index([subjectId, isPublished])
   @@index([subjectId, year, isPublished])
@@ -282,6 +288,7 @@ model ExamSession {
   mode             ExamMode          @default(MOCK)
   subjectId        String?
   topicId          String?
+  school           String?
   status           ExamStatus        @default(IN_PROGRESS)
   startedAt        DateTime          @default(now())
   submittedAt      DateTime?
@@ -512,6 +519,13 @@ enum ExamMode {
   MOCK
   PRACTICE
   TOPIC
+  POST_UTME
+}
+
+enum ExamType {
+  JAMB
+  WAEC
+  POST_UTME
 }
 
 enum ExamStatus {

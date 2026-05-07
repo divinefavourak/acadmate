@@ -30,6 +30,7 @@
     "bcryptjs": "^3.0.2",
     "cloudinary": "^2.9.0",
     "groq-sdk": "^1.1.2",
+    "jose": "^6.2.3",
     "katex": "^0.16.45",
     "next": "16.2.3",
     "next-auth": "^5.0.0-beta.25",

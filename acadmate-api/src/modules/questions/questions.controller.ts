@@ -1,10 +1,10 @@
 import {
   Controller, Get, Post, Param, Query, UseGuards, HttpCode, HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { IsOptional, IsString, IsEnum, IsInt, Min, Max } from 'class-validator';
 import { Type } from 'class-transformer';
-import { Difficulty } from '@prisma/client';
+import { Difficulty, ExamType } from '@prisma/client';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser, JwtUser } from '../../common/decorators/current-user.decorator';
 import { QuestionsService } from './questions.service';
@@ -13,7 +13,9 @@ class QuestionQueryDto {
   @IsOptional() @IsString() subjectId?: string;
   @IsOptional() @IsString() topicId?: string;
   @IsOptional() @IsEnum(Difficulty) difficulty?: Difficulty;
-  @IsOptional() @IsInt() @Min(1) @Max(100) @Type(() => Number) limit?: number = 20;
+  @IsOptional() @IsString() school?: string;
+  @IsOptional() @IsEnum(ExamType) examType?: ExamType;
+  @IsOptional() @IsInt() @Min(1) @Max(500) @Type(() => Number) limit?: number = 20;
   @IsOptional() @IsInt() @Min(0) @Type(() => Number) offset?: number = 0;
 }
 

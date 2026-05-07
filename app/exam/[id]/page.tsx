@@ -241,7 +241,12 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
               className="flex items-center gap-2 min-w-0 lg:cursor-default lg:pointer-events-none"
             >
               <span className="font-semibold text-slate-700 dark:text-slate-300 truncate text-sm sm:text-base">
-                <span className="hidden sm:inline">{currentQ.subject.name} — {session.mode === "MOCK" ? "Mock Exam" : "Practice"}</span>
+                <span className="hidden sm:inline">
+                  {currentQ.subject.name} —{" "}
+                  {session.mode === "MOCK" ? "Mock Exam"
+                    : session.mode === "POST_UTME" ? "Post-UTME"
+                    : "Practice"}
+                </span>
                 <span className="sm:hidden">{currentIndex + 1}/{questions.length}</span>
               </span>
               <span className="lg:hidden text-xs text-indigo-500 flex-shrink-0">↑ Navigator</span>

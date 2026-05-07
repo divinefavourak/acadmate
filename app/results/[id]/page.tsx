@@ -65,6 +65,7 @@ function modeLabel(mode: string) {
   if (mode === "MOCK") return "Full UTME Mock";
   if (mode === "PRACTICE") return "Practice Session";
   if (mode === "TOPIC") return "Topic Practice";
+  if (mode === "POST_UTME") return "Post-UTME";
   return mode;
 }
 
@@ -207,12 +208,18 @@ export default function ResultDetailPage({ params }: { params: Promise<{ id: str
   const [filter, setFilter] = useState<"all" | "correct" | "incorrect" | "unanswered">("all");
 
   useEffect(() => {
-    apiClient<ResultDetail & {
+    type RawQuestion = QuestionAnswer["question"];
+    type RawResult = ResultDetail & {
       subjectBreakdowns?: { subjectId: string; name: string; correct: number; total: number }[];
       topicBreakdowns?: { topicId: string; name: string; correct: number; total: number }[];
-    }>(`/results/${id}`)
+      examSession: ResultDetail["examSession"] & {
+        questions?: { position: number; question: RawQuestion }[];
+      };
+    };
+
+    apiClient<RawResult>(`/api/results/${id}`)
       .then((raw) => {
-        // Normalise array → keyed-object shape the page expects
+        // Normalise breakdown arrays → keyed-object shape the page expects
         const subjectBreakdown: SubjectBreakdown = {};
         for (const s of raw.subjectBreakdowns ?? []) {
           subjectBreakdown[s.subjectId] = { name: s.name, correct: s.correct, total: s.total };
@@ -221,7 +228,29 @@ export default function ResultDetailPage({ params }: { params: Promise<{ id: str
         for (const t of raw.topicBreakdowns ?? []) {
           topicBreakdown[t.topicId] = { name: t.name, correct: t.correct, total: t.total };
         }
-        setResult({ ...raw, subjectBreakdown, topicBreakdown });
+
+        // Join question data (position-ordered) into each userAnswer
+        const answerMap = new Map(
+          raw.examSession.userAnswers.map((ua) => [ua.questionId, ua]),
+        );
+        const userAnswers: QuestionAnswer[] = (raw.examSession.questions ?? [])
+          .sort((a, b) => a.position - b.position)
+          .map(({ question }) => {
+            const ua = answerMap.get(question.id);
+            return {
+              questionId: question.id,
+              optionId: ua?.optionId ?? null,
+              isCorrect: ua?.isCorrect ?? null,
+              question,
+            };
+          });
+
+        setResult({
+          ...raw,
+          subjectBreakdown,
+          topicBreakdown,
+          examSession: { ...raw.examSession, userAnswers },
+        });
       })
       .catch(() => setError("Failed to load result."))
       .finally(() => setLoading(false));
