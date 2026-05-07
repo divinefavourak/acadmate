@@ -3,8 +3,10 @@
 import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { motion } from "framer-motion";
 import { apiClient, ApiError } from "@/lib/api/client";
 import { setToken } from "@/lib/api/auth";
+import { scaleIn, stagger, fadeUp } from "@/lib/motion";
 
 function LoginForm() {
   const router = useRouter();
@@ -42,7 +44,12 @@ function LoginForm() {
   }
 
   return (
-    <div className="glass-panel w-full max-w-md p-8 rounded-3xl relative overflow-hidden">
+    <motion.div
+      variants={scaleIn}
+      initial="hidden"
+      animate="visible"
+      className="glass-panel w-full max-w-md p-8 rounded-3xl relative overflow-hidden"
+    >
       <div className="text-center mb-8">
         <h1 className="text-2xl font-bold mb-2">Welcome Back</h1>
         <p className="text-slate-500 dark:text-slate-400 text-sm">Enter your credentials to continue your prep.</p>
@@ -97,7 +104,7 @@ function LoginForm() {
           Create one
         </Link>
       </p>
-    </div>
+    </motion.div>
   );
 }
 

@@ -29,6 +29,7 @@
     "@vercel/analytics": "^2.0.1",
     "bcryptjs": "^3.0.2",
     "cloudinary": "^2.9.0",
+    "framer-motion": "^12.38.0",
     "groq-sdk": "^1.1.2",
     "jose": "^6.2.3",
     "katex": "^0.16.45",

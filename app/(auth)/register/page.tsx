@@ -3,8 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { motion } from "framer-motion";
 import { apiClient, ApiError } from "@/lib/api/client";
 import { setToken } from "@/lib/api/auth";
+import { scaleIn } from "@/lib/motion";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -46,7 +48,12 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="glass-panel w-full max-w-md p-8 rounded-3xl relative overflow-hidden">
+    <motion.div
+      variants={scaleIn}
+      initial="hidden"
+      animate="visible"
+      className="glass-panel w-full max-w-md p-8 rounded-3xl relative overflow-hidden"
+    >
       <div className="text-center mb-8">
         <h1 className="text-2xl font-bold mb-2">Create an Account</h1>
         <p className="text-slate-500 dark:text-slate-400 text-sm">Start your premium UTME practice today.</p>
@@ -109,6 +116,6 @@ export default function RegisterPage() {
           Sign in
         </Link>
       </p>
-    </div>
+    </motion.div>
   );
 }

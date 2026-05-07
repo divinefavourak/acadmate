@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Analytics } from "@vercel/analytics/next"
 import Image from 'next/image';
+import { motion } from 'framer-motion';
 import MobileNav from '../components/layout/MobileNav';
 import {
   ChatBubbleLeftRightIcon,
@@ -12,6 +13,7 @@ import {
   EnvelopeIcon,
   BookOpenIcon,
 } from '@heroicons/react/24/outline';
+import { fadeUp, fadeIn, scaleIn, stagger, slideInLeft, slideInRight } from '@/lib/motion';
 
 const landingNavItems = [
   { href: "#features", label: "Features", icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m11 17 2 2 4-4"/><path d="m11 9 2 2 4-4"/><path d="M7 17h.01"/><path d="M7 11h.01"/><path d="M7 5h.01"/><path d="M3 21h18"/><path d="M3 3h18"/></svg> },
@@ -70,48 +72,57 @@ export default function Home() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
 
           {/* Left: copy */}
-          <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-semibold uppercase tracking-wider mb-6">
+          <motion.div
+            variants={stagger(0.1, 0.12)}
+            initial="hidden"
+            animate="visible"
+          >
+            <motion.div variants={fadeUp} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-semibold uppercase tracking-wider mb-6">
               🎓 Nigeria&apos;s JAMB CBT Practice Platform
-            </div>
+            </motion.div>
 
-            <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight leading-[1.08] mb-6">
+            <motion.h1 variants={fadeUp} className="text-4xl md:text-6xl font-extrabold tracking-tight leading-[1.08] mb-6">
               Ace your UTME.<br />
               <span className="bg-linear-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
                 No guesswork.
               </span>
-            </h1>
+            </motion.h1>
 
-            <p className="text-lg text-slate-400 mb-8 leading-relaxed max-w-xl">
+            <motion.p variants={fadeUp} className="text-lg text-slate-400 mb-8 leading-relaxed max-w-xl">
               Practice with real JAMB past questions, timed CBT simulations, and AI-powered explanations. The smartest way to hit 300+.
-            </p>
+            </motion.p>
 
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-10">
+            <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-10">
               <Link href="/register" className="flex-1 sm:flex-none text-center bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-8 py-4 rounded-2xl transition-all hover:shadow-lg hover:shadow-indigo-500/25 text-base">
                 Start Practicing Free
               </Link>
               <Link href="#features" className="flex-1 sm:flex-none text-center border border-white/10 hover:border-white/20 text-slate-300 hover:text-white font-medium px-8 py-4 rounded-2xl transition-all text-base bg-white/5">
                 See Features
               </Link>
-            </div>
+            </motion.div>
 
             {/* Social proof numbers */}
-            <div className="flex flex-wrap gap-8 pt-4 border-t border-white/5">
+            <motion.div variants={stagger(0, 0.1)} className="flex flex-wrap gap-8 pt-4 border-t border-white/5">
               {[
                 { val: "8,600+", label: "Past Questions" },
                 { val: "11", label: "Subjects" },
                 { val: "300+", label: "Target Score" },
               ].map((s) => (
-                <div key={s.label}>
+                <motion.div key={s.label} variants={fadeUp}>
                   <p className="text-2xl font-extrabold text-white">{s.val}</p>
                   <p className="text-xs text-slate-500 mt-0.5">{s.label}</p>
-                </div>
+                </motion.div>
               ))}
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
 
           {/* Right: real photos */}
-          <div className="relative">
+          <motion.div
+            variants={slideInRight}
+            initial="hidden"
+            animate="visible"
+            className="relative"
+          >
             {/* Main photo — exam hall */}
             <div className="relative rounded-2xl overflow-hidden border border-white/10 shadow-2xl shadow-black/40 aspect-4/3">
               <Image
@@ -131,7 +142,12 @@ export default function Home() {
             </div>
 
             {/* Floating card — focused student */}
-            <div className="absolute -bottom-6 -left-6 w-44 md:w-52 rounded-xl overflow-hidden border-2 border-indigo-500/50 shadow-xl shadow-indigo-500/10 hidden sm:block">
+            <motion.div
+              initial={{ opacity: 0, x: -20, y: 20 }}
+              animate={{ opacity: 1, x: 0, y: 0 }}
+              transition={{ delay: 0.6, duration: 0.5, ease: "easeOut" }}
+              className="absolute -bottom-6 -left-6 w-44 md:w-52 rounded-xl overflow-hidden border-2 border-indigo-500/50 shadow-xl shadow-indigo-500/10 hidden sm:block"
+            >
               <Image
                 src="/images/520231975_1062352099320762_1989502761018549539_n.jpg"
                 alt="Student focused on practice"
@@ -143,24 +159,41 @@ export default function Home() {
               <div className="absolute bottom-2 left-2 right-2 text-xs font-semibold text-white drop-shadow">
                 Practice → Confidence
               </div>
-            </div>
+            </motion.div>
 
             {/* Score badge */}
-            <div className="absolute -top-4 -right-4 bg-[#09090b] border border-white/10 rounded-2xl px-4 py-3 shadow-xl hidden md:block">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.7, duration: 0.4, ease: "easeOut" }}
+              className="absolute -top-4 -right-4 bg-[#09090b] border border-white/10 rounded-2xl px-4 py-3 shadow-xl hidden md:block"
+            >
               <p className="text-xs text-slate-400 mb-0.5">Average Score Gain</p>
               <p className="text-2xl font-extrabold text-emerald-400">+47pts</p>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         </div>
       </section>
 
       {/* ── FEATURES ── */}
       <section id="features" className="relative z-10 max-w-7xl mx-auto px-4 md:px-6 py-20 md:py-32">
-        <div className="text-center mb-14">
+        <motion.div
+          className="text-center mb-14"
+          variants={fadeUp}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.5 }}
+        >
           <h2 className="text-3xl md:text-5xl font-bold mb-4">Everything to score 300+</h2>
           <p className="text-slate-400 max-w-xl mx-auto">Built specifically for JAMB UTME — not generic study tools.</p>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        </motion.div>
+        <motion.div
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"
+          variants={stagger(0.1, 0.1)}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.1 }}
+        >
           {[
             { icon: "⏱️", title: "Timed CBT Engine", desc: "Simulate the exact timing and pressure of the real JAMB exam. 2-hour mock tests, subject-by-subject practice, topic drills.", accent: "indigo" },
             { icon: "📚", title: "Real Past Questions", desc: "8,600+ curated JAMB questions from 1978–2024. Every subject, every year — all with verified answers.", accent: "purple" },
@@ -169,23 +202,40 @@ export default function Home() {
             { icon: "🎯", title: "Topic Mastery", desc: "Drill specific topics until they're perfect. Identify gaps and close them systematically.", accent: "pink" },
             { icon: "📖", title: "Literature Guide", desc: "Full summaries, character breakdowns and predicted questions for The Lekki Headmaster and other UTME prose.", accent: "cyan" },
           ].map((f, i) => (
-            <div key={i} className="group relative bg-white/3 border border-white/8 hover:border-white/15 rounded-2xl p-6 transition-all hover:bg-white/6">
+            <motion.div
+              key={i}
+              variants={fadeUp}
+              whileHover={{ y: -4, transition: { duration: 0.2 } }}
+              className="group relative bg-white/3 border border-white/8 hover:border-white/15 rounded-2xl p-6 transition-colors hover:bg-white/6 cursor-default"
+            >
               <div className="text-3xl mb-4">{f.icon}</div>
               <h4 className="text-lg font-bold mb-2">{f.title}</h4>
               <p className="text-sm text-slate-400 leading-relaxed">{f.desc}</p>
-            </div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       </section>
 
       {/* ── SUBJECTS ── */}
       <section id="subjects" className="relative z-10 max-w-7xl mx-auto px-4 md:px-6 py-20 md:py-32">
-        <div className="rounded-[2.5rem] bg-indigo-500/5 border border-indigo-500/10 p-10 md:p-16">
+        <motion.div
+          className="rounded-[2.5rem] bg-indigo-500/5 border border-indigo-500/10 p-10 md:p-16"
+          variants={scaleIn}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.2 }}
+        >
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-5xl font-bold mb-4">All Major JAMB Subjects</h2>
             <p className="text-slate-400">Comprehensive question banks across every department combination.</p>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+          <motion.div
+            className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"
+            variants={stagger(0.05, 0.06)}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.1 }}
+          >
             {[
               { name: "Mathematics", icon: "📐" },
               { name: "English Language", icon: "✏️" },
@@ -200,19 +250,28 @@ export default function Home() {
               { name: "CRK", icon: "✝️" },
               { name: "More soon…", icon: "🔜" },
             ].map((s, i) => (
-              <div key={i} className="flex items-center gap-3 bg-white/3 border border-white/8 rounded-xl p-4 hover:border-indigo-500/30 transition-colors group">
+              <motion.div
+                key={i}
+                variants={fadeUp}
+                className="flex items-center gap-3 bg-white/3 border border-white/8 rounded-xl p-4 hover:border-indigo-500/30 transition-colors group"
+              >
                 <span className="text-xl">{s.icon}</span>
                 <span className="text-sm font-semibold text-slate-200 group-hover:text-white transition-colors">{s.name}</span>
-              </div>
+              </motion.div>
             ))}
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       </section>
 
       {/* ── LITERATURE SPOTLIGHT ── */}
       <section id="prose" className="relative z-10 max-w-7xl mx-auto px-4 md:px-6 py-20 md:py-32">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
-          <div>
+          <motion.div
+            variants={slideInLeft}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.3 }}
+          >
             <div className="inline-block px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-6">
               Literature Spotlight
             </div>
@@ -236,9 +295,15 @@ export default function Home() {
             <Link href="/register" className="inline-block bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-8 py-3.5 rounded-2xl transition-colors">
               Get Literature Guide
             </Link>
-          </div>
+          </motion.div>
 
-          <div className="relative">
+          <motion.div
+            variants={slideInRight}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.3 }}
+            className="relative"
+          >
             <div className="relative aspect-4/3 rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
               <Image
                 src="/images/520596414_739489019062965_5923685459460735498_n.jpg"
@@ -252,13 +317,19 @@ export default function Home() {
               <p className="text-sm font-bold text-white mb-1">90%+ Accuracy</p>
               <p className="text-xs text-slate-400">Predicting JAMB literature questions since 2022.</p>
             </div>
-          </div>
+          </motion.div>
         </div>
       </section>
 
       {/* ── CTA ── */}
       <section id="demo" className="relative z-10 max-w-7xl mx-auto px-4 md:px-6 py-16 mb-20">
-        <div className="relative overflow-hidden rounded-[2.5rem] bg-indigo-600 p-10 md:p-16 text-center">
+        <motion.div
+          variants={scaleIn}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.3 }}
+          className="relative overflow-hidden rounded-[2.5rem] bg-indigo-600 p-10 md:p-16 text-center"
+        >
           <div className="absolute inset-0 opacity-10">
             <Image src="/images/520231975_1062352099320762_1989502761018549539_n.jpg" alt="" fill className="object-cover" />
           </div>
@@ -278,7 +349,7 @@ export default function Home() {
             </div>
             <p className="mt-6 text-indigo-300 text-sm">A free platform for practice Start instantly.</p>
           </div>
-        </div>
+        </motion.div>
       </section>
 
       {/* Footer */}
