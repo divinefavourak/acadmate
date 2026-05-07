@@ -29,6 +29,7 @@
     "@nestjs/passport": "^10.0.3",
     "@nestjs/platform-express": "^10.4.15",
     "@nestjs/schedule": "^4.1.2",
+    "@nestjs/schematics": "^10.2.3",
     "@nestjs/swagger": "^7.4.2",
     "@nestjs/throttler": "^6.4.0",
     "@prisma/client": "^6.6.0",
@@ -39,21 +40,20 @@
     "multer": "^1.4.5-lts.1",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
+    "prisma": "^6.6.0",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.1"
+    "rxjs": "^7.8.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.3"
   },
   "devDependencies": {
-    "@nestjs/schematics": "^10.2.3",
     "@nestjs/testing": "^10.4.15",
     "@types/bcryptjs": "^2.4.6",
     "@types/express": "^4.17.21",
     "@types/multer": "^1.4.12",
     "@types/node": "^20.17.12",
     "@types/passport-jwt": "^4.0.1",
-    "prisma": "^6.6.0",
-    "ts-jest": "^29.2.5",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.7.3"
+    "ts-jest": "^29.2.5"
   },
   "jest": {
     "moduleFileExtensions": [
