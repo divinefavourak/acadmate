@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { fetchPostUtmeQuestions, createPostUtmeExam } from "@/features/post-utme/api";
@@ -60,7 +60,7 @@ function PackCard({
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function PostUtmePacksPage() {
+function PacksContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -273,5 +273,13 @@ export default function PostUtmePacksPage() {
         </button>
       </div>
     </div>
+  );
+}
+
+export default function PostUtmePacksPage() {
+  return (
+    <Suspense fallback={<div className="animate-pulse h-96 rounded-2xl bg-slate-100 dark:bg-slate-800" />}>
+      <PacksContent />
+    </Suspense>
   );
 }
