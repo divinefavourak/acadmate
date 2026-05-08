@@ -36,6 +36,9 @@ export class AdminSubjectsController {
   // ─── Subjects ──────────────────────────────────────────────────────────────
   @Get('subjects') listSubjects() { return this.adminSubjectsService.listSubjects(); }
 
+  @Get('subjects/:id/years')
+  getSubjectYears(@Param('id') id: string) { return this.adminSubjectsService.getSubjectYears(id); }
+
   @Post('subjects') @HttpCode(HttpStatus.CREATED)
   createSubject(@Body() dto: CreateSubjectDto) { return this.adminSubjectsService.createSubject(dto); }
 

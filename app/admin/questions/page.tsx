@@ -195,7 +195,7 @@ function QuestionsPage() {
 
   useEffect(() => {
     if (!form.subjectId) { setTopics([]); return; }
-    apiClient<{ topics: TopicOption[] }>(`/api/topics?subjectId=${form.subjectId}`)
+    apiClient<{ topics: TopicOption[] }>(`/api/admin/topics?subjectId=${form.subjectId}`)
       .then((data) => setTopics(data.topics ?? []))
       .catch((err) => console.error("Failed to load topics", err));
   }, [form.subjectId]);

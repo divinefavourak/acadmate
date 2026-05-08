@@ -56,7 +56,7 @@ export default function AdminNotificationsPage() {
 
   async function markAllRead() {
     try {
-      await apiClient("/api/admin/notifications", { method: "PATCH" });
+      await apiClient("/api/admin/notifications/read-all", { method: "PATCH" });
       setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
       setUnreadCount(0);
     } catch (err) {

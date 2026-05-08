@@ -62,7 +62,7 @@ export default function StudentsPage() {
     setLoadingDetail(id);
     setDetailError("");
     try {
-      const data = await apiClient<UserDetail>(`/api/admin/users/${id}`);
+      const data = await apiClient<UserDetail>(`/api/admin/users/${id}/stats`);
       setDetail(data);
     } catch (err) {
       console.error("Failed to load student details", err);
