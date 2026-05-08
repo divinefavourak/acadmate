@@ -306,7 +306,7 @@ export default function ImportsPage() {
       setUploadResult({
         success: true,
         message: `✅ Import complete: ${data.created} questions created from ${data.totalRows} rows.`,
-        details: data.errors?.length > 0 ? `${data.errors.length} rows had errors and were skipped.` : undefined,
+        details: (data.errors?.length ?? 0) > 0 ? `${data.errors!.length} rows had errors and were skipped.` : undefined,
       });
       if (fileRef.current) fileRef.current.value = "";
       setFileLabel("Click to choose CSV or JSON file");
