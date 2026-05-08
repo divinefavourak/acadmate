@@ -6,12 +6,13 @@ WORKDIR /app
 
 COPY package*.json ./
 COPY prisma ./prisma/
+COPY tsconfig.json ./
+COPY src ./src/
+COPY nest-cli.json ./
 
-RUN npm ci
+RUN npm ci --ignore-scripts
 
 RUN npx prisma generate
-
-COPY . .
 
 RUN npm run build
 
@@ -24,9 +25,9 @@ WORKDIR /app
 
 COPY package*.json ./
 
-RUN npm ci --omit=dev
+RUN npm ci --omit=dev --ignore-scripts
 
-# Prisma schema (needed for db push) + generated client from builder
+# Prisma schema (needed for db push at startup) + generated client from builder
 COPY prisma ./prisma/
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 
