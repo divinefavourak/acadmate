@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { apiClient } from "@/lib/api/client";
 
 interface Notification {
   id: string;
@@ -40,14 +41,9 @@ export default function AdminNotificationsPage() {
 
   const fetchNotifications = useCallback(async () => {
     try {
-      const res = await fetch("/api/admin/notifications");
-      if (res.ok) {
-        const data = await res.json();
-        setNotifications(data.notifications ?? []);
-        setUnreadCount(data.unreadCount ?? 0);
-      } else {
-        throw new Error(`HTTP ${res.status}`);
-      }
+      const data = await apiClient<{ notifications: Notification[]; unreadCount: number }>("/api/admin/notifications");
+      setNotifications(data.notifications ?? []);
+      setUnreadCount(data.unreadCount ?? 0);
     } catch (err) {
       console.error("Failed to load notifications", err);
       setError("Failed to load notifications. Please refresh.");
@@ -60,8 +56,7 @@ export default function AdminNotificationsPage() {
 
   async function markAllRead() {
     try {
-      const res = await fetch("/api/admin/notifications", { method: "PATCH" });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      await apiClient("/api/admin/notifications/read-all", { method: "PATCH" });
       setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
       setUnreadCount(0);
     } catch (err) {

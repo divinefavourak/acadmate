@@ -4,6 +4,7 @@ import { useEffect, useState, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import MathText from "@/app/components/MathText";
 import MiniBarChart from "@/app/admin/components/MiniBarChart";
+import { apiClient } from "@/lib/api/client";
 
 interface QuestionEntry {
   id: string;
@@ -138,13 +139,8 @@ function QuestionsPage() {
     try {
       const fd = new FormData();
       fd.append("file", file);
-      const res = await fetch("/api/upload", { method: "POST", body: fd });
-      if (res.ok) {
-        const data = await res.json();
-        setter(data.url);
-      } else {
-        throw new Error(`Upload failed with status ${res.status}`);
-      }
+      const data = await apiClient<{ url: string }>("/api/upload", { method: "POST", body: fd });
+      setter(data.url);
     } catch (err) {
       console.error("Image upload failed", err);
       setFormError("Image upload failed. Please try again.");
@@ -154,22 +150,20 @@ function QuestionsPage() {
   }
 
   useEffect(() => {
-    fetch("/api/admin/subjects")
-      .then((r) => r.ok ? r.json() : { subjects: [] })
+    apiClient<{ subjects: typeof subjects }>("/api/admin/subjects")
       .then((data) => setSubjects(data.subjects ?? []))
       .catch((err) => console.error("Failed to load subjects", err));
     // Preload flagged count for the tab badge
-    fetch("/api/admin/questions?flagged=true&limit=500")
-      .then((r) => r.ok ? r.json() : { questions: [] })
+    apiClient<{ questions: typeof flaggedQuestions }>("/api/admin/questions?flagged=true&limit=500")
       .then((data) => setFlaggedQuestions(data.questions ?? []))
       .catch((err) => console.error("Failed to load flagged questions", err));
   }, []);
 
   useEffect(() => {
     if (!activeSubject) return;
-    fetch(`/api/admin/subjects/${activeSubject.id}/years`)
-      .then((r) => r.ok ? r.json() : { years: [] })
-      .then((data) => setYears(data.years ?? []));
+    apiClient<{ years: { year: number | null; count: number }[] }>(`/api/admin/subjects/${activeSubject.id}/years`)
+      .then((data) => setYears(data.years ?? []))
+      .catch((err) => console.error("Failed to load years", err));
   }, [activeSubject]);
 
   useEffect(() => {
@@ -190,20 +184,20 @@ function QuestionsPage() {
     if (publishedFilter !== "") params.set("isPublished", publishedFilter);
     if (flaggedFilter) params.set("flagged", "true");
 
-    fetch(`/api/admin/questions?${params}`)
-      .then((r) => r.ok ? r.json() : { questions: [], total: 0 })
+    apiClient<{ questions: QuestionEntry[]; total: number }>(`/api/admin/questions?${params}`)
       .then((data) => {
         setQuestions(data.questions ?? []);
         setTotal(data.total ?? 0);
       })
+      .catch((err) => console.error("Failed to load questions", err))
       .finally(() => setLoading(false));
   }, [page, publishedFilter, flaggedFilter, activeSubject, activeYear]);
 
   useEffect(() => {
     if (!form.subjectId) { setTopics([]); return; }
-    fetch(`/api/topics?subjectId=${form.subjectId}`)
-      .then((r) => r.ok ? r.json() : { topics: [] })
-      .then((data) => setTopics(data.topics ?? []));
+    apiClient<{ topics: TopicOption[] }>(`/api/admin/topics?subjectId=${form.subjectId}`)
+      .then((data) => setTopics(data.topics ?? []))
+      .catch((err) => console.error("Failed to load topics", err));
   }, [form.subjectId]);
 
   const totalPages = Math.ceil(total / limit);
@@ -211,8 +205,7 @@ function QuestionsPage() {
   useEffect(() => {
     if (activeTab !== "flagged") return;
     setLoadingFlagged(true);
-    fetch("/api/admin/questions?flagged=true&limit=500")
-      .then((r) => r.ok ? r.json() : { questions: [] })
+    apiClient<{ questions: typeof flaggedQuestions }>("/api/admin/questions?flagged=true&limit=500")
       .then((data) => setFlaggedQuestions(data.questions ?? []))
       .catch((err) => console.error("Failed to load flagged questions", err))
       .finally(() => setLoadingFlagged(false));
@@ -244,9 +237,8 @@ function QuestionsPage() {
   }, {});
 
   async function togglePublish(id: string, current: boolean) {
-    await fetch(`/api/admin/questions/${id}/publish`, {
+    await apiClient(`/api/admin/questions/${id}/publish`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ isPublished: !current }),
     });
     setQuestions((prev) =>
@@ -257,11 +249,10 @@ function QuestionsPage() {
   async function handlePreview(id: string) {
     setLoadingPreview(id);
     try {
-      const res = await fetch(`/api/admin/questions/${id}`);
-      if (res.ok) {
-        const data = await res.json();
-        setPreviewQuestion(data.question);
-      }
+      const data = await apiClient<{ question: FullQuestionEntry }>(`/api/admin/questions/${id}`);
+      setPreviewQuestion(data.question);
+    } catch (err) {
+      console.error("Failed to load preview", err);
     } finally {
       setLoadingPreview(null);
     }
@@ -271,11 +262,11 @@ function QuestionsPage() {
     if (!deleteId) return;
     setDeleting(true);
     try {
-      const res = await fetch(`/api/admin/questions/${deleteId}`, { method: "DELETE" });
-      if (res.ok) {
-        setQuestions((prev) => prev.filter((q) => q.id !== deleteId));
-        setTotal((prev) => prev - 1);
-      }
+      await apiClient(`/api/admin/questions/${deleteId}`, { method: "DELETE" });
+      setQuestions((prev) => prev.filter((q) => q.id !== deleteId));
+      setTotal((prev) => prev - 1);
+    } catch (err) {
+      console.error("Failed to delete question", err);
     } finally {
       setDeleting(false);
       setDeleteId(null);
@@ -297,35 +288,33 @@ function QuestionsPage() {
   async function handleOpenEdit(id: string) {
     setLoadingEdit(id);
     try {
-      const res = await fetch(`/api/admin/questions/${id}`);
-      if (res.ok) {
-        const data = await res.json();
-        const q: FullQuestionEntry = data.question;
-        setEditQuestion(q);
-        setEditForm({
-          subjectId: q.subject.id,
-          topicId: q.topic?.id ?? "",
-          text: q.text,
-          imageUrl: q.imageUrl ?? "",
-          year: q.year ? String(q.year) : "",
-          difficulty: q.difficulty,
-          options: OPTION_LABELS.map((label) => {
-            const opt = q.options.find((o) => o.label === label);
-            return { label, text: opt?.text ?? "", isCorrect: opt?.isCorrect ?? false };
-          }),
-          explanation: q.explanation?.text ?? "",
-        });
-        setEditError("");
-      }
+      const data = await apiClient<{ question: FullQuestionEntry }>(`/api/admin/questions/${id}`);
+      const q = data.question;
+      setEditQuestion(q);
+      setEditForm({
+        subjectId: q.subject.id,
+        topicId: q.topic?.id ?? "",
+        text: q.text,
+        imageUrl: q.imageUrl ?? "",
+        year: q.year ? String(q.year) : "",
+        difficulty: q.difficulty,
+        options: OPTION_LABELS.map((label) => {
+          const opt = q.options.find((o) => o.label === label);
+          return { label, text: opt?.text ?? "", isCorrect: opt?.isCorrect ?? false };
+        }),
+        explanation: q.explanation?.text ?? "",
+      });
+      setEditError("");
+    } catch (err) {
+      console.error("Failed to load question for edit", err);
     } finally {
       setLoadingEdit(null);
     }
   }
 
   async function handleClearFlag(id: string) {
-    await fetch(`/api/admin/questions/${id}`, {
+    await apiClient(`/api/admin/questions/${id}`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ isFlagged: false }),
     });
     setQuestions((prev) => prev.map((q) => q.id === id ? { ...q, isFlagged: false, flagCount: 0 } : q));
@@ -352,19 +341,18 @@ function QuestionsPage() {
     payload.imageUrl = editForm.imageUrl || "";
     if (editForm.explanation.trim()) payload.explanation = editForm.explanation.trim();
 
-    const res = await fetch(`/api/admin/questions/${editQuestion.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    setEditSaving(false);
-    if (!res.ok) {
-      const d = await res.json();
-      setEditError(d.error ?? "Failed to save.");
+    try {
+      await apiClient(`/api/admin/questions/${editQuestion.id}`, {
+        method: "PATCH",
+        body: JSON.stringify(payload),
+      });
+    } catch (err) {
+      setEditError(err instanceof Error ? err.message : "Failed to save.");
+      setEditSaving(false);
       return;
     }
+    setEditSaving(false);
     setEditQuestion(null);
-    // Refresh list
     setPage(0);
   }
 
@@ -410,19 +398,17 @@ function QuestionsPage() {
     if (form.imageUrl) payload.imageUrl = form.imageUrl;
     if (form.explanation.trim()) payload.explanation = form.explanation.trim();
 
-    const res = await fetch("/api/admin/questions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json();
-    setSaving(false);
-
-    if (!res.ok) {
-      setFormError(data.error ?? "Failed to create question.");
+    try {
+      await apiClient("/api/admin/questions", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : "Failed to create question.");
+      setSaving(false);
       return;
     }
-
+    setSaving(false);
     setShowForm(false);
     setForm(emptyForm);
     setTopics([]);
@@ -431,8 +417,7 @@ function QuestionsPage() {
     const params = new URLSearchParams({ limit: String(limit), offset: "0" });
     if (publishedFilter !== "") params.set("isPublished", publishedFilter);
     setLoading(true);
-    fetch(`/api/admin/questions?${params}`)
-      .then((r) => r.ok ? r.json() : { questions: [], total: 0 })
+    apiClient<{ questions: typeof questions; total: number }>(`/api/admin/questions?${params}`)
       .then((d) => { setQuestions(d.questions ?? []); setTotal(d.total ?? 0); })
       .finally(() => setLoading(false));
   }

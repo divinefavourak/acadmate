@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import MathText from "@/app/components/MathText";
+import { apiClient, ApiError } from "@/lib/api/client";
 
 interface ImportEntry {
   id: string;
@@ -229,14 +230,9 @@ export default function ImportsPage() {
     setPublishingId(imp.id);
     setPublishResult(null);
     try {
-      const res = await fetch(`/api/admin/imports/${imp.id}/publish`, { method: "POST" });
-      const data = await res.json();
-      if (res.ok) {
-        setPublishResult({ id: imp.id, success: true, message: `${data.published} questions published.` });
-        loadImports(page);
-      } else {
-        setPublishResult({ id: imp.id, success: false, message: data.error ?? "Publish failed." });
-      }
+      const data = await apiClient<{ published: number }>(`/api/admin/imports/${imp.id}/publish`, { method: "POST" });
+      setPublishResult({ id: imp.id, success: true, message: `${data.published} questions published.` });
+      loadImports(page);
     } catch (e) {
       setPublishResult({ id: imp.id, success: false, message: (e as Error).message });
     } finally {
@@ -257,8 +253,7 @@ export default function ImportsPage() {
 
   function loadImports(p = 0) {
     setLoading(true);
-    fetch(`/api/admin/imports?limit=${limit}&offset=${p * limit}`)
-      .then((r) => r.ok ? r.json() : { imports: [], total: 0 })
+    apiClient<{ imports: ImportEntry[]; total: number }>(`/api/admin/imports?limit=${limit}&offset=${p * limit}`)
       .then((data) => {
         setImports(data.imports ?? []);
         setTotal(data.total ?? 0);
@@ -302,31 +297,25 @@ export default function ImportsPage() {
     setUploading(true);
 
     try {
-      const res = await fetch("/api/admin/imports", {
+      const data = await apiClient<{ created: number; totalRows: number; errors?: string[] }>("/api/admin/imports", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ filename: file.name, rows: previewRows }),
       });
 
-      const data = await res.json();
-
       setPreviewRows(null);
-
-      if (res.ok) {
-        setUploadResult({
-          success: true,
-          message: `✅ Import complete: ${data.created} questions created from ${data.totalRows} rows.`,
-          details: data.errors?.length > 0 ? `${data.errors.length} rows had errors and were skipped.` : undefined,
-        });
-        if (fileRef.current) fileRef.current.value = "";
-        setFileLabel("Click to choose CSV or JSON file");
-        loadImports(0);
-        setPage(0);
-      } else {
-        setUploadResult({ success: false, message: `❌ ${data.error ?? "Upload failed."}` });
-      }
+      setUploadResult({
+        success: true,
+        message: `✅ Import complete: ${data.created} questions created from ${data.totalRows} rows.`,
+        details: (data.errors?.length ?? 0) > 0 ? `${data.errors!.length} rows had errors and were skipped.` : undefined,
+      });
+      if (fileRef.current) fileRef.current.value = "";
+      setFileLabel("Click to choose CSV or JSON file");
+      loadImports(0);
+      setPage(0);
     } catch (e) {
-      setUploadResult({ success: false, message: `❌ Upload failed: ${(e as Error).message}` });
+      setPreviewRows(null);
+      const msg = e instanceof ApiError ? e.message : (e as Error).message;
+      setUploadResult({ success: false, message: `❌ ${msg}` });
     } finally {
       setUploading(false);
     }

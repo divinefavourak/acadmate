@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ApiError } from "@/lib/api/client";
+import { apiClient, ApiError } from "@/lib/api/client";
 
 interface UserEntry {
   id: string;
@@ -52,9 +52,9 @@ export default function StudentsPage() {
 
   useEffect(() => {
     setLoading(true);
-    fetch(`/api/admin/users?role=STUDENT&limit=${limit}&offset=${page * limit}`)
-      .then((r) => r.ok ? r.json() : { users: [], total: 0 })
+    apiClient<{ users: UserEntry[]; total: number }>(`/api/admin/users?role=STUDENT&limit=${limit}&offset=${page * limit}`)
       .then((data) => { setUsers(data.users ?? []); setTotal(data.total ?? 0); })
+      .catch((err) => console.error("Failed to load students", err))
       .finally(() => setLoading(false));
   }, [page]);
 
@@ -62,9 +62,8 @@ export default function StudentsPage() {
     setLoadingDetail(id);
     setDetailError("");
     try {
-      const res = await fetch(`/api/admin/users/${id}`);
-      if (res.ok) setDetail(await res.json());
-      else throw new Error(`HTTP ${res.status}`);
+      const data = await apiClient<UserDetail>(`/api/admin/users/${id}/stats`);
+      setDetail(data);
     } catch (err) {
       console.error("Failed to load student details", err);
       setDetailError(err instanceof ApiError ? err.message : "Failed to load student details.");

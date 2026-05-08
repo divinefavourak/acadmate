@@ -56,7 +56,7 @@ export class AdminSubjectsService {
 
   // ─── Topics ───────────────────────────────────────────────────────────────
   async listTopics(subjectId?: string) {
-    return this.prisma.topic.findMany({
+    const topics = await this.prisma.topic.findMany({
       where: subjectId ? { subjectId } : undefined,
       orderBy: [{ subjectId: 'asc' }, { sortOrder: 'asc' }],
       select: {
@@ -66,6 +66,7 @@ export class AdminSubjectsService {
         _count: { select: { questions: true } },
       },
     });
+    return { topics };
   }
 
   async createTopic(dto: {

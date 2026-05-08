@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { apiClient } from "@/lib/api/client";
 
 interface ProseEntry {
   id: string;
@@ -22,8 +23,7 @@ export default function ProsePage() {
 
   function loadTexts() {
     setLoading(true);
-    fetch("/api/admin/prose")
-      .then((r) => r.ok ? r.json() : { texts: [] })
+    apiClient<{ texts: ProseEntry[] }>("/api/admin/prose")
       .then((data) => setTexts(data.texts ?? []))
       .catch((err) => {
         console.error("Failed to load prose texts", err);
@@ -40,34 +40,30 @@ export default function ProsePage() {
     if (!form.title.trim()) { setFormError("Title is required."); return; }
 
     setSaving(true);
-    const res = await fetch("/api/admin/prose", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title: form.title,
-        author: form.author || undefined,
-        year: form.year ? Number(form.year) : undefined,
-        summary: form.summary || undefined,
-        themes: form.themes || undefined,
-      }),
-    });
-
-    const data = await res.json();
-    setSaving(false);
-
-    if (res.ok) {
+    try {
+      await apiClient("/api/admin/prose", {
+        method: "POST",
+        body: JSON.stringify({
+          title: form.title,
+          author: form.author || undefined,
+          year: form.year ? Number(form.year) : undefined,
+          summary: form.summary || undefined,
+          themes: form.themes || undefined,
+        }),
+      });
       setForm({ title: "", author: "", year: "", summary: "", themes: "" });
       setShowForm(false);
       loadTexts();
-    } else {
-      setFormError(data.error ?? "Failed to create prose text.");
+    } catch (err: unknown) {
+      setFormError(err instanceof Error ? err.message : "Failed to create prose text.");
+    } finally {
+      setSaving(false);
     }
   }
 
   async function togglePublish(id: string, current: boolean) {
-    await fetch(`/api/admin/prose/${id}`, {
+    await apiClient(`/api/admin/prose/${id}`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ isPublished: !current }),
     });
     setTexts((prev) => prev.map((t) => t.id === id ? { ...t, isPublished: !current } : t));
