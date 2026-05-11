@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import MathText from "@/app/components/MathText";
 import { apiClient, ApiError } from "@/lib/api/client";
+import { SCHOOLS } from "@/features/post-utme/constants";
 
 interface ImportEntry {
   id: string;
@@ -32,6 +33,8 @@ interface ParsedRow {
   [key: string]: unknown;
 }
 
+type ImportMode = "STANDARD" | "POST_UTME";
+
 const statusColors: Record<string, string> = {
   DONE: "bg-emerald-900/30 text-emerald-400",
   PROCESSING: "bg-amber-900/30 text-amber-400",
@@ -45,6 +48,26 @@ function formatDate(iso: string) {
 
 const CSV_TEMPLATE = `subject,topic,text,optionA,optionB,optionC,optionD,correctOption,year,difficulty,explanation
 Mathematics,Algebra,"What is 2+2?","2","3","4","5","C",2024,EASY,"Basic addition: 2+2=4"`;
+
+const POST_UTME_JSON_TEMPLATE = JSON.stringify(
+  [
+    {
+      subject: "English Language",
+      topic: "Comprehension",
+      text: "Which of the following best defines the word 'ephemeral'?",
+      optionA: "Lasting forever",
+      optionB: "Short-lived",
+      optionC: "Very large",
+      optionD: "Extremely bright",
+      correctOption: "B",
+      year: 2023,
+      difficulty: "MEDIUM",
+      explanation: "Ephemeral means lasting for a very short time.",
+    },
+  ],
+  null,
+  2
+);
 
 function parseFile(file: File, text: string): ParsedRow[] {
   if (file.name.endsWith(".json")) {
@@ -72,12 +95,16 @@ const OPTION_KEYS = ["optionA", "optionB", "optionC", "optionD"] as const;
 function PreviewModal({
   rows,
   filename,
+  mode,
+  school,
   onConfirm,
   onCancel,
   uploading,
 }: {
   rows: ParsedRow[];
   filename: string;
+  mode: ImportMode;
+  school: string;
   onConfirm: () => void;
   onCancel: () => void;
   uploading: boolean;
@@ -86,25 +113,31 @@ function PreviewModal({
   const perPage = 10;
   const totalPages = Math.ceil(rows.length / perPage);
   const visible = rows.slice(page * perPage, (page + 1) * perPage);
+  const schoolLabel = SCHOOLS.find((s) => s.id === school)?.name ?? school;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onCancel} />
       <div className="relative bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
-        {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-slate-700 flex-shrink-0">
           <div>
             <h2 className="text-lg font-bold text-white">Preview Upload</h2>
-            <p className="text-xs text-slate-400 mt-0.5">
-              {rows.length} questions from <span className="font-mono text-slate-300">{filename}</span>
-            </p>
+            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+              <p className="text-xs text-slate-400">
+                {rows.length} questions from <span className="font-mono text-slate-300">{filename}</span>
+              </p>
+              {mode === "POST_UTME" && (
+                <span className="text-xs px-2 py-0.5 rounded-full bg-amber-900/30 text-amber-400 font-medium">
+                  Post-UTME · {schoolLabel}
+                </span>
+              )}
+            </div>
           </div>
           <button onClick={onCancel} className="p-2 rounded-full hover:bg-slate-800 text-slate-400 transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
           </button>
         </div>
 
-        {/* Questions list */}
         <div className="flex-1 overflow-y-auto p-5 space-y-5">
           {visible.map((row, i) => {
             const globalIdx = page * perPage + i;
@@ -119,14 +152,12 @@ function PreviewModal({
                     <p className="text-sm font-medium text-slate-100 leading-relaxed">
                       <MathText text={row.text || "(no question text)"} />
                     </p>
-                    {(row.subject || row.topic) && (
-                      <div className="flex gap-2 mt-1.5 flex-wrap">
-                        {row.subject && <span className="text-xs bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full">{row.subject}</span>}
-                        {row.topic && <span className="text-xs bg-slate-700 text-slate-400 px-2 py-0.5 rounded-full">{row.topic}</span>}
-                        {row.year && <span className="text-xs bg-slate-700 text-slate-400 px-2 py-0.5 rounded-full">{row.year}</span>}
-                        {row.difficulty && <span className="text-xs bg-slate-700 text-slate-400 px-2 py-0.5 rounded-full">{row.difficulty}</span>}
-                      </div>
-                    )}
+                    <div className="flex gap-2 mt-1.5 flex-wrap">
+                      {row.subject && <span className="text-xs bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full">{row.subject}</span>}
+                      {row.topic && <span className="text-xs bg-slate-700 text-slate-400 px-2 py-0.5 rounded-full">{row.topic}</span>}
+                      {row.year && <span className="text-xs bg-slate-700 text-slate-400 px-2 py-0.5 rounded-full">{row.year}</span>}
+                      {row.difficulty && <span className="text-xs bg-slate-700 text-slate-400 px-2 py-0.5 rounded-full">{row.difficulty}</span>}
+                    </div>
                   </div>
                 </div>
 
@@ -135,20 +166,14 @@ function PreviewModal({
                     const label = OPTION_LABELS[idx];
                     const isCorrect = correct === label;
                     return (
-                      <div
-                        key={key}
+                      <div key={key}
                         className={`flex items-start gap-2.5 px-3 py-2 rounded-lg text-sm ${
                           isCorrect
                             ? "bg-emerald-900/30 border border-emerald-700/50 text-emerald-300"
                             : "bg-slate-900/40 border border-slate-700/40 text-slate-400"
-                        }`}
-                      >
-                        <span className={`flex-shrink-0 font-bold text-xs mt-0.5 ${isCorrect ? "text-emerald-400" : "text-slate-500"}`}>
-                          {label}
-                        </span>
-                        <span className="leading-snug">
-                          <MathText text={String(row[key] ?? "")} />
-                        </span>
+                        }`}>
+                        <span className={`flex-shrink-0 font-bold text-xs mt-0.5 ${isCorrect ? "text-emerald-400" : "text-slate-500"}`}>{label}</span>
+                        <span className="leading-snug"><MathText text={String(row[key] ?? "")} /></span>
                       </div>
                     );
                   })}
@@ -164,48 +189,31 @@ function PreviewModal({
           })}
         </div>
 
-        {/* Pagination + actions */}
         <div className="flex items-center justify-between p-5 border-t border-slate-700 flex-shrink-0 gap-3 flex-wrap">
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => setPage((p) => p - 1)}
-              disabled={page === 0}
-              className="px-3 py-1.5 rounded-lg text-sm border border-slate-700 text-slate-300 disabled:opacity-40 hover:bg-slate-800 transition-colors"
-            >
+            <button onClick={() => setPage((p) => p - 1)} disabled={page === 0}
+              className="px-3 py-1.5 rounded-lg text-sm border border-slate-700 text-slate-300 disabled:opacity-40 hover:bg-slate-800 transition-colors">
               Previous
             </button>
-            <span className="text-xs text-slate-500">
-              {page + 1} / {totalPages} pages · {rows.length} total
-            </span>
-            <button
-              onClick={() => setPage((p) => p + 1)}
-              disabled={page >= totalPages - 1}
-              className="px-3 py-1.5 rounded-lg text-sm border border-slate-700 text-slate-300 disabled:opacity-40 hover:bg-slate-800 transition-colors"
-            >
+            <span className="text-xs text-slate-500">{page + 1} / {totalPages} pages · {rows.length} total</span>
+            <button onClick={() => setPage((p) => p + 1)} disabled={page >= totalPages - 1}
+              className="px-3 py-1.5 rounded-lg text-sm border border-slate-700 text-slate-300 disabled:opacity-40 hover:bg-slate-800 transition-colors">
               Next
             </button>
           </div>
           <div className="flex gap-3">
-            <button
-              onClick={onCancel}
-              disabled={uploading}
-              className="px-4 py-2 rounded-xl border border-slate-700 text-slate-300 hover:bg-slate-800 text-sm font-medium transition-colors disabled:opacity-50"
-            >
+            <button onClick={onCancel} disabled={uploading}
+              className="px-4 py-2 rounded-xl border border-slate-700 text-slate-300 hover:bg-slate-800 text-sm font-medium transition-colors disabled:opacity-50">
               Cancel
             </button>
-            <button
-              onClick={onConfirm}
-              disabled={uploading}
-              className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 active:scale-95"
-            >
+            <button onClick={onConfirm} disabled={uploading}
+              className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 active:scale-95">
               {uploading ? (
                 <>
                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
                   Uploading…
                 </>
-              ) : (
-                <>Confirm & Upload {rows.length} Questions</>
-              )}
+              ) : <>Confirm & Upload {rows.length} Questions</>}
             </button>
           </div>
         </div>
@@ -222,9 +230,20 @@ export default function ImportsPage() {
   const [loadError, setLoadError] = useState("");
   const limit = 20;
 
-  // Publish state
   const [publishingId, setPublishingId] = useState<string | null>(null);
   const [publishResult, setPublishResult] = useState<{ id: string; success: boolean; message: string } | null>(null);
+
+  // Import mode
+  const [mode, setMode] = useState<ImportMode>("STANDARD");
+  const [selectedSchool, setSelectedSchool] = useState("");
+
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadResult, setUploadResult] = useState<{ success: boolean; message: string; details?: string } | null>(null);
+  const [previewRows, setPreviewRows] = useState<ParsedRow[] | null>(null);
+  const [previewFilename, setPreviewFilename] = useState("");
+  const [parseError, setParseError] = useState<string | null>(null);
+  const [fileLabel, setFileLabel] = useState("Click to choose CSV or JSON file");
 
   async function handlePublish(imp: ImportEntry) {
     setPublishingId(imp.id);
@@ -240,28 +259,11 @@ export default function ImportsPage() {
     }
   }
 
-  // Upload state
-  const fileRef = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
-  const [uploadResult, setUploadResult] = useState<{ success: boolean; message: string; details?: string } | null>(null);
-
-  // Preview state
-  const [previewRows, setPreviewRows] = useState<ParsedRow[] | null>(null);
-  const [previewFilename, setPreviewFilename] = useState("");
-  const [parseError, setParseError] = useState<string | null>(null);
-  const [fileLabel, setFileLabel] = useState("Click to choose CSV or JSON file");
-
   function loadImports(p = 0) {
     setLoading(true);
     apiClient<{ imports: ImportEntry[]; total: number }>(`/api/admin/imports?limit=${limit}&offset=${p * limit}`)
-      .then((data) => {
-        setImports(data.imports ?? []);
-        setTotal(data.total ?? 0);
-      })
-      .catch((err) => {
-        console.error("Failed to load imports", err);
-        setLoadError("Failed to load import history. Please refresh.");
-      })
+      .then((data) => { setImports(data.imports ?? []); setTotal(data.total ?? 0); })
+      .catch(() => setLoadError("Failed to load import history. Please refresh."))
       .finally(() => setLoading(false));
   }
 
@@ -294,12 +296,24 @@ export default function ImportsPage() {
     const file = fileRef.current?.files?.[0];
     if (!file || !previewRows) return;
 
-    setUploading(true);
+    if (mode === "POST_UTME" && !selectedSchool) {
+      setParseError("Please select a school before uploading.");
+      setPreviewRows(null);
+      return;
+    }
 
+    setUploading(true);
     try {
+      const body: Record<string, unknown> = {
+        filename: file.name,
+        rows: previewRows,
+        examType: mode === "POST_UTME" ? "POST_UTME" : "JAMB",
+        ...(mode === "POST_UTME" && { school: selectedSchool }),
+      };
+
       const data = await apiClient<{ created: number; totalRows: number; errors?: string[] }>("/api/admin/imports", {
         method: "POST",
-        body: JSON.stringify({ filename: file.name, rows: previewRows }),
+        body: JSON.stringify(body),
       });
 
       setPreviewRows(null);
@@ -322,13 +336,33 @@ export default function ImportsPage() {
   }
 
   function downloadTemplate() {
-    const blob = new Blob([CSV_TEMPLATE], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "acadmate_questions_template.csv";
-    a.click();
-    URL.revokeObjectURL(url);
+    if (mode === "POST_UTME") {
+      const blob = new Blob([POST_UTME_JSON_TEMPLATE], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "post_utme_questions_template.json";
+      a.click();
+      URL.revokeObjectURL(url);
+    } else {
+      const blob = new Blob([CSV_TEMPLATE], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "acadmate_questions_template.csv";
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  }
+
+  function handleModeChange(next: ImportMode) {
+    setMode(next);
+    setSelectedSchool("");
+    setUploadResult(null);
+    setParseError(null);
+    setPreviewRows(null);
+    setFileLabel("Click to choose CSV or JSON file");
+    if (fileRef.current) fileRef.current.value = "";
   }
 
   return (
@@ -337,6 +371,8 @@ export default function ImportsPage() {
         <PreviewModal
           rows={previewRows}
           filename={previewFilename}
+          mode={mode}
+          school={selectedSchool}
           onConfirm={handleConfirmUpload}
           onCancel={() => setPreviewRows(null)}
           uploading={uploading}
@@ -352,19 +388,57 @@ export default function ImportsPage() {
       <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 space-y-5">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-bold text-white">Upload Questions</h2>
-          <button
-            onClick={downloadTemplate}
-            className="text-xs text-indigo-400 hover:text-indigo-300 font-semibold flex items-center gap-1 transition-colors"
-          >
+          <button onClick={downloadTemplate}
+            className="text-xs text-indigo-400 hover:text-indigo-300 font-semibold flex items-center gap-1 transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
             Download Template
           </button>
         </div>
 
-        <div className="text-xs text-slate-400 space-y-1">
-          <p>Required CSV columns: <code className="bg-slate-700 px-1 rounded">subject, text, optionA, optionB, optionC, optionD, correctOption</code></p>
-          <p>Optional: <code className="bg-slate-700 px-1 rounded">topic, year, difficulty (EASY/MEDIUM/HARD), explanation</code></p>
+        {/* Mode tabs */}
+        <div className="flex gap-1 p-1 bg-slate-900/60 border border-slate-700 rounded-xl w-fit">
+          <button
+            onClick={() => handleModeChange("STANDARD")}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${mode === "STANDARD" ? "bg-slate-700 text-white" : "text-slate-400 hover:text-slate-200"}`}
+          >
+            JAMB / Standard
+          </button>
+          <button
+            onClick={() => handleModeChange("POST_UTME")}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${mode === "POST_UTME" ? "bg-amber-600 text-white" : "text-slate-400 hover:text-slate-200"}`}
+          >
+            Post-UTME
+          </button>
         </div>
+
+        {/* Mode-specific instructions */}
+        {mode === "STANDARD" ? (
+          <div className="text-xs text-slate-400 space-y-1">
+            <p>Required columns: <code className="bg-slate-700 px-1 rounded">subject, text, optionA, optionB, optionC, optionD, correctOption</code></p>
+            <p>Optional: <code className="bg-slate-700 px-1 rounded">topic, year, difficulty (EASY/MEDIUM/HARD), explanation</code></p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="text-xs text-slate-400 space-y-1">
+              <p>JSON format — same fields as JAMB. <code className="bg-slate-700 px-1 rounded">school</code> and <code className="bg-slate-700 px-1 rounded">examType</code> are set automatically from your selection below.</p>
+              <p>Required fields: <code className="bg-slate-700 px-1 rounded">subject, text, optionA–D, correctOption</code></p>
+              <p>Optional: <code className="bg-slate-700 px-1 rounded">topic, year, difficulty, explanation</code></p>
+            </div>
+            <div className="max-w-xs">
+              <label className="block text-xs font-medium text-slate-400 mb-1.5">School *</label>
+              <select
+                value={selectedSchool}
+                onChange={(e) => setSelectedSchool(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+              >
+                <option value="">Select school…</option>
+                {SCHOOLS.map((s) => (
+                  <option key={s.id} value={s.id}>{s.abbr} — {s.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
 
         <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
           <label className="flex-1 flex items-center gap-3 px-4 py-3 border-2 border-dashed border-slate-600 hover:border-indigo-500 rounded-xl cursor-pointer transition-colors min-h-[52px]">
@@ -373,14 +447,23 @@ export default function ImportsPage() {
             <input
               ref={fileRef}
               type="file"
-              accept=".csv,.json"
+              accept={mode === "POST_UTME" ? ".json" : ".csv,.json"}
               className="sr-only"
               onChange={handleFileChange}
             />
           </label>
           <button
-            onClick={() => fileRef.current?.click()}
-            className="px-5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition-all flex items-center justify-center gap-2 active:scale-95"
+            onClick={() => {
+              if (mode === "POST_UTME" && !selectedSchool) {
+                setParseError("Please select a school first.");
+                return;
+              }
+              setParseError(null);
+              fileRef.current?.click();
+            }}
+            className={`px-5 py-3 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 active:scale-95 text-white ${
+              mode === "POST_UTME" ? "bg-amber-600 hover:bg-amber-500" : "bg-indigo-600 hover:bg-indigo-500"
+            }`}
           >
             Preview & Upload
           </button>
@@ -430,60 +513,55 @@ export default function ImportsPage() {
                     const canPublish = imp.status === "DONE" && !isFullyPublished;
                     const thisResult = publishResult?.id === imp.id ? publishResult : null;
                     return (
-                    <tr
-                      key={imp.id}
-                      className={`${i < imports.length - 1 ? "border-b border-slate-800" : ""} hover:bg-slate-800/50 transition-colors`}
-                    >
-                      <td className="py-3">
-                        <p className="font-medium text-white">{imp.filename}</p>
-                        <p className="text-xs text-slate-500">{imp.uploadedBy.name ?? imp.uploadedBy.email}</p>
-                        {thisResult && (
-                          <p className={`text-xs mt-0.5 ${thisResult.success ? "text-emerald-400" : "text-red-400"}`}>
-                            {thisResult.message}
-                          </p>
-                        )}
-                      </td>
-                      <td className="py-3 text-slate-400">{formatDate(imp.createdAt)}</td>
-                      <td className="py-3 text-slate-300">{imp.totalRows}</td>
-                      <td className="py-3 text-emerald-400">{imp.validRows}</td>
-                      <td className="py-3 text-red-400">{imp.invalidRows}</td>
-                      <td className="py-3 text-slate-300">
-                        {imp.publishedRows > 0 ? (
-                          <span className={isFullyPublished ? "text-emerald-400" : "text-amber-400"}>
-                            {imp.publishedRows}/{imp.validRows}
-                          </span>
-                        ) : (
-                          <span className="text-slate-600">—</span>
-                        )}
-                      </td>
-                      <td className="py-3 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${statusColors[imp.status] ?? "bg-slate-700 text-slate-400"}`}>
-                            {imp.status}
-                          </span>
-                          {canPublish && (
-                            <button
-                              onClick={() => handlePublish(imp)}
-                              disabled={isPublishing}
-                              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                              {isPublishing ? (
-                                <>
-                                  <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-                                  Publishing…
-                                </>
-                              ) : "Publish"}
-                            </button>
+                      <tr key={imp.id}
+                        className={`${i < imports.length - 1 ? "border-b border-slate-800" : ""} hover:bg-slate-800/50 transition-colors`}>
+                        <td className="py-3">
+                          <p className="font-medium text-white">{imp.filename}</p>
+                          <p className="text-xs text-slate-500">{imp.uploadedBy.name ?? imp.uploadedBy.email}</p>
+                          {thisResult && (
+                            <p className={`text-xs mt-0.5 ${thisResult.success ? "text-emerald-400" : "text-red-400"}`}>
+                              {thisResult.message}
+                            </p>
                           )}
-                          {isFullyPublished && (
-                            <span className="inline-flex items-center gap-1 text-xs text-emerald-400 font-medium">
-                              <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                              Live
+                        </td>
+                        <td className="py-3 text-slate-400">{formatDate(imp.createdAt)}</td>
+                        <td className="py-3 text-slate-300">{imp.totalRows}</td>
+                        <td className="py-3 text-emerald-400">{imp.validRows}</td>
+                        <td className="py-3 text-red-400">{imp.invalidRows}</td>
+                        <td className="py-3 text-slate-300">
+                          {imp.publishedRows > 0 ? (
+                            <span className={isFullyPublished ? "text-emerald-400" : "text-amber-400"}>
+                              {imp.publishedRows}/{imp.validRows}
                             </span>
+                          ) : (
+                            <span className="text-slate-600">—</span>
                           )}
-                        </div>
-                      </td>
-                    </tr>
+                        </td>
+                        <td className="py-3 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${statusColors[imp.status] ?? "bg-slate-700 text-slate-400"}`}>
+                              {imp.status}
+                            </span>
+                            {canPublish && (
+                              <button onClick={() => handlePublish(imp)} disabled={isPublishing}
+                                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                {isPublishing ? (
+                                  <>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                                    Publishing…
+                                  </>
+                                ) : "Publish"}
+                              </button>
+                            )}
+                            {isFullyPublished && (
+                              <span className="inline-flex items-center gap-1 text-xs text-emerald-400 font-medium">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                Live
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
                     );
                   })}
                 </tbody>
@@ -496,18 +574,12 @@ export default function ImportsPage() {
                   {page * limit + 1}–{Math.min((page + 1) * limit, total)} of {total}
                 </p>
                 <div className="flex gap-2">
-                  <button
-                    onClick={() => setPage((p) => p - 1)}
-                    disabled={page === 0}
-                    className="px-3 py-1.5 rounded-lg text-sm font-medium border border-slate-700 text-slate-300 disabled:opacity-40 hover:bg-slate-800 transition-colors"
-                  >
+                  <button onClick={() => setPage((p) => p - 1)} disabled={page === 0}
+                    className="px-3 py-1.5 rounded-lg text-sm font-medium border border-slate-700 text-slate-300 disabled:opacity-40 hover:bg-slate-800 transition-colors">
                     Previous
                   </button>
-                  <button
-                    onClick={() => setPage((p) => p + 1)}
-                    disabled={page >= totalPages - 1}
-                    className="px-3 py-1.5 rounded-lg text-sm font-medium border border-slate-700 text-slate-300 disabled:opacity-40 hover:bg-slate-800 transition-colors"
-                  >
+                  <button onClick={() => setPage((p) => p + 1)} disabled={page >= totalPages - 1}
+                    className="px-3 py-1.5 rounded-lg text-sm font-medium border border-slate-700 text-slate-300 disabled:opacity-40 hover:bg-slate-800 transition-colors">
                     Next
                   </button>
                 </div>

@@ -3,6 +3,9 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { apiClient, ApiError } from "@/lib/api/client";
+import UserAvatar from "@/app/components/UserAvatar";
+import AvatarPicker from "@/app/components/AvatarPicker";
+import type { AvatarFullConfig } from "react-nice-avatar";
 
 interface UserProfile {
   id: string;
@@ -14,6 +17,8 @@ interface UserProfile {
     targetYear: number | null;
     courseChoice: string | null;
     institution: string | null;
+    avatarConfig: Record<string, unknown> | null;
+    avatarUrl: string | null;
   } | null;
 }
 
@@ -26,6 +31,7 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
+  const [showAvatarPicker, setShowAvatarPicker] = useState(false);
 
   const [form, setForm] = useState({
     name: "",
@@ -56,7 +62,7 @@ export default function ProfilePage() {
     setSuccess(false);
 
     try {
-      await apiClient("/api/users/me", {
+      const updated = await apiClient<UserProfile>("/api/users/me", {
         method: "PATCH",
         body: JSON.stringify({
           name: form.name || undefined,
@@ -65,6 +71,7 @@ export default function ProfilePage() {
           institution: form.institution || undefined,
         }),
       });
+      setProfile(updated);
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
@@ -72,6 +79,15 @@ export default function ProfilePage() {
     } finally {
       setSaving(false);
     }
+  }
+
+  async function handleAvatarSave(data: { avatarConfig?: AvatarFullConfig; avatarUrl?: string }) {
+    const updated = await apiClient<UserProfile>("/api/users/me", {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
+    setProfile(updated);
+    setShowAvatarPicker(false);
   }
 
   if (loading) {
@@ -91,6 +107,50 @@ export default function ProfilePage() {
       </div>
 
       <div className="max-w-xl">
+        {/* Avatar section */}
+        <div className="glass-panel p-6 rounded-2xl mb-6">
+          <h2 className="font-semibold text-lg mb-4">Avatar</h2>
+          {showAvatarPicker ? (
+            <div>
+              <AvatarPicker
+                initialConfig={profile?.studentProfile?.avatarConfig}
+                initialUrl={profile?.studentProfile?.avatarUrl}
+                onSave={handleAvatarSave}
+              />
+              <button
+                onClick={() => setShowAvatarPicker(false)}
+                className="mt-4 w-full text-sm text-slate-500 hover:text-slate-300 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-5">
+              <UserAvatar
+                avatarConfig={profile?.studentProfile?.avatarConfig}
+                avatarUrl={profile?.studentProfile?.avatarUrl}
+                name={profile?.name}
+                size={72}
+              />
+              <div>
+                <p className="text-sm text-slate-400 mb-2">
+                  {profile?.studentProfile?.avatarUrl
+                    ? "Custom photo"
+                    : profile?.studentProfile?.avatarConfig
+                    ? "Generated avatar"
+                    : "No avatar set"}
+                </p>
+                <button
+                  onClick={() => setShowAvatarPicker(true)}
+                  className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm font-medium transition-colors"
+                >
+                  Change Avatar
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Account info (read-only) */}
         <div className="glass-panel p-6 rounded-2xl mb-6">
           <h2 className="font-semibold text-lg mb-4">Account</h2>
@@ -167,7 +227,7 @@ export default function ProfilePage() {
 
           {success && (
             <div className="px-4 py-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400 text-sm">
-              ✅ Profile saved successfully!
+              Profile saved successfully!
             </div>
           )}
 

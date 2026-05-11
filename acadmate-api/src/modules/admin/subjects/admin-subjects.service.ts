@@ -18,10 +18,37 @@ export class AdminSubjectsService {
     return { subjects };
   }
 
-  async getSubjectYears(subjectId: string) {
+  async getSubjectYears(subjectId: string, examType?: string) {
     const rows = await this.prisma.question.groupBy({
       by: ['year'],
-      where: { subjectId },
+      where: {
+        subjectId,
+        ...(examType ? { examType: examType as any } : {}),
+      },
+      _count: { id: true },
+      orderBy: { year: 'desc' },
+    });
+    const years = rows.map((r) => ({ year: r.year, count: r._count.id }));
+    return { years };
+  }
+
+  async listSchools() {
+    const rows = await this.prisma.question.groupBy({
+      by: ['school'],
+      where: { examType: 'POST_UTME' as any, school: { not: null } },
+      _count: { id: true },
+      orderBy: { school: 'asc' },
+    });
+    const schools = rows
+      .filter((r) => r.school)
+      .map((r) => ({ school: r.school as string, count: r._count.id }));
+    return { schools };
+  }
+
+  async getSchoolYears(school: string) {
+    const rows = await this.prisma.question.groupBy({
+      by: ['year'],
+      where: { school, examType: 'POST_UTME' as any },
       _count: { id: true },
       orderBy: { year: 'desc' },
     });

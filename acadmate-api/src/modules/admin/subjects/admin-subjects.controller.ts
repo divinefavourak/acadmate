@@ -37,7 +37,17 @@ export class AdminSubjectsController {
   @Get('subjects') listSubjects() { return this.adminSubjectsService.listSubjects(); }
 
   @Get('subjects/:id/years')
-  getSubjectYears(@Param('id') id: string) { return this.adminSubjectsService.getSubjectYears(id); }
+  getSubjectYears(@Param('id') id: string, @Query('examType') examType?: string) {
+    return this.adminSubjectsService.getSubjectYears(id, examType);
+  }
+
+  @Get('schools')
+  listSchools() { return this.adminSubjectsService.listSchools(); }
+
+  @Get('schools/:school/years')
+  getSchoolYears(@Param('school') school: string) {
+    return this.adminSubjectsService.getSchoolYears(school);
+  }
 
   @Post('subjects') @HttpCode(HttpStatus.CREATED)
   createSubject(@Body() dto: CreateSubjectDto) { return this.adminSubjectsService.createSubject(dto); }

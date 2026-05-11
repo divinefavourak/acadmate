@@ -5,7 +5,7 @@ import {
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { IsOptional, IsString, IsEnum, IsInt, IsBoolean, Min, Max } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
-import { Difficulty } from '@prisma/client';
+import { Difficulty, ExamType } from '@prisma/client';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../common/guards/roles.guard';
 import { Roles } from '../../../common/decorators/roles.decorator';
@@ -16,6 +16,8 @@ class AdminQuestionQueryDto {
   @IsOptional() @IsString() subjectId?: string;
   @IsOptional() @IsString() topicId?: string;
   @IsOptional() @IsEnum(Difficulty) difficulty?: Difficulty;
+  @IsOptional() @IsEnum(ExamType) examType?: ExamType;
+  @IsOptional() @IsString() school?: string;
   @IsOptional() @IsInt() @Type(() => Number) year?: number;
   @IsOptional() @IsInt() @Min(1) @Max(500) @Type(() => Number) limit?: number = 20;
   @IsOptional() @IsInt() @Min(0) @Type(() => Number) offset?: number = 0;

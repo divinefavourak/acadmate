@@ -8,6 +8,8 @@ export type ProcessImportParams = {
   adminId: string;
   filename: string;
   rows: unknown[];
+  examType?: string;
+  school?: string;
 };
 
 export type ProcessImportResult = {
@@ -77,7 +79,7 @@ export class ImportService {
   constructor(private readonly prisma: PrismaService) {}
 
   async processImport(params: ProcessImportParams): Promise<ProcessImportResult> {
-    const { adminId, filename, rows } = params;
+    const { adminId, filename, rows, examType, school } = params;
 
     const importRecord = await this.prisma.import.create({
       data: {
@@ -163,6 +165,8 @@ export class ImportService {
           sourceType: 'IMPORTED',
           isPublished: false,
           importId: importRecord.id,
+          ...(examType && { examType: examType as any }),
+          ...(school && { school }),
           options: { create: options },
           ...(row.explanation && {
             explanation: { create: { text: row.explanation, aiAssisted: false } },
