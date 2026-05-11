@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Delete, Param, Query, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { IsOptional, IsInt, Min, Max, IsEnum } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -6,6 +6,7 @@ import { Role } from '@prisma/client';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../common/guards/roles.guard';
 import { Roles } from '../../../common/decorators/roles.decorator';
+import { CurrentUser, JwtUser } from '../../../common/decorators/current-user.decorator';
 import { AdminUsersService } from './admin-users.service';
 
 class PaginationQuery {
@@ -28,5 +29,11 @@ export class AdminUsersController {
 
   @Get(':id/stats') getUserStats(@Param('id') id: string) {
     return this.adminUsersService.getUserStats(id);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.OK)
+  deleteUser(@Param('id') id: string, @CurrentUser() admin: JwtUser) {
+    return this.adminUsersService.deleteUser(id, admin.id);
   }
 }

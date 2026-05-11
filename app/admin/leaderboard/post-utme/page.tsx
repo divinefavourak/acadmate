@@ -14,13 +14,13 @@ interface LeaderboardEntry {
   points: number;
 }
 
-export default function AdminLeaderboardPage() {
+export default function AdminPostUtmeLeaderboardPage() {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setLoading(true);
-    apiClient<LeaderboardEntry[]>(`/api/admin/leaderboard?type=UTME&limit=100`)
+    apiClient<LeaderboardEntry[]>(`/api/admin/leaderboard?type=POST_UTME&limit=100`)
       .then(setEntries)
       .catch(() => setEntries([]))
       .finally(() => setLoading(false));
@@ -29,7 +29,7 @@ export default function AdminLeaderboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold mb-1">JAMB / UTME Leaderboard</h1>
+        <h1 className="text-2xl font-bold mb-1">Post-UTME Leaderboard</h1>
         <p className="text-slate-400 text-sm">{entries.length} student{entries.length !== 1 ? "s" : ""} ranked by total points</p>
       </div>
 
@@ -38,7 +38,7 @@ export default function AdminLeaderboardPage() {
       ) : entries.length === 0 ? (
         <div className="rounded-2xl bg-slate-900 p-12 text-center">
           <div className="text-4xl mb-3">🏆</div>
-          <p className="text-slate-400">No results yet for JAMB/UTME.</p>
+          <p className="text-slate-400">No results yet for Post-UTME.</p>
         </div>
       ) : (
         <div className="rounded-2xl bg-slate-900 overflow-hidden border border-slate-800">

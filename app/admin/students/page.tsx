@@ -48,6 +48,9 @@ export default function StudentsPage() {
   const [detail, setDetail] = useState<UserDetail | null>(null);
   const [loadingDetail, setLoadingDetail] = useState<string | null>(null);
   const [detailError, setDetailError] = useState("");
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
   const limit = 20;
 
   useEffect(() => {
@@ -57,6 +60,23 @@ export default function StudentsPage() {
       .catch((err) => console.error("Failed to load students", err))
       .finally(() => setLoading(false));
   }, [page]);
+
+  async function handleDeleteUser() {
+    if (!detail) return;
+    setDeleting(true);
+    setDeleteError("");
+    try {
+      await apiClient(`/api/admin/users/${detail.user.id}`, { method: "DELETE" });
+      setUsers((prev) => prev.filter((u) => u.id !== detail.user.id));
+      setTotal((t) => t - 1);
+      setDetail(null);
+      setDeleteConfirm(false);
+    } catch (err) {
+      setDeleteError(err instanceof ApiError ? err.message : "Failed to delete user.");
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   async function openDetail(id: string) {
     setLoadingDetail(id);
@@ -156,7 +176,7 @@ export default function StudentsPage() {
                 <h3 className="text-xl font-bold text-white mb-1">{detail.user.name ?? "Unnamed Student"}</h3>
                 <p className="text-sm text-slate-400">{detail.user.email}</p>
               </div>
-              <button onClick={() => setDetail(null)} className="text-slate-400 hover:text-white transition-colors text-lg">✕</button>
+              <button onClick={() => { setDetail(null); setDeleteConfirm(false); setDeleteError(""); }} className="text-slate-400 hover:text-white transition-colors text-lg">✕</button>
             </div>
 
             <div className="p-6 overflow-y-auto space-y-6">
@@ -230,6 +250,39 @@ export default function StudentsPage() {
                 </div>
               )}
             </div>
+
+              {/* Danger zone */}
+              <div className="border-t border-slate-700 pt-5">
+                {deleteConfirm ? (
+                  <div className="bg-red-950/30 border border-red-800 rounded-xl p-4 space-y-3">
+                    <p className="text-sm text-red-300 font-medium">This will permanently delete the account and all exam data. This cannot be undone.</p>
+                    {deleteError && <p className="text-xs text-red-400">{deleteError}</p>}
+                    <div className="flex gap-3">
+                      <button
+                        onClick={handleDeleteUser}
+                        disabled={deleting}
+                        className="px-4 py-2 bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
+                      >
+                        {deleting ? "Deleting…" : "Yes, delete"}
+                      </button>
+                      <button
+                        onClick={() => { setDeleteConfirm(false); setDeleteError(""); }}
+                        disabled={deleting}
+                        className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 text-sm font-medium rounded-lg transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setDeleteConfirm(true)}
+                    className="px-4 py-2 bg-red-950/40 hover:bg-red-900/50 border border-red-800 text-red-400 hover:text-red-300 text-sm font-medium rounded-lg transition-colors"
+                  >
+                    Delete Student Account
+                  </button>
+                )}
+              </div>
           </div>
         </div>
       )}

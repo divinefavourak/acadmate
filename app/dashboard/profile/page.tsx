@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { apiClient, ApiError } from "@/lib/api/client";
+import { removeToken } from "@/lib/api/auth";
 import UserAvatar from "@/app/components/UserAvatar";
 import AvatarPicker from "@/app/components/AvatarPicker";
 import type { AvatarFullConfig } from "react-nice-avatar";
@@ -26,12 +28,17 @@ const CURRENT_YEAR = new Date().getFullYear();
 const YEARS = Array.from({ length: 6 }, (_, i) => CURRENT_YEAR + i);
 
 export default function ProfilePage() {
+  const router = useRouter();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteEmail, setDeleteEmail] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   const [form, setForm] = useState({
     name: "",
@@ -88,6 +95,19 @@ export default function ProfilePage() {
     });
     setProfile(updated);
     setShowAvatarPicker(false);
+  }
+
+  async function handleDeleteAccount() {
+    setDeleting(true);
+    setDeleteError("");
+    try {
+      await apiClient("/api/users/me", { method: "DELETE" });
+      removeToken();
+      router.replace("/");
+    } catch (err) {
+      setDeleteError(err instanceof ApiError ? err.message : "Failed to delete account.");
+      setDeleting(false);
+    }
   }
 
   if (loading) {
@@ -239,6 +259,53 @@ export default function ProfilePage() {
             {saving ? "Saving…" : "Save Profile"}
           </button>
         </form>
+
+        {/* Danger Zone */}
+        <div className="mt-6 glass-panel p-6 rounded-2xl border border-red-900/40">
+          <h2 className="font-semibold text-lg text-red-400 mb-1">Danger Zone</h2>
+          <p className="text-sm text-slate-400 mb-4">Permanently delete your account and all associated data. This cannot be undone.</p>
+
+          {showDeleteConfirm ? (
+            <div className="space-y-4">
+              <p className="text-sm text-slate-300">
+                Type your email address <span className="font-mono text-white">{profile?.email}</span> to confirm:
+              </p>
+              <input
+                type="email"
+                value={deleteEmail}
+                onChange={(e) => setDeleteEmail(e.target.value)}
+                placeholder={profile?.email ?? "your@email.com"}
+                className="w-full px-4 py-3 rounded-xl bg-black/50 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-red-500/50 transition-all text-sm"
+              />
+              {deleteError && (
+                <p className="text-sm text-red-400">{deleteError}</p>
+              )}
+              <div className="flex gap-3">
+                <button
+                  onClick={handleDeleteAccount}
+                  disabled={deleting || deleteEmail !== profile?.email}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
+                >
+                  {deleting ? "Deleting…" : "Delete my account"}
+                </button>
+                <button
+                  onClick={() => { setShowDeleteConfirm(false); setDeleteEmail(""); setDeleteError(""); }}
+                  disabled={deleting}
+                  className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 text-sm font-medium rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="px-4 py-2 bg-red-950/40 hover:bg-red-900/50 border border-red-800 text-red-400 hover:text-red-300 text-sm font-medium rounded-lg transition-colors"
+            >
+              Delete Account
+            </button>
+          )}
+        </div>
 
         <div className="mt-4 text-center">
           <Link href="/dashboard" className="text-sm text-slate-500 hover:text-indigo-500 transition-colors">
