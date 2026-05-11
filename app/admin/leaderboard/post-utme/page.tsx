@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { apiClient } from "@/lib/api/client";
 import UserAvatar from "@/app/components/UserAvatar";
+import Loader from "@/app/components/Loader";
 
 interface LeaderboardEntry {
   rank: number;
@@ -34,7 +35,7 @@ export default function AdminPostUtmeLeaderboardPage() {
       </div>
 
       {loading ? (
-        <div className="rounded-2xl bg-slate-900 animate-pulse h-80" />
+        <Loader className="h-80" />
       ) : entries.length === 0 ? (
         <div className="rounded-2xl bg-slate-900 p-12 text-center">
           <div className="text-4xl mb-3">🏆</div>

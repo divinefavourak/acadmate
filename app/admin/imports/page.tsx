@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import MathText from "@/app/components/MathText";
+import Loader from "@/app/components/Loader";
 import { apiClient, ApiError } from "@/lib/api/client";
 import { SCHOOLS } from "@/features/post-utme/constants";
 
@@ -488,7 +489,7 @@ export default function ImportsPage() {
         <h2 className="text-lg font-bold text-white mb-4">Import History</h2>
         {loadError && <p className="text-red-500 text-sm mb-4">{loadError}</p>}
         {loading ? (
-          <p className="text-slate-400 text-sm py-8 text-center">Loading…</p>
+          <Loader className="py-8" />
         ) : imports.length === 0 ? (
           <p className="text-slate-400 text-sm py-8 text-center">No imports yet.</p>
         ) : (

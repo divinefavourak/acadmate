@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Loader from "@/app/components/Loader";
 import { apiClient } from "@/lib/api/client";
 
 interface ResultEntry {
@@ -74,7 +75,7 @@ export default function ResultsPage() {
         {error ? (
           <p className="text-red-500 text-sm py-8 text-center">{error}</p>
         ) : loading ? (
-          <p className="text-slate-500 text-sm py-8 text-center">Loading…</p>
+          <Loader className="py-8" />
         ) : results.length === 0 ? (
           <div className="py-16 text-center space-y-3">
             <p className="text-slate-500">No exams taken yet.</p>

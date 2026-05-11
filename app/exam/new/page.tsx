@@ -399,7 +399,7 @@ export default function NewExamPage() {
               <div>
                 <h2 className="font-semibold text-lg mb-3">Topic</h2>
                 {loadingTopics ? (
-                  <p className="text-sm text-slate-500">Loading topics…</p>
+                  <Loader className="py-2" />
                 ) : topics.length === 0 ? (
                   <p className="text-sm text-slate-500">No topics available for this subject.</p>
                 ) : (

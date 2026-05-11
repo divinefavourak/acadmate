@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import Loader from "@/app/components/Loader";
 import { apiClient, ApiError } from "@/lib/api/client";
 import { removeToken } from "@/lib/api/auth";
 import UserAvatar from "@/app/components/UserAvatar";
@@ -114,7 +115,7 @@ export default function ProfilePage() {
     return (
       <div className="space-y-8">
         <h1 className="text-3xl font-bold tracking-tight">My Profile</h1>
-        <div className="glass-panel p-8 rounded-2xl animate-pulse h-64" />
+        <Loader className="h-64" />
       </div>
     );
   }

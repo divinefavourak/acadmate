@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Loader from "@/app/components/Loader";
 import { apiClient } from "@/lib/api/client";
 
 interface AnalyticsData {
@@ -84,7 +85,7 @@ export default function AnalyticsPage() {
         <div className="glass-panel p-6 rounded-2xl">
           <h2 className="text-xl font-bold mb-6">Subject Performance</h2>
           {loading ? (
-            <p className="text-slate-500 text-sm text-center py-4">Loading…</p>
+            <Loader className="py-4" />
           ) : !data || data.subjectPerformance.length === 0 ? (
             <p className="text-slate-500 text-sm text-center py-4">No data yet. Complete some exams first.</p>
           ) : (
@@ -114,7 +115,7 @@ export default function AnalyticsPage() {
         <div className="glass-panel p-6 rounded-2xl">
           <h2 className="text-xl font-bold mb-6">Topics to Improve</h2>
           {loading ? (
-            <p className="text-slate-500 text-sm text-center py-4">Loading…</p>
+            <Loader className="py-4" />
           ) : !data || data.weakTopics.length === 0 ? (
             <p className="text-slate-500 text-sm text-center py-4">
               {data?.totalTests ? "No weak topics detected — great work!" : "Complete more exams to see weak topics."}

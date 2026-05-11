@@ -6,6 +6,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { apiClient, ApiError } from "@/lib/api/client";
 import { scaleIn } from "@/lib/motion";
+import Loader from "@/app/components/Loader";
 
 function ResetForm() {
   const router = useRouter();
@@ -125,7 +126,7 @@ export default function ResetPasswordPage() {
       animate="visible"
       className="glass-panel w-full max-w-md p-8 rounded-3xl"
     >
-      <Suspense fallback={<div className="animate-pulse h-64" />}>
+      <Suspense fallback={<Loader className="h-64" />}>
         <ResetForm />
       </Suspense>
     </motion.div>

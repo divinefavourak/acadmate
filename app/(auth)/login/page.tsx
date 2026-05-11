@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import { apiClient, ApiError } from "@/lib/api/client";
 import { setToken } from "@/lib/api/auth";
 import { scaleIn, stagger, fadeUp } from "@/lib/motion";
+import Loader from "@/app/components/Loader";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 
@@ -139,7 +140,7 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="glass-panel w-full max-w-md p-8 rounded-3xl animate-pulse h-96" />}>
+    <Suspense fallback={<Loader className="h-96" />}>
       <LoginForm />
     </Suspense>
   );

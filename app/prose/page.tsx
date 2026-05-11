@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Loader from "@/app/components/Loader";
 import { apiClient } from "@/lib/api/client";
 
 interface ProseText {
@@ -34,11 +35,7 @@ export default function ProseLandingPage() {
       </div>
 
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {[1, 2].map((i) => (
-            <div key={i} className="glass-panel p-6 rounded-2xl animate-pulse h-48" />
-          ))}
-        </div>
+        <Loader className="py-16" />
       ) : texts.length === 0 ? (
         <div className="glass-panel p-12 rounded-2xl text-center">
           <p className="text-slate-500">No prose texts are available yet. Check back soon.</p>
