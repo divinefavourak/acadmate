@@ -2,8 +2,11 @@ import {
   Controller,
   Get,
   Patch,
+  Delete,
   Body,
   UseGuards,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { IsString, IsInt, IsOptional, IsObject, Min, Max } from 'class-validator';
@@ -37,5 +40,12 @@ export class UsersController {
   @ApiOperation({ summary: 'Update current user profile' })
   updateMe(@CurrentUser() user: JwtUser, @Body() dto: UpdateMeDto) {
     return this.usersService.updateMe(user.id, dto);
+  }
+
+  @Delete('me')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Permanently delete own account and all data' })
+  deleteMe(@CurrentUser() user: JwtUser) {
+    return this.usersService.deleteMe(user.id);
   }
 }

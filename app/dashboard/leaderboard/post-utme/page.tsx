@@ -18,13 +18,13 @@ interface LeaderboardEntry {
 const MEDAL_COLORS = ["#F59E0B", "#94A3B8", "#B45309"] as const;
 const MEDAL_LABELS = ["🥇", "🥈", "🥉"] as const;
 
-export default function LeaderboardPage() {
+export default function PostUtmeLeaderboardPage() {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setLoading(true);
-    apiClient<LeaderboardEntry[]>(`/api/leaderboard?type=UTME`)
+    apiClient<LeaderboardEntry[]>(`/api/leaderboard?type=POST_UTME`)
       .then(setEntries)
       .catch(() => setEntries([]))
       .finally(() => setLoading(false));
@@ -37,7 +37,7 @@ export default function LeaderboardPage() {
   return (
     <div className="space-y-8 max-w-2xl mx-auto">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight mb-1">JAMB / UTME Leaderboard</h1>
+        <h1 className="text-3xl font-bold tracking-tight mb-1">Post-UTME Leaderboard</h1>
         <p className="text-slate-400 text-sm">Top performers ranked by total points earned</p>
       </div>
 
@@ -46,11 +46,10 @@ export default function LeaderboardPage() {
       ) : entries.length === 0 ? (
         <div className="glass-panel p-12 rounded-2xl text-center">
           <div className="text-5xl mb-4">🏆</div>
-          <p className="text-slate-400">No results yet for JAMB/UTME. Complete an exam to appear here!</p>
+          <p className="text-slate-400">No results yet for Post-UTME. Complete an exam to appear here!</p>
         </div>
       ) : (
         <>
-          {/* Podium */}
           {top3.length > 0 && (
             <div className="glass-panel rounded-2xl p-8 overflow-hidden relative">
               <div className="absolute inset-0 bg-gradient-to-b from-indigo-950/20 to-transparent pointer-events-none" />
@@ -91,7 +90,6 @@ export default function LeaderboardPage() {
             </div>
           )}
 
-          {/* Ranked list (4th onwards) */}
           {rest.length > 0 && (
             <div className="glass-panel rounded-2xl overflow-hidden">
               <div className="divide-y divide-slate-800">

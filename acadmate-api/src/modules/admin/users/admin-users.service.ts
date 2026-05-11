@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { Role } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 
@@ -70,5 +70,19 @@ export class AdminUsersService {
       averageScore: resultStats._avg.score ?? 0,
       bestScore: resultStats._max.score ?? 0,
     };
+  }
+
+  async deleteUser(userId: string, requestingAdminId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, role: true },
+    });
+
+    if (!user) throw new NotFoundException('User not found');
+    if (user.role === 'ADMIN') throw new ForbiddenException('Cannot delete another admin account');
+    if (userId === requestingAdminId) throw new ForbiddenException('Cannot delete your own account via this endpoint');
+
+    await this.prisma.user.delete({ where: { id: userId } });
+    return { deleted: true };
   }
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Loader from "@/app/components/Loader";
 import { apiClient, ApiError } from "@/lib/api/client";
 
 interface SubjectEntry {
@@ -54,7 +55,7 @@ export default function SubjectsPage() {
 
       <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6">
         {loading ? (
-          <p className="text-slate-400 text-sm py-8 text-center">Loading…</p>
+          <Loader className="py-8" />
         ) : subjects.length === 0 ? (
           <p className="text-slate-400 text-sm py-8 text-center">No subjects found.</p>
         ) : (

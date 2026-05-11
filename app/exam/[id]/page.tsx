@@ -7,6 +7,7 @@ import Timer from "../components/Timer";
 import QuestionGrid from "../components/QuestionGrid";
 import Calculator from "../components/Calculator";
 import MathText from "@/app/components/MathText";
+import Loader from "@/app/components/Loader";
 import { apiClient } from "@/lib/api/client";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -150,7 +151,7 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <div className="text-slate-500">Loading exam…</div>
+        <Loader className="py-8" />
       </div>
     );
   }

@@ -1,11 +1,12 @@
 "use client";
 
+import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { removeToken } from "@/lib/api/auth";
 
-export const navItems = [
+export const navItems: { href: string; label: string; icon: React.ReactNode; exact?: boolean }[] = [
   {
     href: "/dashboard",
     label: "Dashboard",
@@ -18,6 +19,14 @@ export const navItems = [
     label: "My Exams",
     icon: (
       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+    ),
+  },
+  {
+    href: "/exam/post-utme/schools",
+    label: "Post-UTME",
+    exact: false,
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
     ),
   },
   {
@@ -43,7 +52,16 @@ export const navItems = [
   },
   {
     href: "/dashboard/leaderboard",
-    label: "Leaderboard",
+    label: "UTME Board",
+    exact: true,
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+    ),
+  },
+  {
+    href: "/dashboard/leaderboard/post-utme",
+    label: "Post-UTME Board",
+    exact: true,
     icon: (
       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
     ),
@@ -71,8 +89,10 @@ export default function Sidebar() {
       </div>
 
       <nav className="flex-1 px-4 space-y-2">
-        {navItems.map(({ href, label, icon }) => {
-          const active = pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
+        {navItems.map(({ href, label, icon, exact }) => {
+          const active = exact
+            ? pathname === href
+            : pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
           return (
             <Link
               key={href}

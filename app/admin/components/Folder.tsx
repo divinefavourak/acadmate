@@ -7,6 +7,8 @@ interface FolderProps {
   size?: number;
   items?: React.ReactNode[];
   className?: string;
+  open?: boolean;
+  onToggle?: () => void;
 }
 
 const darkenColor = (hex: string, percent: number): string => {
@@ -27,12 +29,16 @@ const Folder: React.FC<FolderProps> = ({
   size = 1,
   items = [],
   className = "",
+  open: controlledOpen,
+  onToggle,
 }) => {
+  const isControlled = controlledOpen !== undefined;
   const maxItems = 3;
   const papers = items.slice(0, maxItems);
   while (papers.length < maxItems) papers.push(null);
 
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = isControlled ? controlledOpen : internalOpen;
   const [paperOffsets, setPaperOffsets] = useState<{ x: number; y: number }[]>(
     Array.from({ length: maxItems }, () => ({ x: 0, y: 0 }))
   );
@@ -43,8 +49,12 @@ const Folder: React.FC<FolderProps> = ({
   const paper3 = "#ffffff";
 
   const handleClick = () => {
-    setOpen((prev) => !prev);
     if (open) setPaperOffsets(Array.from({ length: maxItems }, () => ({ x: 0, y: 0 })));
+    if (isControlled) {
+      onToggle?.();
+    } else {
+      setInternalOpen((prev) => !prev);
+    }
   };
 
   const handlePaperMouseMove = (e: React.MouseEvent<HTMLDivElement>, index: number) => {

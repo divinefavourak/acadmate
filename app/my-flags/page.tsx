@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import MathText from "@/app/components/MathText";
+import Loader from "@/app/components/Loader";
 import { apiClient } from "@/lib/api/client";
 
 interface FlagEntry {
@@ -57,7 +58,7 @@ export default function MyFlagsPage() {
       {error ? (
         <p className="text-red-500 text-sm py-16 text-center">{error}</p>
       ) : loading ? (
-        <p className="text-slate-500 text-sm py-16 text-center">Loading…</p>
+        <Loader className="py-16" />
       ) : flags.length === 0 ? (
         <div className="glass-panel p-12 rounded-2xl text-center space-y-2">
           <p className="text-2xl">🚩</p>

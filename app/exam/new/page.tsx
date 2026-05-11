@@ -4,6 +4,12 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiClient, ApiError } from "@/lib/api/client";
 import Loader from "@/app/components/Loader";
+import Folder from "@/app/admin/components/Folder";
+
+const SUBJECT_COLORS = [
+  "#4F46E5", "#7C3AED", "#2563EB", "#0891B2",
+  "#059669", "#65A30D", "#D97706", "#DC2626",
+];
 
 interface Subject {
   id: string;
@@ -217,7 +223,7 @@ export default function NewExamPage() {
 
               {/* Selectable subjects */}
               <div>
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center justify-between mb-4">
                   <span className="text-sm font-medium">
                     {remaining > 0
                       ? `Choose ${remaining} more subject${remaining !== 1 ? "s" : ""}`
@@ -232,8 +238,8 @@ export default function NewExamPage() {
                     </button>
                   )}
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {otherSubjects.map((s) => {
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
+                  {otherSubjects.map((s, i) => {
                     const isSelected = selectedSubjectIds.includes(s.id);
                     const isDisabled = (!isSelected && selectedSubjectIds.length >= 3) || s._count.questions === 0;
                     return (
@@ -241,29 +247,19 @@ export default function NewExamPage() {
                         key={s.id}
                         onClick={() => toggleSubject(s.id)}
                         disabled={isDisabled}
-                        className={`p-3 rounded-xl border-2 text-left transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
-                          isSelected
-                            ? "border-indigo-500 bg-indigo-50/50 dark:bg-indigo-900/20"
-                            : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
-                        }`}
+                        className="flex flex-col items-center gap-2 group disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none"
                       >
-                        <div className="flex items-center gap-2">
-                          <div className={`flex-shrink-0 w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
-                            isSelected
-                              ? "border-indigo-500 bg-indigo-500"
-                              : "border-slate-300 dark:border-slate-600"
-                          }`}>
-                            {isSelected && (
-                              <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                <polyline points="20 6 9 17 4 12" />
-                              </svg>
-                            )}
-                          </div>
-                          <div className="font-medium text-sm">{s.name}</div>
-                        </div>
-                        <div className="text-xs text-slate-500 mt-1 pl-6">
-                          {s._count.questions} questions
-                        </div>
+                        <Folder
+                          color={SUBJECT_COLORS[i % SUBJECT_COLORS.length]}
+                          size={1.05}
+                          open={isSelected}
+                          onToggle={() => toggleSubject(s.id)}
+                        />
+                        <span className={`text-xs font-medium text-center leading-tight transition-colors ${
+                          isSelected ? "text-indigo-400" : "text-slate-400 group-hover:text-slate-200"
+                        }`}>
+                          {s.name}
+                        </span>
                       </button>
                     );
                   })}
@@ -324,20 +320,25 @@ export default function NewExamPage() {
               {subjects.length === 0 ? (
                 <p className="text-sm text-slate-500">No subjects available.</p>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {subjects.map((s) => (
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
+                  {subjects.map((s, i) => (
                     <button
                       key={s.id}
                       onClick={() => setSelectedSubject(s.id)}
                       disabled={s._count.questions === 0}
-                      className={`p-3 rounded-xl border-2 text-left transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
-                        selectedSubject === s.id
-                          ? "border-indigo-500 bg-indigo-50/50 dark:bg-indigo-900/20"
-                          : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
-                      }`}
+                      className="flex flex-col items-center gap-2 group disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none"
                     >
-                      <div className="font-medium text-sm">{s.name}</div>
-                      <div className="text-xs text-slate-500 mt-0.5">{s._count.questions} questions</div>
+                      <Folder
+                        color={SUBJECT_COLORS[i % SUBJECT_COLORS.length]}
+                        size={1.05}
+                        open={selectedSubject === s.id}
+                        onToggle={() => setSelectedSubject(s.id)}
+                      />
+                      <span className={`text-xs font-medium text-center leading-tight transition-colors ${
+                        selectedSubject === s.id ? "text-indigo-400" : "text-slate-400 group-hover:text-slate-200"
+                      }`}>
+                        {s.name}
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -371,18 +372,24 @@ export default function NewExamPage() {
                 {subjects.length === 0 ? (
                   <p className="text-sm text-slate-500">No subjects available.</p>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {subjects.map((s) => (
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
+                    {subjects.map((s, i) => (
                       <button
                         key={s.id}
                         onClick={() => setSelectedSubject(s.id)}
-                        className={`p-3 rounded-xl border-2 text-left transition-all ${
-                          selectedSubject === s.id
-                            ? "border-indigo-500 bg-indigo-50/50 dark:bg-indigo-900/20"
-                            : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
-                        }`}
+                        className="flex flex-col items-center gap-2 group focus:outline-none"
                       >
-                        <div className="font-medium text-sm">{s.name}</div>
+                        <Folder
+                          color={SUBJECT_COLORS[i % SUBJECT_COLORS.length]}
+                          size={1.05}
+                          open={selectedSubject === s.id}
+                          onToggle={() => setSelectedSubject(s.id)}
+                        />
+                        <span className={`text-xs font-medium text-center leading-tight transition-colors ${
+                          selectedSubject === s.id ? "text-indigo-400" : "text-slate-400 group-hover:text-slate-200"
+                        }`}>
+                          {s.name}
+                        </span>
                       </button>
                     ))}
                   </div>
@@ -392,7 +399,7 @@ export default function NewExamPage() {
               <div>
                 <h2 className="font-semibold text-lg mb-3">Topic</h2>
                 {loadingTopics ? (
-                  <p className="text-sm text-slate-500">Loading topics…</p>
+                  <Loader className="py-2" />
                 ) : topics.length === 0 ? (
                   <p className="text-sm text-slate-500">No topics available for this subject.</p>
                 ) : (

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import StatCard from "./components/StatCard";
+import Loader from "@/app/components/Loader";
 import { apiClient } from "@/lib/api/client";
 import { fadeUp, stagger } from "@/lib/motion";
 
@@ -125,7 +126,7 @@ export default function DashboardPage() {
         </div>
 
         {loading ? (
-          <p className="text-slate-500 text-sm py-4 text-center">Loading results…</p>
+          <Loader className="py-4" />
         ) : results.length === 0 ? (
           <p className="text-slate-500 text-sm py-4 text-center">No exams taken yet. Start your first exam above!</p>
         ) : (

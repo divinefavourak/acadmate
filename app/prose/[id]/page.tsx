@@ -3,6 +3,7 @@
 import { useEffect, useState, use } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import Loader from "@/app/components/Loader";
 import { apiClient } from "@/lib/api/client";
 
 interface ProseSection {
@@ -74,9 +75,8 @@ export default function ProseDetailPage({ params }: { params: Promise<{ id: stri
 
   if (loading) {
     return (
-      <div className="space-y-6 animate-pulse">
-        <div className="h-10 bg-slate-200 dark:bg-slate-800 rounded-xl w-1/2" />
-        <div className="h-48 bg-slate-200 dark:bg-slate-800 rounded-2xl" />
+      <div className="space-y-6">
+        <Loader className="py-16" />
       </div>
     );
   }

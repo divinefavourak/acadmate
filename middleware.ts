@@ -2,7 +2,7 @@ import { jwtVerify } from "jose";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const publicRoutes = ["/", "/login", "/register", "/api/auth"];
+const publicRoutes = ["/", "/login", "/register", "/api/auth", "/auth/callback", "/forgot-password", "/reset-password"];
 const adminRoutes = ["/admin", "/api/admin"];
 
 function getSecret(): Uint8Array {
