@@ -8,55 +8,12 @@ import { SCHOOLS, DEFAULT_QUESTION_COUNT } from "@/features/post-utme/constants"
 import { ApiError } from "@/lib/api/client";
 import type { YearPack } from "@/features/post-utme/types";
 import Loader from "@/app/components/Loader";
+import Folder from "@/app/admin/components/Folder";
 
-// ─── Year pack card ────────────────────────────────────────────────────────────
-
-function PackCard({
-  pack,
-  selected,
-  onSelect,
-}: {
-  pack: YearPack | null; // null = "All Years"
-  selected: boolean;
-  onSelect: () => void;
-}) {
-  const isAll = pack === null;
-  return (
-    <button
-      onClick={onSelect}
-      className={`p-5 rounded-2xl border-2 text-left transition-all ${
-        selected
-          ? "border-indigo-500 bg-indigo-50/60 dark:bg-indigo-900/20"
-          : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white/50 dark:bg-black/30"
-      }`}
-    >
-      <div className="flex items-start justify-between gap-2 mb-2">
-        <div>
-          <div className="font-bold text-base text-slate-800 dark:text-slate-100">
-            {isAll ? "All Years" : `${pack!.year}`}
-          </div>
-          <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            {isAll ? "Mixed questions across all years" : `${pack!.questionCount} question${pack!.questionCount !== 1 ? "s" : ""} available`}
-          </div>
-        </div>
-        {selected && (
-          <div className="flex-shrink-0 w-5 h-5 rounded-full bg-indigo-600 flex items-center justify-center mt-0.5">
-            <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
-          </div>
-        )}
-      </div>
-      {!isAll && (
-        <div className="flex gap-1 flex-wrap mt-3">
-          <span className="inline-flex px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-500 dark:text-slate-400">
-            Past paper
-          </span>
-        </div>
-      )}
-    </button>
-  );
-}
+const PACK_COLORS = [
+  "#4F46E5", "#7C3AED", "#2563EB", "#0891B2",
+  "#059669", "#65A30D", "#D97706", "#DC2626",
+];
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -194,28 +151,48 @@ function PacksContent() {
             <div className="px-4 py-3 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-sm">
               {fetchError}
             </div>
+          ) : packs.length === 0 ? (
+            <p className="text-sm text-slate-500 dark:text-slate-400 py-4 text-center">
+              No past papers found for {school.name} yet. Check back soon.
+            </p>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {/* All Years option — always shown */}
-              <PackCard
-                pack={null}
-                selected={selectedYear === null}
-                onSelect={() => setSelectedYear(null)}
-              />
-              {packs.length === 0 ? (
-                <div className="col-span-full text-sm text-slate-500 dark:text-slate-400 py-4 text-center">
-                  No past papers found for {school.name} yet. Check back soon.
-                </div>
-              ) : (
-                packs.map((p) => (
-                  <PackCard
-                    key={p.year}
-                    pack={p}
-                    selected={selectedYear === p.year}
-                    onSelect={() => setSelectedYear(p.year)}
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
+              {/* All Years option */}
+              <button
+                onClick={() => setSelectedYear(null)}
+                className="flex flex-col items-center gap-2 group focus:outline-none"
+              >
+                <Folder
+                  color="#6366F1"
+                  size={1.05}
+                  open={selectedYear === null}
+                  onToggle={() => setSelectedYear(null)}
+                />
+                <span className={`text-xs font-medium text-center leading-tight transition-colors ${
+                  selectedYear === null ? "text-indigo-400" : "text-slate-400 group-hover:text-slate-200"
+                }`}>
+                  All Years
+                </span>
+              </button>
+              {packs.map((p, i) => (
+                <button
+                  key={p.year}
+                  onClick={() => setSelectedYear(p.year)}
+                  className="flex flex-col items-center gap-2 group focus:outline-none"
+                >
+                  <Folder
+                    color={PACK_COLORS[i % PACK_COLORS.length]}
+                    size={1.05}
+                    open={selectedYear === p.year}
+                    onToggle={() => setSelectedYear(p.year)}
                   />
-                ))
-              )}
+                  <span className={`text-xs font-medium text-center leading-tight transition-colors ${
+                    selectedYear === p.year ? "text-indigo-400" : "text-slate-400 group-hover:text-slate-200"
+                  }`}>
+                    {p.year}
+                  </span>
+                </button>
+              ))}
             </div>
           )}
         </div>
@@ -278,7 +255,7 @@ function PacksContent() {
 
 export default function PostUtmePacksPage() {
   return (
-    <Suspense fallback={<div className="animate-pulse h-96 rounded-2xl bg-slate-100 dark:bg-slate-800" />}>
+    <Suspense fallback={<Loader className="h-96" />}>
       <PacksContent />
     </Suspense>
   );
