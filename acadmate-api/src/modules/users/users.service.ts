@@ -45,14 +45,19 @@ export class UsersService {
       avatarUrl?: string;
     },
   ) {
-    const { name, avatarConfig, ...rest } = dto;
+    const { name, avatarConfig, avatarUrl, ...rest } = dto;
 
     const jsonConfig = avatarConfig !== undefined
       ? { avatarConfig: avatarConfig as Prisma.InputJsonValue }
       : {};
 
-    const createData: Prisma.StudentProfileUncheckedCreateInput = { userId, ...rest, ...jsonConfig };
-    const updateData: Prisma.StudentProfileUncheckedUpdateInput = { ...rest, ...jsonConfig };
+    // Empty string means "clear the URL" — store as null
+    const urlField = avatarUrl !== undefined
+      ? { avatarUrl: avatarUrl === '' ? null : avatarUrl }
+      : {};
+
+    const createData: Prisma.StudentProfileUncheckedCreateInput = { userId, ...rest, ...jsonConfig, ...urlField };
+    const updateData: Prisma.StudentProfileUncheckedUpdateInput = { ...rest, ...jsonConfig, ...urlField };
 
     await this.prisma.$transaction([
       ...(name

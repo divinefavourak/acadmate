@@ -42,9 +42,9 @@ export default function AvatarPicker({ initialConfig, initialUrl, onSave }: Prop
     setSaving(true);
     try {
       if (mode === "upload" && previewUrl) {
-        await onSave({ avatarUrl: previewUrl });
+        await onSave({ avatarUrl: previewUrl, avatarConfig: undefined });
       } else {
-        await onSave({ avatarConfig: config });
+        await onSave({ avatarConfig: config, avatarUrl: "" });
       }
     } finally {
       setSaving(false);

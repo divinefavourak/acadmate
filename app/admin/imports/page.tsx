@@ -304,11 +304,12 @@ export default function ImportsPage() {
 
     setUploading(true);
     try {
-      const body: Record<string, unknown> = { filename: file.name, rows: previewRows };
-      if (mode === "POST_UTME") {
-        body.examType = "POST_UTME";
-        body.school = selectedSchool;
-      }
+      const body: Record<string, unknown> = {
+        filename: file.name,
+        rows: previewRows,
+        examType: mode === "POST_UTME" ? "POST_UTME" : "JAMB",
+        ...(mode === "POST_UTME" && { school: selectedSchool }),
+      };
 
       const data = await apiClient<{ created: number; totalRows: number; errors?: string[] }>("/api/admin/imports", {
         method: "POST",
