@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { Difficulty } from '@prisma/client';
+import { Difficulty, ExamType } from '@prisma/client';
 
 @Injectable()
 export class AdminQuestionsService {
@@ -46,6 +46,8 @@ export class AdminQuestionsService {
     subjectId?: string;
     topicId?: string;
     difficulty?: Difficulty;
+    examType?: ExamType;
+    school?: string;
     year?: number;
     limit?: number;
     offset?: number;
@@ -59,6 +61,8 @@ export class AdminQuestionsService {
       ...(query.subjectId && { subjectId: query.subjectId }),
       ...(query.topicId && { topicId: query.topicId }),
       ...(query.difficulty && { difficulty: query.difficulty }),
+      ...(query.examType && { examType: query.examType }),
+      ...(query.school && { school: query.school }),
       ...(query.isPublished !== undefined && { isPublished: query.isPublished }),
       ...(query.flagged && { isFlagged: true }),
       ...(query.year !== undefined ? { year: query.year } : {}),
@@ -74,6 +78,8 @@ export class AdminQuestionsService {
           text: true,
           difficulty: true,
           year: true,
+          school: true,
+          examType: true,
           isPublished: true,
           isFlagged: true,
           flagCount: true,
@@ -83,7 +89,7 @@ export class AdminQuestionsService {
           topic: { select: { id: true, name: true } },
           _count: { select: { options: true } },
         },
-        orderBy: { updatedAt: 'desc' },
+        orderBy: [{ isFlagged: 'desc' }, { updatedAt: 'desc' }],
       }),
       this.prisma.question.count({ where }),
     ]);

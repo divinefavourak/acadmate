@@ -84,6 +84,8 @@ model StudentProfile {
   targetYear   Int?
   courseChoice String?
   institution  String?
+  avatarConfig Json?
+  avatarUrl    String?  @db.Text
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

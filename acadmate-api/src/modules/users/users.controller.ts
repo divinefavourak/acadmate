@@ -6,7 +6,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
-import { IsString, IsInt, IsOptional, Min, Max } from 'class-validator';
+import { IsString, IsInt, IsOptional, IsObject, Min, Max } from 'class-validator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser, JwtUser } from '../../common/decorators/current-user.decorator';
 import { UsersService } from './users.service';
@@ -16,6 +16,8 @@ class UpdateMeDto {
   @IsOptional() @IsInt() @Min(2024) @Max(2035) targetYear?: number;
   @IsOptional() @IsString() courseChoice?: string;
   @IsOptional() @IsString() institution?: string;
+  @IsOptional() @IsObject() avatarConfig?: Record<string, unknown>;
+  @IsOptional() @IsString() avatarUrl?: string;
 }
 
 @ApiTags('users')

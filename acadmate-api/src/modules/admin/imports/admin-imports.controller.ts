@@ -3,7 +3,8 @@ import {
   BadRequestException, NotFoundException, ConflictException,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
-import { IsString, IsArray, IsInt, IsOptional, Min, Max } from 'class-validator';
+import { IsString, IsArray, IsInt, IsOptional, Min, Max, IsEnum } from 'class-validator';
+import { ExamType } from '@prisma/client';
 import { Type } from 'class-transformer';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../common/guards/roles.guard';
@@ -15,6 +16,8 @@ import { PrismaService } from '../../../prisma/prisma.service';
 class ProcessImportDto {
   @IsString() filename: string;
   @IsArray() rows: unknown[];
+  @IsOptional() @IsEnum(ExamType) examType?: ExamType;
+  @IsOptional() @IsString() school?: string;
 }
 
 class PaginationQuery {
@@ -41,10 +44,16 @@ export class AdminImportsController {
       throw new BadRequestException('filename and rows[] are required');
     }
 
+    if (dto.examType === 'POST_UTME' && !dto.school) {
+      throw new BadRequestException('school is required for POST_UTME imports');
+    }
+
     const result = await this.importService.processImport({
       adminId: user.id,
       filename: dto.filename,
       rows: dto.rows,
+      examType: dto.examType,
+      school: dto.school,
     });
 
     this.prisma.adminActivityLog.create({
