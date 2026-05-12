@@ -67,6 +67,20 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
   useEffect(() => {
     apiClient<{ examSession: ExamSession }>(`/api/exams/${id}`)
       .then(({ examSession: s }) => {
+        // Already finished — send to results page instead of showing exam UI
+        if (s.status === "SUBMITTED" || s.status === "TIMED_OUT") {
+          apiClient<{ result: { id: string } }>(`/api/results?examSessionId=${id}&limit=1`)
+            .then((d) => {
+              const resultId = (d as any)?.results?.[0]?.id;
+              router.replace(resultId ? `/results/${resultId}` : "/results");
+            })
+            .catch(() => router.replace("/results"));
+          return;
+        }
+        if (s.status === "ABANDONED") {
+          router.replace("/results");
+          return;
+        }
         setSession(s);
         const saved: Record<string, string | null> = {};
         for (const a of s.userAnswers) saved[a.questionId] = a.optionId;
@@ -79,7 +93,7 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
       })
       .catch(() => setError("Failed to load exam. Please refresh."))
       .finally(() => setLoading(false));
-  }, [id]);
+  }, [id, router]);
 
   const questions = session?.questions ?? [];
   const currentSQ = questions[currentIndex];

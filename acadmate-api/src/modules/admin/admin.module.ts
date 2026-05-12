@@ -13,6 +13,8 @@ import { AdminNotificationsController } from './notifications/admin-notification
 import { AdminNotificationsService } from './notifications/admin-notifications.service';
 import { AdminStatsController } from './stats/admin-stats.controller';
 import { AdminStatsService } from './stats/admin-stats.service';
+import { AdminTokensController } from './tokens/admin-tokens.controller';
+import { AdminTokensService } from './tokens/admin-tokens.service';
 
 @Module({
   controllers: [
@@ -23,6 +25,7 @@ import { AdminStatsService } from './stats/admin-stats.service';
     AdminUsersController,
     AdminNotificationsController,
     AdminStatsController,
+    AdminTokensController,
   ],
   providers: [
     AdminQuestionsService,
@@ -32,6 +35,7 @@ import { AdminStatsService } from './stats/admin-stats.service';
     AdminUsersService,
     AdminNotificationsService,
     AdminStatsService,
+    AdminTokensService,
   ],
 })
 export class AdminModule {}

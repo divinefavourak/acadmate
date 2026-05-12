@@ -18,6 +18,7 @@ import { fadeUp, fadeIn, scaleIn, stagger, slideInLeft, slideInRight } from '@/l
 const landingNavItems = [
   { href: "#features", label: "Features", icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m11 17 2 2 4-4"/><path d="m11 9 2 2 4-4"/><path d="M7 17h.01"/><path d="M7 11h.01"/><path d="M7 5h.01"/><path d="M3 21h18"/><path d="M3 3h18"/></svg> },
   { href: "#subjects", label: "Subjects", icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg> },
+  { href: "#pricing", label: "Pricing", icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg> },
   { href: "#prose", label: "Literature", icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg> },
 ];
 const footerSocials = [
@@ -106,6 +107,7 @@ export default function Home() {
               {[
                 { val: "8,600+", label: "Past Questions" },
                 { val: "11", label: "Subjects" },
+                { val: "6", label: "Post-UTME Schools" },
                 { val: "300+", label: "Target Score" },
               ].map((s) => (
                 <motion.div key={s.label} variants={fadeUp}>
@@ -185,7 +187,7 @@ export default function Home() {
           viewport={{ once: true, amount: 0.5 }}
         >
           <h2 className="text-3xl md:text-5xl font-bold mb-4">Everything to score 300+</h2>
-          <p className="text-slate-400 max-w-xl mx-auto">Built specifically for JAMB UTME — not generic study tools.</p>
+          <p className="text-slate-400 max-w-xl mx-auto">Built specifically for JAMB UTME & Post-UTME — not generic study tools.</p>
         </motion.div>
         <motion.div
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"
@@ -195,12 +197,15 @@ export default function Home() {
           viewport={{ once: true, amount: 0.1 }}
         >
           {[
-            { icon: "⏱️", title: "Timed CBT Engine", desc: "Simulate the exact timing and pressure of the real JAMB exam. 2-hour mock tests, subject-by-subject practice, topic drills.", accent: "indigo" },
-            { icon: "📚", title: "Real Past Questions", desc: "8,600+ curated JAMB questions from 1978–2024. Every subject, every year — all with verified answers.", accent: "purple" },
-            { icon: "💡", title: "Step-by-Step Solutions", desc: "Instant, detailed explanations for every question. Understand why, not just what.", accent: "emerald" },
-            { icon: "📊", title: "Deep Analytics", desc: "Spot your weak topics before exam day. Track your score trend and subject accuracy over time.", accent: "amber" },
-            { icon: "🎯", title: "Topic Mastery", desc: "Drill specific topics until they're perfect. Identify gaps and close them systematically.", accent: "pink" },
-            { icon: "📖", title: "Literature Guide", desc: "Full summaries, character breakdowns and predicted questions for The Lekki Headmaster and other UTME prose.", accent: "cyan" },
+            { icon: "⏱️", title: "Timed CBT Engine", desc: "Simulate the exact timing and pressure of the real JAMB exam. 2-hour mock tests, subject-by-subject practice, topic drills." },
+            { icon: "📚", title: "Real Past Questions", desc: "8,600+ curated JAMB questions from 1978–2024. Every subject, every year — all with verified answers." },
+            { icon: "💡", title: "Step-by-Step Solutions", desc: "Instant, detailed explanations for every question. Understand why, not just what." },
+            { icon: "📊", title: "Deep Analytics", desc: "Spot your weak topics before exam day. Track your score trend and subject accuracy over time." },
+            { icon: "🎓", title: "Post-UTME Prep", desc: "Practice with real Post-UTME past papers from UNILAG, UI, OAU, UNIBEN, ABU and UNN. Timed 30-minute sessions, 40 questions." },
+            { icon: "🏆", title: "Leaderboard", desc: "See how you rank among all students nationally. Separate UTME and Post-UTME boards updated in real time." },
+            { icon: "🎯", title: "Topic Mastery", desc: "Drill specific topics until they're perfect. Identify gaps and close them systematically." },
+            { icon: "📖", title: "Literature Guide", desc: "Full summaries, character breakdowns and predicted questions for The Lekki Headmaster and other UTME prose." },
+            { icon: "🔐", title: "Google Sign-In", desc: "Register or sign in with your Google account in one click — no password required." },
           ].map((f, i) => (
             <motion.div
               key={i}
@@ -213,6 +218,88 @@ export default function Home() {
               <p className="text-sm text-slate-400 leading-relaxed">{f.desc}</p>
             </motion.div>
           ))}
+        </motion.div>
+      </section>
+
+      {/* ── PRICING ── */}
+      <section id="pricing" className="relative z-10 max-w-7xl mx-auto px-4 md:px-6 py-20 md:py-32">
+        <motion.div
+          className="text-center mb-14"
+          variants={fadeUp}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.5 }}
+        >
+          <h2 className="text-3xl md:text-5xl font-bold mb-4">Simple, honest pricing</h2>
+          <p className="text-slate-400 max-w-lg mx-auto">Start free. Upgrade when you&apos;re ready to go all in.</p>
+        </motion.div>
+        <motion.div
+          className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto"
+          variants={stagger(0.1, 0.15)}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.1 }}
+        >
+          {/* Free plan */}
+          <motion.div variants={fadeUp} className="bg-white/3 border border-white/8 rounded-2xl p-8 space-y-6">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-1">Free</p>
+              <p className="text-4xl font-extrabold">₦0</p>
+              <p className="text-slate-400 text-sm mt-2">Start practicing instantly, no card needed.</p>
+            </div>
+            <ul className="space-y-3">
+              {[
+                "Subject Practice (up to 20 questions)",
+                "Topic Drills (up to 20 questions)",
+                "AI-powered explanations",
+                "Analytics & score tracking",
+                "Literature guide",
+                "Leaderboard access",
+              ].map((item) => (
+                <li key={item} className="flex items-center gap-2.5 text-sm text-slate-300">
+                  <span className="w-4 h-4 rounded-full bg-emerald-500/15 text-emerald-400 flex items-center justify-center text-xs shrink-0">✓</span>
+                  {item}
+                </li>
+              ))}
+            </ul>
+            <Link href="/register" className="block text-center border border-white/10 hover:border-white/20 text-slate-300 font-semibold px-6 py-3 rounded-xl transition-colors">
+              Get Started Free
+            </Link>
+          </motion.div>
+
+          {/* Premium plan */}
+          <motion.div variants={fadeUp} className="relative bg-indigo-600 rounded-2xl p-8 space-y-6 shadow-2xl shadow-indigo-500/20">
+            <div className="absolute top-4 right-4 px-2.5 py-1 rounded-full bg-white/15 text-white text-xs font-bold">
+              Most Popular
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-widest text-indigo-200 mb-1">Premium</p>
+              <p className="text-4xl font-extrabold text-white">Contact Us</p>
+              <p className="text-indigo-200 text-sm mt-2">Pay once, full access — no subscription.</p>
+            </div>
+            <ul className="space-y-3">
+              {[
+                "Everything in Free",
+                "Full UTME Mock Exams (160 questions, 2 hrs)",
+                "Post-UTME Papers — 6 top universities",
+                "Unlimited question count per session",
+                "Priority WhatsApp support",
+              ].map((item) => (
+                <li key={item} className="flex items-center gap-2.5 text-sm text-white">
+                  <span className="w-4 h-4 rounded-full bg-white/20 text-white flex items-center justify-center text-xs shrink-0">✓</span>
+                  {item}
+                </li>
+              ))}
+            </ul>
+            <a
+              href="https://wa.me/2349031843486"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block text-center bg-white text-indigo-700 font-bold px-6 py-3 rounded-xl hover:bg-indigo-50 transition-colors"
+            >
+              Pay via WhatsApp
+            </a>
+          </motion.div>
         </motion.div>
       </section>
 

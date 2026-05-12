@@ -20,6 +20,7 @@ model User {
   image         String?
   passwordHash  String?
   role          Role      @default(STUDENT)
+  plan          Plan      @default(FREE)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -31,9 +32,27 @@ model User {
   reviewedContent Question[] @relation("ReviewedBy")
   questionFlags   QuestionFlag[]
   triggeredNotifications AdminNotification[] @relation("NotificationTriggeredBy")
+  generatedTokens AccessToken[] @relation("GeneratedTokens")
+  redeemedToken   AccessToken?  @relation("RedeemedToken")
 
   @@index([email])
   @@map("users")
+}
+
+model AccessToken {
+  id            String    @id @default(cuid())
+  code          String    @unique
+  note          String?
+  generatedById String
+  usedById      String?   @unique
+  usedAt        DateTime?
+  createdAt     DateTime  @default(now())
+
+  generatedBy User  @relation("GeneratedTokens", fields: [generatedById], references: [id], onDelete: Cascade)
+  usedBy      User? @relation("RedeemedToken", fields: [usedById], references: [id], onDelete: SetNull)
+
+  @@index([generatedById])
+  @@map("access_tokens")
 }
 
 model Account {
@@ -547,4 +566,9 @@ enum ImportStatus {
   PROCESSING
   DONE
   FAILED
+}
+
+enum Plan {
+  FREE
+  PREMIUM
 }

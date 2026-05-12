@@ -9,6 +9,7 @@ const UTME_DURATION_MINUTES = 120;
 const ENGLISH_CODE = 'ENG';
 
 const POST_UTME_DEFAULT_QUESTIONS = 40;
+const POST_UTME_DURATION_MINUTES = 30;
 
 // ─── Input types (identical to original lib/services/exam-factory.ts) ─────────
 export type MockExamInput = {
@@ -294,7 +295,7 @@ export class ExamFactoryService {
 
     const questionIds = fisherYates(rows.map((r) => r.id));
 
-    return { questionIds, durationMinutes: input.questionCount * 2 };
+    return { questionIds, durationMinutes: POST_UTME_DURATION_MINUTES };
   }
 }
 

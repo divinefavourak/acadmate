@@ -1,5 +1,3 @@
-// Prisma schema for Acadmate UTME CBT Practice Platform
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,30 +8,46 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-// ─── Auth (NextAuth v5 required models) ──────────────────────────────────────
-
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String    @unique
-  emailVerified DateTime?
-  image         String?
-  passwordHash  String?
-  role          Role      @default(STUDENT)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
-  accounts       Account[]
-  sessions       Session[]
-  studentProfile StudentProfile?
-  examSessions   ExamSession[]
-  imports        Import[]
-  reviewedContent Question[] @relation("ReviewedBy")
-  questionFlags   QuestionFlag[]
+  id                     String              @id @default(cuid())
+  name                   String?
+  email                  String              @unique
+  emailVerified          DateTime?
+  image                  String?
+  passwordHash           String?
+  role                   Role                @default(STUDENT)
+  plan                   Plan                @default(FREE)
+  createdAt              DateTime            @default(now())
+  updatedAt              DateTime            @updatedAt
+  accounts               Account[]
   triggeredNotifications AdminNotification[] @relation("NotificationTriggeredBy")
+  examSessions           ExamSession[]
+  imports                Import[]
+  questionFlags          QuestionFlag[]
+  reviewedContent        Question[]          @relation("ReviewedBy")
+  sessions               Session[]
+  studentProfile         StudentProfile?
+  generatedTokens        AccessToken[]       @relation("GeneratedTokens")
+  redeemedToken          AccessToken?        @relation("RedeemedToken")
 
   @@index([email])
   @@map("users")
+}
+
+model AccessToken {
+  id            String    @id @default(cuid())
+  code          String    @unique
+  note          String?
+  generatedById String
+  usedById      String?   @unique
+  usedAt        DateTime?
+  createdAt     DateTime  @default(now())
+
+  generatedBy User  @relation("GeneratedTokens", fields: [generatedById], references: [id], onDelete: Cascade)
+  usedBy      User? @relation("RedeemedToken", fields: [usedById], references: [id], onDelete: SetNull)
+
+  @@index([generatedById])
+  @@map("access_tokens")
 }
 
 model Account {
@@ -42,15 +56,14 @@ model Account {
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
+  refresh_token     String?
+  access_token      String?
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String? @db.Text
+  id_token          String?
   session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
   @@map("accounts")
@@ -61,8 +74,7 @@ model Session {
   sessionToken String   @unique
   userId       String
   expires      DateTime
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("sessions")
 }
@@ -76,58 +88,51 @@ model VerificationToken {
   @@map("verification_tokens")
 }
 
-// ─── Student Profile ──────────────────────────────────────────────────────────
-
 model StudentProfile {
-  id           String   @id @default(cuid())
-  userId       String   @unique
-  targetYear   Int?
-  courseChoice String?
-  institution  String?
-  avatarConfig Json?
-  avatarUrl    String?  @db.Text
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  user                    User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                        String                     @id @default(cuid())
+  userId                    String                     @unique
+  targetYear                Int?
+  courseChoice              String?
+  institution               String?
+  createdAt                 DateTime                   @default(now())
+  updatedAt                 DateTime                   @updatedAt
+  avatarConfig              Json?
+  avatarUrl                 String?
   courseSubjectCombinations CourseSubjectCombination[]
+  user                      User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("student_profiles")
 }
 
-// ─── Subject & Topic ─────────────────────────────────────────────────────────
-
 model Subject {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  code        String   @unique
-  description String?
-  isActive    Boolean  @default(true)
-  sortOrder   Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  topics                    Topic[]
-  questions                 Question[]
-  examTemplateSubjects      ExamTemplateSubject[]
+  id                        String                     @id @default(cuid())
+  name                      String                     @unique
+  code                      String                     @unique
+  description               String?
+  isActive                  Boolean                    @default(true)
+  sortOrder                 Int                        @default(0)
+  createdAt                 DateTime                   @default(now())
+  updatedAt                 DateTime                   @updatedAt
   courseSubjectCombinations CourseSubjectCombination[]
+  examTemplateSubjects      ExamTemplateSubject[]
+  questions                 Question[]
+  topics                    Topic[]
 
   @@index([isActive])
   @@map("subjects")
 }
 
 model Topic {
-  id          String   @id @default(cuid())
+  id          String     @id @default(cuid())
   subjectId   String
   name        String
   description String?
-  isActive    Boolean  @default(true)
-  sortOrder   Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  subject   Subject    @relation(fields: [subjectId], references: [id], onDelete: Cascade)
-  questions Question[]
+  isActive    Boolean    @default(true)
+  sortOrder   Int        @default(0)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  questions   Question[]
+  subject     Subject    @relation(fields: [subjectId], references: [id], onDelete: Cascade)
 
   @@unique([subjectId, name])
   @@index([subjectId])
@@ -135,40 +140,39 @@ model Topic {
   @@map("topics")
 }
 
-// ─── Questions ────────────────────────────────────────────────────────────────
-
 model Question {
-  id               String           @id @default(cuid())
-  subjectId        String
-  topicId          String?
-  proseTextId      String?
-  text             String           @db.Text
-  imageUrl         String?          @db.Text
-  year             Int?
-  difficulty       Difficulty       @default(MEDIUM)
-  sourceType       SourceType       @default(MANUAL)
-  sourceRef        String?
-  isPublished      Boolean          @default(false)
-  isFlagged        Boolean          @default(false)
-  flagCount        Int              @default(0)
-  aiAssisted       Boolean          @default(false)
-  reviewedAt       DateTime?
-  reviewedById     String?
-  importId         String?
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
-
-  subject              Subject                @relation(fields: [subjectId], references: [id])
-  topic                Topic?                 @relation(fields: [topicId], references: [id])
-  proseText            ProseText?             @relation(fields: [proseTextId], references: [id])
-  reviewedBy           User?                  @relation("ReviewedBy", fields: [reviewedById], references: [id])
-  import               Import?                @relation(fields: [importId], references: [id])
-  options              QuestionOption[]
-  explanation          Explanation?
-  examSessionQuestions ExamSessionQuestion[]
-  userAnswers          UserAnswer[]
-  questionFlags        QuestionFlag[]
+  id                   String                @id @default(cuid())
+  subjectId            String
+  topicId              String?
+  proseTextId          String?
+  text                 String
+  year                 Int?
+  difficulty           Difficulty            @default(MEDIUM)
+  sourceType           SourceType            @default(MANUAL)
+  sourceRef            String?
+  isPublished          Boolean               @default(false)
+  aiAssisted           Boolean               @default(false)
+  reviewedAt           DateTime?
+  reviewedById         String?
+  importId             String?
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  flagCount            Int                   @default(0)
+  isFlagged            Boolean               @default(false)
+  imageUrl             String?
+  examType             ExamType?
+  school               String?
   adminNotifications   AdminNotification[]
+  examSessionQuestions ExamSessionQuestion[]
+  explanation          Explanation?
+  questionFlags        QuestionFlag[]
+  options              QuestionOption[]
+  import               Import?               @relation(fields: [importId], references: [id])
+  proseText            ProseText?            @relation(fields: [proseTextId], references: [id])
+  reviewedBy           User?                 @relation("ReviewedBy", fields: [reviewedById], references: [id])
+  subject              Subject               @relation(fields: [subjectId], references: [id])
+  topic                Topic?                @relation(fields: [topicId], references: [id])
+  userAnswers          UserAnswer[]
 
   @@index([subjectId])
   @@index([topicId])
@@ -179,18 +183,21 @@ model Question {
   @@index([subjectId, isPublished])
   @@index([subjectId, year, isPublished])
   @@index([topicId, isPublished])
+  @@index([examType])
+  @@index([school, examType])
+  @@index([school, examType, year])
+  @@index([school])
   @@map("questions")
 }
 
 model QuestionOption {
-  id         String   @id @default(cuid())
-  questionId String
-  label      String   // A, B, C, D
-  text       String   @db.Text
-  isCorrect  Boolean  @default(false)
-  sortOrder  Int      @default(0)
-  createdAt  DateTime @default(now())
-
+  id          String       @id @default(cuid())
+  questionId  String
+  label       String
+  text        String
+  isCorrect   Boolean      @default(false)
+  sortOrder   Int          @default(0)
+  createdAt   DateTime     @default(now())
   question    Question     @relation(fields: [questionId], references: [id], onDelete: Cascade)
   userAnswers UserAnswer[]
 
@@ -199,106 +206,97 @@ model QuestionOption {
 }
 
 model Explanation {
-  id          String   @id @default(cuid())
-  questionId  String   @unique
-  text        String   @db.Text
-  aiAssisted  Boolean  @default(false)
-  reviewed    Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  id         String   @id @default(cuid())
+  questionId String   @unique
+  text       String
+  aiAssisted Boolean  @default(false)
+  reviewed   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
   @@map("explanations")
 }
 
-// ─── Prose ───────────────────────────────────────────────────────────────────
-
 model ProseText {
-  id          String   @id @default(cuid())
-  title       String   @unique
+  id          String         @id @default(cuid())
+  title       String         @unique
   author      String?
   year        Int?
-  summary     String?  @db.Text
-  themes      String?  @db.Text
-  isPublished Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  sections  ProseSection[]
-  questions Question[]
+  summary     String?
+  themes      String?
+  isPublished Boolean        @default(false)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  sections    ProseSection[]
+  questions   Question[]
 
   @@map("prose_texts")
 }
 
 model ProseSection {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   proseTextId String
   title       String
-  content     String   @db.Text
-  sortOrder   Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  proseText ProseText @relation(fields: [proseTextId], references: [id], onDelete: Cascade)
+  content     String
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  proseText   ProseText @relation(fields: [proseTextId], references: [id], onDelete: Cascade)
 
   @@index([proseTextId])
   @@map("prose_sections")
 }
 
-// ─── Exam Templates & Sessions ───────────────────────────────────────────────
-
 model ExamTemplate {
-  id              String   @id @default(cuid())
+  id              String                @id @default(cuid())
   name            String
   description     String?
-  durationMinutes Int      @default(120)
-  totalQuestions  Int      @default(40)
-  isActive        Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  subjects     ExamTemplateSubject[]
-  examSessions ExamSession[]
+  durationMinutes Int                   @default(120)
+  totalQuestions  Int                   @default(40)
+  isActive        Boolean               @default(true)
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  examSessions    ExamSession[]
+  subjects        ExamTemplateSubject[]
 
   @@map("exam_templates")
 }
 
 model ExamTemplateSubject {
-  id             String @id @default(cuid())
+  id             String       @id @default(cuid())
   examTemplateId String
   subjectId      String
-  questionCount  Int    @default(10)
-
-  examTemplate ExamTemplate @relation(fields: [examTemplateId], references: [id], onDelete: Cascade)
-  subject      Subject      @relation(fields: [subjectId], references: [id])
+  questionCount  Int          @default(10)
+  examTemplate   ExamTemplate @relation(fields: [examTemplateId], references: [id], onDelete: Cascade)
+  subject        Subject      @relation(fields: [subjectId], references: [id])
 
   @@unique([examTemplateId, subjectId])
   @@map("exam_template_subjects")
 }
 
 model ExamSession {
-  id               String            @id @default(cuid())
-  userId           String
-  examTemplateId   String?
-  mode             ExamMode          @default(MOCK)
-  subjectId        String?
-  topicId          String?
-  status           ExamStatus        @default(IN_PROGRESS)
-  startedAt        DateTime          @default(now())
-  submittedAt      DateTime?
-  expiresAt        DateTime?
-  durationMinutes  Int               @default(120)
-  totalQuestions   Int
-  currentQuestion  Int               @default(0)
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
-
-  user          User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  examTemplate  ExamTemplate?         @relation(fields: [examTemplateId], references: [id])
-  questions     ExamSessionQuestion[]
-  userAnswers   UserAnswer[]
-  result        Result?
+  id              String                @id @default(cuid())
+  userId          String
+  examTemplateId  String?
+  mode            ExamMode              @default(MOCK)
+  subjectId       String?
+  topicId         String?
+  status          ExamStatus            @default(IN_PROGRESS)
+  startedAt       DateTime              @default(now())
+  submittedAt     DateTime?
+  expiresAt       DateTime?
+  durationMinutes Int                   @default(120)
+  totalQuestions  Int
+  currentQuestion Int                   @default(0)
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  school          String?
+  questions       ExamSessionQuestion[]
+  examTemplate    ExamTemplate?         @relation(fields: [examTemplateId], references: [id])
+  user            User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  result          Result?
+  userAnswers     UserAnswer[]
 
   @@index([userId])
   @@index([userId, status])
@@ -306,15 +304,14 @@ model ExamSession {
 }
 
 model ExamSessionQuestion {
-  id            String   @id @default(cuid())
+  id            String      @id @default(cuid())
   examSessionId String
   questionId    String
   position      Int
-  markedReview  Boolean  @default(false)
-  createdAt     DateTime @default(now())
-
-  examSession ExamSession @relation(fields: [examSessionId], references: [id], onDelete: Cascade)
-  question    Question    @relation(fields: [questionId], references: [id])
+  markedReview  Boolean     @default(false)
+  createdAt     DateTime    @default(now())
+  examSession   ExamSession @relation(fields: [examSessionId], references: [id], onDelete: Cascade)
+  question      Question    @relation(fields: [questionId], references: [id])
 
   @@unique([examSessionId, questionId])
   @@index([examSessionId])
@@ -322,59 +319,51 @@ model ExamSessionQuestion {
 }
 
 model UserAnswer {
-  id            String   @id @default(cuid())
+  id            String          @id @default(cuid())
   examSessionId String
   questionId    String
   optionId      String?
   isCorrect     Boolean?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  examSession ExamSession    @relation(fields: [examSessionId], references: [id], onDelete: Cascade)
-  question    Question       @relation(fields: [questionId], references: [id])
-  option      QuestionOption? @relation(fields: [optionId], references: [id])
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  examSession   ExamSession     @relation(fields: [examSessionId], references: [id], onDelete: Cascade)
+  option        QuestionOption? @relation(fields: [optionId], references: [id])
+  question      Question        @relation(fields: [questionId], references: [id])
 
   @@unique([examSessionId, questionId])
   @@index([examSessionId])
   @@map("user_answers")
 }
 
-// ─── Results ─────────────────────────────────────────────────────────────────
-
 model Result {
-  id               String   @id @default(cuid())
-  examSessionId    String   @unique
-  userId           String
-  totalQuestions   Int
-  correct          Int
-  incorrect        Int
-  unanswered       Int
-  score            Float    // percentage
-  createdAt        DateTime @default(now())
-
-  examSession       ExamSession              @relation(fields: [examSessionId], references: [id], onDelete: Cascade)
-  subjectBreakdowns ResultSubjectBreakdown[]
-  topicBreakdowns   ResultTopicBreakdown[]
+  id                String                   @id @default(cuid())
+  examSessionId     String                   @unique
+  userId            String
+  totalQuestions    Int
+  correct           Int
+  incorrect         Int
+  unanswered        Int
+  score             Float
   subjectBreakdown  Json                     @default("{}")
   topicBreakdown    Json                     @default("{}")
+  createdAt         DateTime                 @default(now())
+  subjectBreakdowns ResultSubjectBreakdown[]
+  topicBreakdowns   ResultTopicBreakdown[]
+  examSession       ExamSession              @relation(fields: [examSessionId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([userId, createdAt])
   @@map("results")
 }
 
-// Historical snapshot of per-subject performance for a single exam result.
-// subjectId is a plain String (no FK to Subject) so deleting a subject does not
-// destroy historical analytics data.
 model ResultSubjectBreakdown {
   id        String @id @default(cuid())
   resultId  String
-  subjectId String // reference only — no FK constraint (historical snapshot)
-  name      String // snapshot of subject name at submission time
+  subjectId String
+  name      String
   correct   Int
   total     Int
-
-  result Result @relation(fields: [resultId], references: [id], onDelete: Cascade)
+  result    Result @relation(fields: [resultId], references: [id], onDelete: Cascade)
 
   @@unique([resultId, subjectId])
   @@index([resultId])
@@ -382,17 +371,14 @@ model ResultSubjectBreakdown {
   @@map("result_subject_breakdowns")
 }
 
-// Historical snapshot of per-topic performance for a single exam result.
-// topicId is a plain String (no FK to Topic) for the same reason as above.
 model ResultTopicBreakdown {
   id       String @id @default(cuid())
   resultId String
-  topicId  String // reference only — no FK constraint (historical snapshot)
-  name     String // snapshot of topic name at submission time
+  topicId  String
+  name     String
   correct  Int
   total    Int
-
-  result Result @relation(fields: [resultId], references: [id], onDelete: Cascade)
+  result   Result @relation(fields: [resultId], references: [id], onDelete: Cascade)
 
   @@unique([resultId, topicId])
   @@index([resultId])
@@ -400,21 +386,16 @@ model ResultTopicBreakdown {
   @@map("result_topic_breakdowns")
 }
 
-// ─── Course/Subject Combinations ─────────────────────────────────────────────
-
 model CourseSubjectCombination {
-  id               String @id @default(cuid())
+  id               String         @id @default(cuid())
   studentProfileId String
   subjectId        String
-
-  studentProfile StudentProfile @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
-  subject        Subject        @relation(fields: [subjectId], references: [id])
+  studentProfile   StudentProfile @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+  subject          Subject        @relation(fields: [subjectId], references: [id])
 
   @@unique([studentProfileId, subjectId])
   @@map("course_subject_combinations")
 }
-
-// ─── Imports ─────────────────────────────────────────────────────────────────
 
 model Import {
   id            String       @id @default(cuid())
@@ -429,15 +410,12 @@ model Import {
   errorLog      Json?
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
-
-  uploadedBy User       @relation(fields: [uploadedById], references: [id])
-  questions  Question[]
+  uploadedBy    User         @relation(fields: [uploadedById], references: [id])
+  questions     Question[]
 
   @@index([uploadedById])
   @@map("imports")
 }
-
-// ─── Admin Activity ───────────────────────────────────────────────────────────
 
 model AdminActivityLog {
   id         String   @id @default(cuid())
@@ -453,8 +431,6 @@ model AdminActivityLog {
   @@map("admin_activity_logs")
 }
 
-// ─── Question Flags (per-user, tracks resolved status) ───────────────────────
-
 model QuestionFlag {
   id         String    @id @default(cuid())
   questionId String
@@ -462,9 +438,8 @@ model QuestionFlag {
   resolved   Boolean   @default(false)
   resolvedAt DateTime?
   createdAt  DateTime  @default(now())
-
-  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question   Question  @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([questionId, userId])
   @@index([userId])
@@ -472,26 +447,21 @@ model QuestionFlag {
   @@map("question_flags")
 }
 
-// ─── Admin Notifications ──────────────────────────────────────────────────────
-
 model AdminNotification {
-  id           String   @id @default(cuid())
-  type         String   // "QUESTION_FLAGGED"
-  questionId   String?
+  id            String    @id @default(cuid())
+  type          String
+  questionId    String?
   triggeredById String?
-  message      String
-  read         Boolean  @default(false)
-  createdAt    DateTime @default(now())
-
-  question    Question? @relation(fields: [questionId], references: [id], onDelete: SetNull)
-  triggeredBy User?     @relation("NotificationTriggeredBy", fields: [triggeredById], references: [id], onDelete: SetNull)
+  message       String
+  read          Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  question      Question? @relation(fields: [questionId], references: [id])
+  triggeredBy   User?     @relation("NotificationTriggeredBy", fields: [triggeredById], references: [id])
 
   @@index([read])
   @@index([createdAt])
   @@map("admin_notifications")
 }
-
-// ─── Enums ───────────────────────────────────────────────────────────────────
 
 enum Role {
   STUDENT
@@ -514,6 +484,7 @@ enum ExamMode {
   MOCK
   PRACTICE
   TOPIC
+  POST_UTME
 }
 
 enum ExamStatus {
@@ -533,4 +504,15 @@ enum ImportStatus {
   PROCESSING
   DONE
   FAILED
+}
+
+enum ExamType {
+  JAMB
+  WAEC
+  POST_UTME
+}
+
+enum Plan {
+  FREE
+  PREMIUM
 }

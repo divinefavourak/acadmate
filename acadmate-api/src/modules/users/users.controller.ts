@@ -1,6 +1,7 @@
 import {
   Controller,
   Get,
+  Post,
   Patch,
   Delete,
   Body,
@@ -21,6 +22,10 @@ class UpdateMeDto {
   @IsOptional() @IsString() institution?: string;
   @IsOptional() @IsObject() avatarConfig?: Record<string, unknown>;
   @IsOptional() @IsString() avatarUrl?: string;
+}
+
+class RedeemTokenDto {
+  @IsString() code!: string;
 }
 
 @ApiTags('users')
@@ -47,5 +52,18 @@ export class UsersController {
   @ApiOperation({ summary: 'Permanently delete own account and all data' })
   deleteMe(@CurrentUser() user: JwtUser) {
     return this.usersService.deleteMe(user.id);
+  }
+
+  @Post('me/redeem-token')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Redeem an access code to upgrade to Premium' })
+  redeemToken(@CurrentUser() user: JwtUser, @Body() dto: RedeemTokenDto) {
+    return this.usersService.redeemToken(user.id, dto.code);
+  }
+
+  @Get('me/plan')
+  @ApiOperation({ summary: 'Get current user plan' })
+  getMyPlan(@CurrentUser() user: JwtUser) {
+    return this.usersService.getMyPlan(user.id);
   }
 }

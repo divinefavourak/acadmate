@@ -51,6 +51,12 @@ export class ExamsController {
     return this.examsService.listSessions(user.id, query.limit ?? 20, query.offset ?? 0);
   }
 
+  @Get('active')
+  @ApiOperation({ summary: 'List in-progress (resumable) exam sessions' })
+  listActiveSessions(@CurrentUser() user: JwtUser) {
+    return this.examsService.listActiveSessions(user.id);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get exam session state (questions, answers, timer)' })
   getSession(@CurrentUser() user: JwtUser, @Param('id') id: string) {

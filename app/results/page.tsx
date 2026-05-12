@@ -5,6 +5,17 @@ import Link from "next/link";
 import Loader from "@/app/components/Loader";
 import { apiClient } from "@/lib/api/client";
 
+interface ActiveSession {
+  id: string;
+  mode: string;
+  status: string;
+  totalQuestions: number;
+  durationMinutes: number;
+  startedAt: string;
+  expiresAt: string | null;
+  school: string | null;
+}
+
 interface ResultEntry {
   id: string;
   score: number;
@@ -26,10 +37,21 @@ function formatDate(iso: string) {
   });
 }
 
+function timeRemaining(expiresAt: string | null): string {
+  if (!expiresAt) return "";
+  const ms = new Date(expiresAt).getTime() - Date.now();
+  if (ms <= 0) return "Expired";
+  const mins = Math.floor(ms / 60000);
+  const hrs = Math.floor(mins / 60);
+  if (hrs > 0) return `${hrs}h ${mins % 60}m left`;
+  return `${mins}m left`;
+}
+
 function modeLabel(mode: string) {
   if (mode === "MOCK") return "Full UTME Mock";
   if (mode === "PRACTICE") return "Practice Session";
   if (mode === "TOPIC") return "Topic Practice";
+  if (mode === "POST_UTME") return "Post-UTME";
   return mode;
 }
 
@@ -40,12 +62,19 @@ function scoreColor(score: number) {
 }
 
 export default function ResultsPage() {
+  const [activeSessions, setActiveSessions] = useState<ActiveSession[]>([]);
   const [results, setResults] = useState<ResultEntry[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const [error, setError] = useState("");
   const limit = 10;
+
+  useEffect(() => {
+    apiClient<{ sessions: ActiveSession[] }>("/api/exams/active")
+      .then((data) => setActiveSessions(data?.sessions ?? []))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     setLoading(true);
@@ -70,6 +99,68 @@ export default function ResultsPage() {
         <h1 className="text-3xl font-bold tracking-tight mb-2">My Exams</h1>
         <p className="text-slate-500 dark:text-slate-400">Your complete exam history.</p>
       </div>
+
+      {/* ── In-Progress Sessions ── */}
+      {activeSessions.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+            <h2 className="font-semibold text-sm text-slate-400 uppercase tracking-wider">In Progress</h2>
+          </div>
+          {activeSessions.map((s) => {
+            const remaining = s.expiresAt ? timeRemaining(s.expiresAt) : null;
+            const isExpired = remaining === "Expired";
+            return (
+              <div
+                key={s.id}
+                className="glass-panel rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center gap-4 border border-amber-500/20 bg-amber-500/5"
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-semibold text-sm">{modeLabel(s.mode)}</span>
+                    {s.school && (
+                      <span className="text-xs text-slate-500">· {s.school}</span>
+                    )}
+                    {isExpired ? (
+                      <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/20">
+                        Time expired
+                      </span>
+                    ) : (
+                      <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/20">
+                        In progress
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3 text-xs text-slate-500">
+                    <span>Started {formatDate(s.startedAt)}</span>
+                    <span>·</span>
+                    <span>{s.totalQuestions} questions</span>
+                    {remaining && !isExpired && (
+                      <>
+                        <span>·</span>
+                        <span className="text-amber-500 font-medium">{remaining}</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+                {!isExpired ? (
+                  <Link
+                    href={`/exam/${s.id}`}
+                    className="shrink-0 inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-xl transition-colors"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polygon points="5 3 19 12 5 21 5 3"/>
+                    </svg>
+                    Resume Exam
+                  </Link>
+                ) : (
+                  <span className="shrink-0 text-xs text-slate-500 italic">Cannot resume — time has run out</span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       <div className="glass-panel p-6 rounded-2xl">
         {error ? (

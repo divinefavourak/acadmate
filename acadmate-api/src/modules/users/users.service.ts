@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 
@@ -15,6 +15,7 @@ export class UsersService {
         name: true,
         email: true,
         role: true,
+        plan: true,
         createdAt: true,
         studentProfile: {
           select: {
@@ -80,5 +81,33 @@ export class UsersService {
   async deleteMe(userId: string) {
     await this.prisma.user.delete({ where: { id: userId } });
     return { deleted: true };
+  }
+
+  async redeemToken(userId: string, code: string) {
+    const token = await this.prisma.accessToken.findUnique({ where: { code: code.trim().toUpperCase() } });
+    if (!token) throw new BadRequestException('Invalid access code. Please check and try again.');
+    if (token.usedById) throw new BadRequestException('This access code has already been used.');
+
+    await this.prisma.$transaction([
+      this.prisma.accessToken.update({
+        where: { id: token.id },
+        data: { usedById: userId, usedAt: new Date() },
+      }),
+      this.prisma.user.update({
+        where: { id: userId },
+        data: { plan: 'PREMIUM' },
+      }),
+    ]);
+
+    return { success: true, message: 'Access code redeemed successfully! You now have Premium access.' };
+  }
+
+  async getMyPlan(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { plan: true },
+    });
+    if (!user) throw new NotFoundException('User not found');
+    return { plan: user.plan };
   }
 }

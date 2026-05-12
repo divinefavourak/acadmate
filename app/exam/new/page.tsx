@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { apiClient, ApiError } from "@/lib/api/client";
 import Loader from "@/app/components/Loader";
 import Folder from "@/app/admin/components/Folder";
@@ -135,7 +136,11 @@ export default function NewExamPage() {
       });
       router.push(`/exam/${data.examSession.id}`);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Failed to start exam. Please try again.");
+      if (err instanceof ApiError && err.status === 402) {
+        setError("__PAYWALL__");
+      } else {
+        setError(err instanceof ApiError ? err.message : "Failed to start exam. Please try again.");
+      }
       setStarting(false);
     }
   }
@@ -144,11 +149,11 @@ export default function NewExamPage() {
   const otherSubjects = subjects.filter((s) => s.code !== "ENG");
   const remaining = 3 - selectedSubjectIds.length;
 
-  const modeCards: { id: Mode; title: string; description: string }[] = [
-    { id: "MOCK", title: "Full UTME Mock", description: "Timed exam across all 4 subjects, just like the real UTME." },
-    { id: "PRACTICE", title: "Subject Practice", description: "Focus on a single subject at your own pace." },
-    { id: "TOPIC", title: "Topic Drill", description: "Deep-dive into a specific topic within a subject." },
-    { id: "POST_UTME", title: "Post-UTME", description: "Practice with real past questions from your target institution." },
+  const modeCards: { id: Mode; title: string; description: string; premium?: boolean }[] = [
+    { id: "MOCK", title: "Full UTME Mock", description: "Timed exam across all 4 subjects, just like the real UTME.", premium: true },
+    { id: "PRACTICE", title: "Subject Practice", description: "Focus on a single subject at your own pace (up to 20 questions on free plan)." },
+    { id: "TOPIC", title: "Topic Drill", description: "Deep-dive into a specific topic within a subject (up to 20 questions on free plan)." },
+    { id: "POST_UTME", title: "Post-UTME", description: "Practice with real past questions from your target institution.", premium: true },
   ];
 
   const startDisabled =
@@ -176,17 +181,22 @@ export default function NewExamPage() {
           <div className="glass-panel p-6 rounded-2xl space-y-4">
             <h2 className="font-semibold text-lg">Exam Type</h2>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {modeCards.map(({ id, title, description }) => (
+              {modeCards.map(({ id, title, description, premium }) => (
                 <button
                   key={id}
                   onClick={() => setMode(id)}
-                  className={`p-4 rounded-xl border-2 text-left transition-all ${
+                  className={`p-4 rounded-xl border-2 text-left transition-all relative ${
                     mode === id
                       ? "border-indigo-500 bg-indigo-50/50 dark:bg-indigo-900/20"
                       : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
                   }`}
                 >
-                  <div className="font-semibold mb-1 text-sm">{title}</div>
+                  {premium && (
+                    <span className="absolute top-2 right-2 text-xs font-semibold px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30">
+                      Premium
+                    </span>
+                  )}
+                  <div className="font-semibold mb-1 text-sm pr-14">{title}</div>
                   <div className="text-xs text-slate-500 dark:text-slate-400">{description}</div>
                 </button>
               ))}
@@ -462,9 +472,30 @@ export default function NewExamPage() {
             </div>
           )}
 
-          {error && (
+          {error && error !== "__PAYWALL__" && (
             <div className="px-4 py-3 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-sm">
               {error}
+            </div>
+          )}
+
+          {error === "__PAYWALL__" && (
+            <div className="p-5 rounded-2xl bg-amber-500/8 border border-amber-500/25 space-y-3">
+              <div className="flex items-start gap-3">
+                <span className="text-2xl shrink-0">⭐</span>
+                <div>
+                  <p className="font-semibold text-amber-300 mb-1">Premium Required</p>
+                  <p className="text-sm text-slate-400">
+                    MOCK and Post-UTME exams are available on the Premium plan. Redeem an access code to unlock full access.
+                  </p>
+                </div>
+              </div>
+              <Link
+                href="/dashboard/upgrade"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 text-sm font-semibold rounded-xl transition-colors"
+              >
+                Redeem Access Code
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+              </Link>
             </div>
           )}
 
