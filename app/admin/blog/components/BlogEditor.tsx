@@ -69,7 +69,7 @@ export default function BlogEditor({ mode, initial }: BlogEditorProps) {
       slug: form.slug.trim() || undefined,
       excerpt: form.excerpt.trim(),
       body: form.body,
-      coverImageUrl: form.coverImageUrl ?? undefined,
+      coverImageUrl: form.coverImageUrl,
       category: form.category,
     };
 
@@ -107,7 +107,7 @@ export default function BlogEditor({ mode, initial }: BlogEditorProps) {
     }
 
     // Save first so the published version reflects current edits.
-    const id = mode === "create" ? await handleSave() : initial?.id ?? null;
+    const id = await handleSave();
     if (!id) return;
 
     setError("");

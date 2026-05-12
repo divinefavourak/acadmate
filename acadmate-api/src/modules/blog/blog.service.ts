@@ -26,7 +26,7 @@ export type CreateBlogPostInput = {
   slug?: string;
   excerpt: string;
   body: string;
-  coverImageUrl?: string;
+  coverImageUrl?: string | null;
   category: BlogCategory;
 };
 

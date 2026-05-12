@@ -43,7 +43,7 @@ class CreateBlogPostDto {
   @IsOptional() @IsString() @MaxLength(96) slug?: string;
   @IsString() @MaxLength(500) excerpt!: string;
   @IsString() body!: string;
-  @IsOptional() @IsString() coverImageUrl?: string;
+  @IsOptional() @IsString() coverImageUrl?: string | null;
   @IsIn(ALLOWED_CATEGORIES) category!: BlogCategory;
 }
 
@@ -52,7 +52,7 @@ class UpdateBlogPostDto {
   @IsOptional() @IsString() @MaxLength(96) slug?: string;
   @IsOptional() @IsString() @MaxLength(500) excerpt?: string;
   @IsOptional() @IsString() body?: string;
-  @IsOptional() @IsString() coverImageUrl?: string;
+  @IsOptional() @IsString() coverImageUrl?: string | null;
   @IsOptional() @IsIn(ALLOWED_CATEGORIES) category?: BlogCategory;
 }
 

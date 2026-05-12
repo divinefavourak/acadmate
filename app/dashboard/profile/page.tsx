@@ -121,7 +121,7 @@ export default function ProfilePage() {
           targetYear: form.targetYear ? Number(form.targetYear) : undefined,
           courseChoice: form.courseChoice || undefined,
           institution: form.institution || undefined,
-          utmeSubjectIds: utmeSubjectIds.length === 3 ? utmeSubjectIds : undefined,
+          utmeSubjectIds,
         }),
       });
       setProfile(updated);

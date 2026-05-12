@@ -8,19 +8,15 @@ const UTME_SUBJECT_QUESTIONS = 40;
 const UTME_DURATION_MINUTES = 120;
 const ENGLISH_CODE = 'ENG';
 
-const POST_UTME_DEFAULT_QUESTIONS = 40;
-const POST_UTME_DURATION_MINUTES = 30;
-
 // Post-UTME composition: English + Math + General Knowledge + 3 UTME subjects.
-// Splits are tuned for a 40-question paper; the factory takes whatever is
-// available for each subject and only errors if the combined total is too low.
+// Weights are tuned for a 40-question paper, then scaled to the requested
+// question count so shorter packs keep the same rough balance.
 const POST_UTME_SPLIT = {
   ENG: 10,
   MTH: 10,
   GEN: 5,
   UTME_PER_SUBJECT: 5,
 } as const;
-const POST_UTME_MIN_QUESTIONS = 10;
 
 // ─── Input types (identical to original lib/services/exam-factory.ts) ─────────
 export type MockExamInput = {
@@ -247,26 +243,28 @@ export class ExamFactoryService {
     });
     const fixedById = new Map(fixed.map((s) => [s.code, s.id]));
 
-    const buckets: { subjectId: string; limit: number }[] = [];
+    const weightedBuckets: { subjectId: string; weight: number }[] = [];
     const engId = fixedById.get('ENG');
     const mthId = fixedById.get('MTH');
     const genId = fixedById.get('GEN');
-    if (engId) buckets.push({ subjectId: engId, limit: POST_UTME_SPLIT.ENG });
-    if (mthId) buckets.push({ subjectId: mthId, limit: POST_UTME_SPLIT.MTH });
-    if (genId) buckets.push({ subjectId: genId, limit: POST_UTME_SPLIT.GEN });
+    if (engId) weightedBuckets.push({ subjectId: engId, weight: POST_UTME_SPLIT.ENG });
+    if (mthId) weightedBuckets.push({ subjectId: mthId, weight: POST_UTME_SPLIT.MTH });
+    if (genId) weightedBuckets.push({ subjectId: genId, weight: POST_UTME_SPLIT.GEN });
 
     // UTME combination subjects — skip any that overlap with ENG/MTH/GEN
     // (a student picking Math as one of their three would otherwise double-count).
-    const fixedIds = new Set(buckets.map((b) => b.subjectId));
+    const fixedIds = new Set(weightedBuckets.map((b) => b.subjectId));
     for (const sid of input.utmeSubjectIds) {
       if (fixedIds.has(sid)) continue;
-      buckets.push({ subjectId: sid, limit: POST_UTME_SPLIT.UTME_PER_SUBJECT });
+      weightedBuckets.push({ subjectId: sid, weight: POST_UTME_SPLIT.UTME_PER_SUBJECT });
     }
 
     const yearFilter = input.year ?? null;
+    const desiredCount = input.questionCount;
+    const buckets = allocateBucketLimits(weightedBuckets, desiredCount);
 
     const batches = await Promise.all(
-      buckets.map(({ subjectId, limit }) =>
+      buckets.map(({ subjectId }) =>
         yearFilter != null
           ? this.prisma.$queryRaw<{ id: string }[]>`
               SELECT q.id FROM questions q
@@ -281,7 +279,7 @@ export class ExamFactoryService {
                   WHERE qo."questionId" = q.id AND qo."isCorrect" = true
                 )
               ORDER BY RANDOM()
-              LIMIT ${limit}
+              LIMIT ${desiredCount}
             `
           : this.prisma.$queryRaw<{ id: string }[]>`
               SELECT q.id FROM questions q
@@ -295,27 +293,61 @@ export class ExamFactoryService {
                   WHERE qo."questionId" = q.id AND qo."isCorrect" = true
                 )
               ORDER BY RANDOM()
-              LIMIT ${limit}
+              LIMIT ${desiredCount}
             `,
       ),
     );
 
-    const collected = batches.flatMap((batch) => batch.map((r) => r.id));
+    const selected: string[] = [];
+    const surplus: string[] = [];
+    batches.forEach((batch, index) => {
+      const shuffled = fisherYates(batch.map((r) => r.id));
+      selected.push(...shuffled.slice(0, buckets[index].limit));
+      surplus.push(...shuffled.slice(buckets[index].limit));
+    });
 
-    if (collected.length < POST_UTME_MIN_QUESTIONS) {
+    const collected = [...selected, ...fisherYates(surplus)].slice(0, desiredCount);
+
+    if (collected.length < desiredCount) {
       throw new ExamFactoryError(
         `Not enough Post-UTME questions for "${input.school}"${input.year ? ` (${input.year})` : ''} ` +
-          `with your subject combination. Found ${collected.length} — need at least ${POST_UTME_MIN_QUESTIONS}.`,
+          `with your subject combination. Found ${collected.length} - need ${desiredCount}.`,
         422,
       );
     }
 
     const questionIds = fisherYates(collected);
-    return { questionIds, durationMinutes: POST_UTME_DURATION_MINUTES };
+    return { questionIds, durationMinutes: desiredCount * 2 };
   }
 }
 
 // ─── Fisher-Yates shuffle (identical to original) ─────────────────────────────
+function allocateBucketLimits(
+  buckets: { subjectId: string; weight: number }[],
+  total: number,
+): { subjectId: string; limit: number }[] {
+  const totalWeight = buckets.reduce((sum, bucket) => sum + bucket.weight, 0);
+  if (totalWeight === 0 || total <= 0) return [];
+
+  const quotas = buckets.map((bucket) => {
+    const raw = (total * bucket.weight) / totalWeight;
+    return {
+      subjectId: bucket.subjectId,
+      limit: Math.floor(raw),
+      remainder: raw - Math.floor(raw),
+    };
+  });
+
+  let assigned = quotas.reduce((sum, quota) => sum + quota.limit, 0);
+  for (const quota of [...quotas].sort((a, b) => b.remainder - a.remainder)) {
+    if (assigned >= total) break;
+    quota.limit += 1;
+    assigned += 1;
+  }
+
+  return quotas.map(({ subjectId, limit }) => ({ subjectId, limit }));
+}
+
 function fisherYates<T>(array: T[]): T[] {
   const shuffled = [...array];
   for (let i = shuffled.length - 1; i > 0; i--) {
