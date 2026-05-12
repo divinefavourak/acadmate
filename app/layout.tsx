@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Outfit } from "next/font/google";
 import "./globals.css";
 
@@ -7,9 +7,22 @@ const outfit = Outfit({
   subsets: ["latin"],
 });
 
+export const viewport: Viewport = {
+  themeColor: "#6366f1",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+};
+
 export const metadata: Metadata = {
-  title: "Acadmate UTME CBT Practice",
-  description: "Advanced UTME CBT Rock-Solid Practice Platform",
+  title: "Acadmate CBT Practice",
+  description: "Advanced CBT practice for UTME and Post-UTME exams",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Acadmate",
+  },
   icons: {
     icon: "/images/logo.jpg",
     apple: "/images/logo.jpg",

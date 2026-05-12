@@ -2,7 +2,6 @@
 
 import { useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { setToken } from "@/lib/api/auth";
 import { apiClient } from "@/lib/api/client";
 
 function CallbackHandler() {
@@ -10,27 +9,22 @@ function CallbackHandler() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    const token = searchParams.get("token");
     const role = searchParams.get("role");
 
-    if (!token) {
-      router.replace("/login?error=oauth_failed");
-      return;
-    }
-
-    setToken(token);
-
+    // The backend already set the HttpOnly cookie before this redirect.
+    // No token is passed in the URL — auth is handled entirely via cookie.
     if (role === "ADMIN") {
       router.replace("/admin");
       return;
     }
 
-    // Decide between dashboard (returning user) and onboarding (first OAuth sign-in)
+    // Decide between dashboard (returning user) and onboarding (first OAuth sign-in).
+    // The apiClient sends credentials: 'include', so the HttpOnly cookie authenticates this call.
     apiClient<{ onboardedAt: string | null }>("/api/users/me")
       .then((me) => {
         router.replace(me.onboardedAt ? "/dashboard" : "/onboarding");
       })
-      .catch(() => router.replace("/dashboard"));
+      .catch(() => router.replace("/login?error=oauth_failed"));
   }, [router, searchParams]);
 
   return (

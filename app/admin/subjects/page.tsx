@@ -19,7 +19,15 @@ export default function SubjectsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  useEffect(() => {
+  // Create form
+  const [creating, setCreating] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newCode, setNewCode] = useState("");
+  const [createError, setCreateError] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  function loadSubjects() {
+    setLoading(true);
     apiClient<{ subjects: SubjectEntry[] }>("/api/admin/subjects")
       .then((data) => setSubjects(data?.subjects ?? []))
       .catch((err) => {
@@ -27,7 +35,9 @@ export default function SubjectsPage() {
         setError("Failed to load subjects. Please refresh.");
       })
       .finally(() => setLoading(false));
-  }, []);
+  }
+
+  useEffect(() => { loadSubjects(); }, []);
 
   async function toggleActive(id: string, current: boolean) {
     try {
@@ -39,19 +49,98 @@ export default function SubjectsPage() {
         prev.map((s) => s.id === id ? { ...s, isActive: !current } : s)
       );
     } catch (err) {
-      console.error("Failed to update subject", err);
       setError(err instanceof ApiError ? err.message : "Failed to update subject status.");
+    }
+  }
+
+  async function handleCreate(e: React.FormEvent) {
+    e.preventDefault();
+    const name = newName.trim();
+    const code = newCode.trim().toUpperCase();
+    if (!name || !code) { setCreateError("Name and code are required."); return; }
+
+    setSaving(true);
+    setCreateError("");
+    try {
+      await apiClient("/api/admin/subjects", {
+        method: "POST",
+        body: JSON.stringify({ name, code }),
+      });
+      setNewName("");
+      setNewCode("");
+      setCreating(false);
+      loadSubjects();
+    } catch (err) {
+      setCreateError(err instanceof ApiError ? err.message : "Failed to create subject.");
+    } finally {
+      setSaving(false);
     }
   }
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight mb-2">Subjects</h1>
-        <p className="text-slate-400">Manage UTME subjects.</p>
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight mb-2">Subjects</h1>
+          <p className="text-slate-400">Manage exam subjects available for questions.</p>
+        </div>
+        {!creating && (
+          <button
+            onClick={() => { setCreating(true); setCreateError(""); }}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-all active:scale-95"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add Subject
+          </button>
+        )}
       </div>
 
-      {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
+      {error && <p className="text-red-500 text-sm">{error}</p>}
+
+      {creating && (
+        <form onSubmit={handleCreate} className="bg-slate-800/50 border border-indigo-700/50 rounded-2xl p-5 space-y-4">
+          <h2 className="text-sm font-semibold text-indigo-400 uppercase tracking-wider">New Subject</h2>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex-1 space-y-1">
+              <label className="text-xs font-medium text-slate-400">Name <span className="text-red-400">*</span></label>
+              <input
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                placeholder="e.g. General Knowledge"
+                className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                autoFocus
+              />
+            </div>
+            <div className="w-full sm:w-36 space-y-1">
+              <label className="text-xs font-medium text-slate-400">Code <span className="text-red-400">*</span></label>
+              <input
+                value={newCode}
+                onChange={(e) => setNewCode(e.target.value.toUpperCase())}
+                placeholder="e.g. GK"
+                maxLength={10}
+                className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+              />
+            </div>
+          </div>
+          {createError && <p className="text-red-400 text-xs">{createError}</p>}
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              disabled={saving}
+              className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-all disabled:opacity-50 active:scale-95"
+            >
+              {saving ? "Saving…" : "Save Subject"}
+            </button>
+            <button
+              type="button"
+              onClick={() => { setCreating(false); setNewName(""); setNewCode(""); setCreateError(""); }}
+              className="px-4 py-2 rounded-xl border border-slate-700 text-slate-300 hover:bg-slate-800 text-sm font-medium transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      )}
 
       <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6">
         {loading ? (

@@ -4,22 +4,55 @@ services:
     runtime: docker
     rootDir: acadmate-api
     dockerfilePath: ./Dockerfile
+    plan: starter
+    healthCheckPath: /health
     envVars:
       - key: NODE_ENV
         value: production
+
+      # Database (Neon PostgreSQL — use pooled URL for runtime, direct for migrations)
       - key: DATABASE_URL
         sync: false
       - key: DIRECT_URL
         sync: false
+
+      # Auth
       - key: JWT_SECRET
         sync: false
       - key: JWT_EXPIRES_IN
         value: 7d
+
+      # Google OAuth
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+
+      # URLs (set these to your deployed domains)
+      - key: FRONTEND_URL
+        sync: false
+      - key: API_URL
+        sync: false
+
+      # Cloudinary (image uploads)
       - key: CLOUDINARY_CLOUD_NAME
         sync: false
       - key: CLOUDINARY_API_KEY
         sync: false
       - key: CLOUDINARY_API_SECRET
         sync: false
-      - key: FRONTEND_URL
+
+      # SMTP (transactional email — e.g. Brevo / Mailgun / Postmark)
+      - key: SMTP_HOST
         sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_SECURE
+        value: "false"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: SMTP_FROM
+        sync: false
+

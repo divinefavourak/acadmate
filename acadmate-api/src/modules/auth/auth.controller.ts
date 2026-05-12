@@ -67,7 +67,7 @@ export class AuthController {
     this.setAuthCookie(res, result.accessToken);
 
     const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:3000';
-    res.redirect(`${frontendUrl}/auth/callback?token=${result.accessToken}&role=${result.user.role}`);
+    res.redirect(`${frontendUrl}/auth/callback?role=${result.user.role}`);
   }
 
   // ─── Password Reset ──────────────────────────────────────────────────────
@@ -93,7 +93,8 @@ export class AuthController {
     res.cookie('acadmate_token', token, {
       httpOnly: true,
       secure: isProduction,
-      sameSite: 'lax',
+      // SameSite=None required for cross-origin fetch in production (different domains)
+      sameSite: isProduction ? 'none' : 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000,
       path: '/',
     });
