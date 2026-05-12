@@ -1,6 +1,7 @@
 import {
   Controller,
   Post,
+  Query,
   UseGuards,
   UseInterceptors,
   UploadedFile,
@@ -9,7 +10,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiConsumes } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiConsumes, ApiQuery } from '@nestjs/swagger';
 import { memoryStorage } from 'multer';
 
 type UploadedMulterFile = { buffer: Buffer; mimetype: string; size: number; originalname: string };
@@ -28,13 +29,17 @@ export class UploadController {
   @Post()
   @Roles('ADMIN')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Upload question image to Cloudinary (admin only)' })
+  @ApiOperation({ summary: 'Upload image to Cloudinary (admin only)' })
+  @ApiQuery({ name: 'folder', required: false, enum: ['questions', 'blog'] })
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(
     FileInterceptor('file', { storage: memoryStorage() }),
   )
-  uploadFile(@UploadedFile() file: UploadedMulterFile) {
+  uploadFile(
+    @UploadedFile() file: UploadedMulterFile,
+    @Query('folder') folder?: string,
+  ) {
     if (!file) throw new BadRequestException('No file provided');
-    return this.uploadService.uploadImage(file);
+    return this.uploadService.uploadImage(file, folder);
   }
 }

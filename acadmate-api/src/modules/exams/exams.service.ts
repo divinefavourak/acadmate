@@ -4,6 +4,8 @@ import {
   ConflictException,
   GoneException,
   HttpException,
+  HttpStatus,
+  BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
@@ -35,6 +37,24 @@ export class ExamsService {
 
   // ─── POST /exams ──────────────────────────────────────────────────────────
   async createSession(userId: string, input: CreateExamInput) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { plan: true },
+    });
+
+    if (user?.plan === 'FREE') {
+      if (input.mode === 'MOCK' || input.mode === 'POST_UTME') {
+        throw new HttpException(
+          'MOCK and Post-UTME exams require a Premium plan. Redeem an access code to unlock full access.',
+          HttpStatus.PAYMENT_REQUIRED,
+        );
+      }
+      const count = (input as any).questionCount;
+      if (typeof count === 'number' && count > 20) {
+        (input as any).questionCount = 20;
+      }
+    }
+
     let factoryInput: any;
 
     if (input.mode === 'MOCK') {
@@ -44,11 +64,29 @@ export class ExamsService {
     } else if (input.mode === 'TOPIC') {
       factoryInput = { mode: 'TOPIC', subjectId: input.subjectId, topicId: input.topicId, questionCount: input.questionCount ?? 20 };
     } else {
+      // Post-UTME composition needs the user's UTME subject combination — without
+      // it we can't build the subject-balanced paper the spec expects.
+      const profile = await this.prisma.studentProfile.findUnique({
+        where: { userId },
+        select: {
+          courseSubjectCombinations: { select: { subjectId: true } },
+        },
+      });
+      const utmeSubjectIds =
+        profile?.courseSubjectCombinations.map((c) => c.subjectId) ?? [];
+
+      if (utmeSubjectIds.length < 3) {
+        throw new BadRequestException(
+          'Set your UTME subject combination in your profile before taking a Post-UTME exam.',
+        );
+      }
+
       factoryInput = {
         mode: 'POST_UTME',
         school: input.school,
         year: input.year,
         questionCount: input.questionCount ?? 40,
+        utmeSubjectIds,
       } satisfies PostUtmeExamInput;
     }
 
@@ -92,6 +130,33 @@ export class ExamsService {
       }
       throw err;
     }
+  }
+
+  // ─── GET /exams/active ────────────────────────────────────────────────────
+  async listActiveSessions(userId: string) {
+    const sessions = await this.prisma.examSession.findMany({
+      where: {
+        userId,
+        status: 'IN_PROGRESS',
+        OR: [
+          { expiresAt: null },
+          { expiresAt: { gt: new Date() } },
+        ],
+      },
+      orderBy: { startedAt: 'desc' },
+      select: {
+        id: true,
+        mode: true,
+        status: true,
+        totalQuestions: true,
+        durationMinutes: true,
+        startedAt: true,
+        expiresAt: true,
+        school: true,
+        subjectId: true,
+      },
+    });
+    return { sessions };
   }
 
   // ─── GET /exams ───────────────────────────────────────────────────────────

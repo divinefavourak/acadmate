@@ -8,7 +8,15 @@ const UTME_SUBJECT_QUESTIONS = 40;
 const UTME_DURATION_MINUTES = 120;
 const ENGLISH_CODE = 'ENG';
 
-const POST_UTME_DEFAULT_QUESTIONS = 40;
+// Post-UTME composition: English + Math + General Knowledge + 3 UTME subjects.
+// Weights are tuned for a 40-question paper, then scaled to the requested
+// question count so shorter packs keep the same rough balance.
+const POST_UTME_SPLIT = {
+  ENG: 10,
+  MTH: 10,
+  GEN: 5,
+  UTME_PER_SUBJECT: 5,
+} as const;
 
 // ─── Input types (identical to original lib/services/exam-factory.ts) ─────────
 export type MockExamInput = {
@@ -35,6 +43,7 @@ export type PostUtmeExamInput = {
   school: string;
   year?: number;
   questionCount: number;
+  utmeSubjectIds: string[];
 };
 
 export type ExamFactoryInput =
@@ -225,80 +234,120 @@ export class ExamFactoryService {
   private async buildPostUtme(
     input: PostUtmeExamInput,
   ): Promise<ExamFactoryResult> {
-    // Count available pool before sampling so we can surface a clear error
-    // instead of silently returning a short exam when the bank is too small.
-    const [countResult, rows] = await (input.year != null
-      ? Promise.all([
-          this.prisma.$queryRaw<[{ count: bigint }]>`
-            SELECT COUNT(*) AS count FROM questions q
-            WHERE q."school" = ${input.school}
-              AND q."examType" = 'POST_UTME'::"ExamType"
-              AND q."year" = ${input.year}
-              AND q."isPublished" = true
-              AND q."isFlagged" = false
-              AND EXISTS (
-                SELECT 1 FROM question_options qo
-                WHERE qo."questionId" = q.id AND qo."isCorrect" = true
-              )
-          `,
-          this.prisma.$queryRaw<{ id: string }[]>`
-            SELECT q.id FROM questions q
-            WHERE q."school" = ${input.school}
-              AND q."examType" = 'POST_UTME'::"ExamType"
-              AND q."year" = ${input.year}
-              AND q."isPublished" = true
-              AND q."isFlagged" = false
-              AND EXISTS (
-                SELECT 1 FROM question_options qo
-                WHERE qo."questionId" = q.id AND qo."isCorrect" = true
-              )
-            ORDER BY RANDOM()
-            LIMIT ${input.questionCount}
-          `,
-        ])
-      : Promise.all([
-          this.prisma.$queryRaw<[{ count: bigint }]>`
-            SELECT COUNT(*) AS count FROM questions q
-            WHERE q."school" = ${input.school}
-              AND q."examType" = 'POST_UTME'::"ExamType"
-              AND q."isPublished" = true
-              AND q."isFlagged" = false
-              AND EXISTS (
-                SELECT 1 FROM question_options qo
-                WHERE qo."questionId" = q.id AND qo."isCorrect" = true
-              )
-          `,
-          this.prisma.$queryRaw<{ id: string }[]>`
-            SELECT q.id FROM questions q
-            WHERE q."school" = ${input.school}
-              AND q."examType" = 'POST_UTME'::"ExamType"
-              AND q."isPublished" = true
-              AND q."isFlagged" = false
-              AND EXISTS (
-                SELECT 1 FROM question_options qo
-                WHERE qo."questionId" = q.id AND qo."isCorrect" = true
-              )
-            ORDER BY RANDOM()
-            LIMIT ${input.questionCount}
-          `,
-        ]));
+    // Resolve the fixed-by-code subjects (English, Math, General Knowledge).
+    // GEN may not be seeded yet — missing fixed subjects are silently skipped
+    // so the feature still ships a useful paper.
+    const fixed = await this.prisma.subject.findMany({
+      where: { code: { in: ['ENG', 'MTH', 'GEN'] }, isActive: true },
+      select: { id: true, code: true },
+    });
+    const fixedById = new Map(fixed.map((s) => [s.code, s.id]));
 
-    const poolSize = Number(countResult[0].count);
-    if (poolSize < input.questionCount) {
+    const weightedBuckets: { subjectId: string; weight: number }[] = [];
+    const engId = fixedById.get('ENG');
+    const mthId = fixedById.get('MTH');
+    const genId = fixedById.get('GEN');
+    if (engId) weightedBuckets.push({ subjectId: engId, weight: POST_UTME_SPLIT.ENG });
+    if (mthId) weightedBuckets.push({ subjectId: mthId, weight: POST_UTME_SPLIT.MTH });
+    if (genId) weightedBuckets.push({ subjectId: genId, weight: POST_UTME_SPLIT.GEN });
+
+    // UTME combination subjects — skip any that overlap with ENG/MTH/GEN
+    // (a student picking Math as one of their three would otherwise double-count).
+    const fixedIds = new Set(weightedBuckets.map((b) => b.subjectId));
+    for (const sid of input.utmeSubjectIds) {
+      if (fixedIds.has(sid)) continue;
+      weightedBuckets.push({ subjectId: sid, weight: POST_UTME_SPLIT.UTME_PER_SUBJECT });
+    }
+
+    const yearFilter = input.year ?? null;
+    const desiredCount = input.questionCount;
+    const buckets = allocateBucketLimits(weightedBuckets, desiredCount);
+
+    const batches = await Promise.all(
+      buckets.map(({ subjectId }) =>
+        yearFilter != null
+          ? this.prisma.$queryRaw<{ id: string }[]>`
+              SELECT q.id FROM questions q
+              WHERE q."school" = ${input.school}
+                AND q."examType" = 'POST_UTME'::"ExamType"
+                AND q."year" = ${yearFilter}
+                AND q."subjectId" = ${subjectId}
+                AND q."isPublished" = true
+                AND q."isFlagged" = false
+                AND EXISTS (
+                  SELECT 1 FROM question_options qo
+                  WHERE qo."questionId" = q.id AND qo."isCorrect" = true
+                )
+              ORDER BY RANDOM()
+              LIMIT ${desiredCount}
+            `
+          : this.prisma.$queryRaw<{ id: string }[]>`
+              SELECT q.id FROM questions q
+              WHERE q."school" = ${input.school}
+                AND q."examType" = 'POST_UTME'::"ExamType"
+                AND q."subjectId" = ${subjectId}
+                AND q."isPublished" = true
+                AND q."isFlagged" = false
+                AND EXISTS (
+                  SELECT 1 FROM question_options qo
+                  WHERE qo."questionId" = q.id AND qo."isCorrect" = true
+                )
+              ORDER BY RANDOM()
+              LIMIT ${desiredCount}
+            `,
+      ),
+    );
+
+    const selected: string[] = [];
+    const surplus: string[] = [];
+    batches.forEach((batch, index) => {
+      const shuffled = fisherYates(batch.map((r) => r.id));
+      selected.push(...shuffled.slice(0, buckets[index].limit));
+      surplus.push(...shuffled.slice(buckets[index].limit));
+    });
+
+    const collected = [...selected, ...fisherYates(surplus)].slice(0, desiredCount);
+
+    if (collected.length < desiredCount) {
       throw new ExamFactoryError(
-        `Not enough POST-UTME questions for "${input.school}"${input.year ? ` (${input.year})` : ''}. ` +
-          `Required: ${input.questionCount}, available: ${poolSize}.`,
+        `Not enough Post-UTME questions for "${input.school}"${input.year ? ` (${input.year})` : ''} ` +
+          `with your subject combination. Found ${collected.length} - need ${desiredCount}.`,
         422,
       );
     }
 
-    const questionIds = fisherYates(rows.map((r) => r.id));
-
-    return { questionIds, durationMinutes: input.questionCount * 2 };
+    const questionIds = fisherYates(collected);
+    return { questionIds, durationMinutes: desiredCount * 2 };
   }
 }
 
 // ─── Fisher-Yates shuffle (identical to original) ─────────────────────────────
+function allocateBucketLimits(
+  buckets: { subjectId: string; weight: number }[],
+  total: number,
+): { subjectId: string; limit: number }[] {
+  const totalWeight = buckets.reduce((sum, bucket) => sum + bucket.weight, 0);
+  if (totalWeight === 0 || total <= 0) return [];
+
+  const quotas = buckets.map((bucket) => {
+    const raw = (total * bucket.weight) / totalWeight;
+    return {
+      subjectId: bucket.subjectId,
+      limit: Math.floor(raw),
+      remainder: raw - Math.floor(raw),
+    };
+  });
+
+  let assigned = quotas.reduce((sum, quota) => sum + quota.limit, 0);
+  for (const quota of [...quotas].sort((a, b) => b.remainder - a.remainder)) {
+    if (assigned >= total) break;
+    quota.limit += 1;
+    assigned += 1;
+  }
+
+  return quotas.map(({ subjectId, limit }) => ({ subjectId, limit }));
+}
+
 function fisherYates<T>(array: T[]): T[] {
   const shuffled = [...array];
   for (let i = shuffled.length - 1; i > 0; i--) {

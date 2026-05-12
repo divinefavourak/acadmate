@@ -42,6 +42,7 @@ async function main() {
     { name: "Commerce", code: "COM", description: "Commerce", sortOrder: 11 },
     { name: "Accounts", code: "ACC", description: "Financial Accounting", sortOrder: 12 },
     { name: "Christian Religious Knowledge", code: "CRK", description: "Christian Religious Knowledge", sortOrder: 13 },
+    { name: "General Knowledge", code: "GEN", description: "Current affairs and general studies for Post-UTME", sortOrder: 14 },
   ];
 
   const subjects: Record<string, string> = {};

@@ -20,6 +20,8 @@ model User {
   image         String?
   passwordHash  String?
   role          Role      @default(STUDENT)
+  plan          Plan      @default(FREE)
+  onboardedAt   DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -31,9 +33,28 @@ model User {
   reviewedContent Question[] @relation("ReviewedBy")
   questionFlags   QuestionFlag[]
   triggeredNotifications AdminNotification[] @relation("NotificationTriggeredBy")
+  generatedTokens AccessToken[] @relation("GeneratedTokens")
+  redeemedToken   AccessToken?  @relation("RedeemedToken")
+  authoredBlogPosts BlogPost[]  @relation("AuthoredBlogPosts")
 
   @@index([email])
   @@map("users")
+}
+
+model AccessToken {
+  id            String    @id @default(cuid())
+  code          String    @unique
+  note          String?
+  generatedById String
+  usedById      String?   @unique
+  usedAt        DateTime?
+  createdAt     DateTime  @default(now())
+
+  generatedBy User  @relation("GeneratedTokens", fields: [generatedById], references: [id], onDelete: Cascade)
+  usedBy      User? @relation("RedeemedToken", fields: [usedById], references: [id], onDelete: SetNull)
+
+  @@index([generatedById])
+  @@map("access_tokens")
 }
 
 model Account {
@@ -81,6 +102,7 @@ model VerificationToken {
 model StudentProfile {
   id           String   @id @default(cuid())
   userId       String   @unique
+  age          Int?
   targetYear   Int?
   courseChoice String?
   institution  String?
@@ -547,4 +569,42 @@ enum ImportStatus {
   PROCESSING
   DONE
   FAILED
+}
+
+enum Plan {
+  FREE
+  PREMIUM
+}
+
+enum BlogCategory {
+  UTME
+  POST_UTME
+  JAMB
+  SCHOOL_NEWS
+  STUDY_TIPS
+  SCHOLARSHIPS
+  CAREER
+  ANNOUNCEMENT
+  GENERAL
+}
+
+model BlogPost {
+  id            String       @id @default(cuid())
+  slug          String       @unique
+  title         String
+  excerpt       String       @db.Text
+  body          String       @db.Text
+  coverImageUrl String?      @db.Text
+  category      BlogCategory @default(GENERAL)
+  authorId      String
+  publishedAt   DateTime?
+  notifiedAt    DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  author User @relation("AuthoredBlogPosts", fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([publishedAt])
+  @@index([category, publishedAt])
+  @@map("blog_posts")
 }

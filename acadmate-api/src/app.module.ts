@@ -17,6 +17,7 @@ import { UploadModule } from './modules/upload/upload.module';
 import { SchedulerModule } from './modules/scheduler/scheduler.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { LeaderboardModule } from './modules/leaderboard/leaderboard.module';
+import { BlogModule } from './modules/blog/blog.module';
 import { HealthController } from './health.controller';
 import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
 
@@ -46,6 +47,7 @@ import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
     SchedulerModule,
     AdminModule,
     LeaderboardModule,
+    BlogModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
