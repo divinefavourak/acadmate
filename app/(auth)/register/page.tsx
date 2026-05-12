@@ -54,7 +54,7 @@ export default function RegisterPage() {
       );
 
       setToken(data.accessToken);
-      router.push("/dashboard");
+      router.push("/onboarding");
       router.refresh();
     } catch (err) {
       setLoading(false);

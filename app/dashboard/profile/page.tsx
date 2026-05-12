@@ -17,12 +17,20 @@ interface UserProfile {
   role: string;
   studentProfile: {
     id: string;
+    age: number | null;
     targetYear: number | null;
     courseChoice: string | null;
     institution: string | null;
     avatarConfig: Record<string, unknown> | null;
     avatarUrl: string | null;
+    courseSubjectCombinations: { subjectId: string }[];
   } | null;
+}
+
+interface SubjectLite {
+  id: string;
+  name: string;
+  code: string;
 }
 
 const CURRENT_YEAR = new Date().getFullYear();
@@ -43,25 +51,48 @@ export default function ProfilePage() {
 
   const [form, setForm] = useState({
     name: "",
+    age: "",
     targetYear: "",
     courseChoice: "",
     institution: "",
   });
+  const [utmeSubjectIds, setUtmeSubjectIds] = useState<string[]>([]);
+  const [subjects, setSubjects] = useState<SubjectLite[]>([]);
 
   useEffect(() => {
-    apiClient<UserProfile>("/api/users/me")
-      .then((u) => {
-        setProfile(u);
-        setForm({
-          name: u.name ?? "",
-          targetYear: u.studentProfile?.targetYear ? String(u.studentProfile.targetYear) : "",
-          courseChoice: u.studentProfile?.courseChoice ?? "",
-          institution: u.studentProfile?.institution ?? "",
-        });
+    Promise.allSettled([
+      apiClient<UserProfile>("/api/users/me"),
+      apiClient<{ subjects: SubjectLite[] }>("/api/subjects"),
+    ])
+      .then(([uRes, sRes]) => {
+        if (uRes.status === "fulfilled") {
+          const u = uRes.value;
+          setProfile(u);
+          setForm({
+            name: u.name ?? "",
+            age: u.studentProfile?.age ? String(u.studentProfile.age) : "",
+            targetYear: u.studentProfile?.targetYear ? String(u.studentProfile.targetYear) : "",
+            courseChoice: u.studentProfile?.courseChoice ?? "",
+            institution: u.studentProfile?.institution ?? "",
+          });
+          setUtmeSubjectIds(
+            u.studentProfile?.courseSubjectCombinations.map((c) => c.subjectId) ?? [],
+          );
+        }
+        if (sRes.status === "fulfilled") setSubjects(sRes.value.subjects ?? []);
       })
-      .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
+
+  function toggleUtmeSubject(id: string) {
+    setUtmeSubjectIds((prev) =>
+      prev.includes(id)
+        ? prev.filter((x) => x !== id)
+        : prev.length < 3
+        ? [...prev, id]
+        : prev,
+    );
+  }
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -69,14 +100,28 @@ export default function ProfilePage() {
     setError("");
     setSuccess(false);
 
+    const ageNum = form.age ? Number(form.age) : undefined;
+    if (ageNum !== undefined && (!Number.isInteger(ageNum) || ageNum < 10 || ageNum > 99)) {
+      setError("Age must be between 10 and 99.");
+      setSaving(false);
+      return;
+    }
+    if (utmeSubjectIds.length > 0 && utmeSubjectIds.length !== 3) {
+      setError("Pick exactly 3 UTME subjects, or clear the selection.");
+      setSaving(false);
+      return;
+    }
+
     try {
       const updated = await apiClient<UserProfile>("/api/users/me", {
         method: "PATCH",
         body: JSON.stringify({
           name: form.name || undefined,
+          age: ageNum,
           targetYear: form.targetYear ? Number(form.targetYear) : undefined,
           courseChoice: form.courseChoice || undefined,
           institution: form.institution || undefined,
+          utmeSubjectIds: utmeSubjectIds.length === 3 ? utmeSubjectIds : undefined,
         }),
       });
       setProfile(updated);
@@ -205,6 +250,20 @@ export default function ProfilePage() {
           </div>
 
           <div className="space-y-1">
+            <label className="text-sm font-medium">Age</label>
+            <input
+              type="number"
+              inputMode="numeric"
+              min={10}
+              max={99}
+              value={form.age}
+              onChange={(e) => setForm((f) => ({ ...f, age: e.target.value }))}
+              placeholder="e.g. 17"
+              className="w-full px-4 py-3 rounded-xl bg-white/50 dark:bg-black/50 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+            />
+          </div>
+
+          <div className="space-y-1">
             <label className="text-sm font-medium">Target UTME Year</label>
             <select
               value={form.targetYear}
@@ -238,6 +297,47 @@ export default function ProfilePage() {
               placeholder="e.g. University of Lagos"
               className="w-full px-4 py-3 rounded-xl bg-white/50 dark:bg-black/50 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
             />
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium">UTME Subject Combination</label>
+              {utmeSubjectIds.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setUtmeSubjectIds([])}
+                  className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+            <p className="text-xs text-slate-500">
+              Use of English is included automatically — pick the 3 other subjects you&apos;ll write.
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {subjects
+                .filter((s) => s.code !== "ENG")
+                .map((s) => {
+                  const selected = utmeSubjectIds.includes(s.id);
+                  const disabled = !selected && utmeSubjectIds.length >= 3;
+                  return (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => toggleUtmeSubject(s.id)}
+                      disabled={disabled}
+                      className={`px-3 py-2 rounded-lg border text-xs font-medium text-left transition-all disabled:opacity-30 disabled:cursor-not-allowed ${
+                        selected
+                          ? "border-indigo-500 bg-indigo-50/50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300"
+                          : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
+                      }`}
+                    >
+                      {s.name}
+                    </button>
+                  );
+                })}
+            </div>
           </div>
 
           {error && (

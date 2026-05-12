@@ -15,8 +15,11 @@ import { AdminStatsController } from './stats/admin-stats.controller';
 import { AdminStatsService } from './stats/admin-stats.service';
 import { AdminTokensController } from './tokens/admin-tokens.controller';
 import { AdminTokensService } from './tokens/admin-tokens.service';
+import { AdminBlogController } from './blog/admin-blog.controller';
+import { BlogModule } from '../blog/blog.module';
 
 @Module({
+  imports: [BlogModule],
   controllers: [
     AdminQuestionsController,
     AdminImportsController,
@@ -26,6 +29,7 @@ import { AdminTokensService } from './tokens/admin-tokens.service';
     AdminNotificationsController,
     AdminStatsController,
     AdminTokensController,
+    AdminBlogController,
   ],
   providers: [
     AdminQuestionsService,

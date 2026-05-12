@@ -24,6 +24,29 @@ interface ResultEntry {
   examSession: { id: string; mode: string; status: string };
 }
 
+interface MeForGreeting {
+  name: string | null;
+  onboardedAt: string | null;
+}
+
+const FRESH_WELCOME_HOURS = 24;
+
+function firstName(full: string | null | undefined) {
+  if (!full) return "";
+  return full.trim().split(/\s+/)[0] ?? "";
+}
+
+function buildGreeting(me: MeForGreeting | null) {
+  const name = firstName(me?.name);
+  const suffix = name ? `, ${name}` : "";
+  if (!me?.onboardedAt) return { primary: `Welcome${suffix}! 👋`, sub: "Let's get you set up." };
+  const hoursSinceOnboarding = (Date.now() - new Date(me.onboardedAt).getTime()) / 3_600_000;
+  if (hoursSinceOnboarding < FRESH_WELCOME_HOURS) {
+    return { primary: `Welcome${suffix}! 👋`, sub: "Ready for your first practice exam?" };
+  }
+  return { primary: `Welcome back${suffix}! 👋`, sub: "Here is a summary of your recent UTME preparation." };
+}
+
 function formatDate(iso: string) {
   const d = new Date(iso);
   const now = new Date();
@@ -44,20 +67,23 @@ function modeLabel(mode: string) {
 export default function DashboardPage() {
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [results, setResults] = useState<ResultEntry[]>([]);
+  const [me, setMe] = useState<MeForGreeting | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const [analyticsData, resultsData] = await Promise.allSettled([
+        const [analyticsData, resultsData, meData] = await Promise.allSettled([
           apiClient<AnalyticsData>("/api/analytics"),
           apiClient<{ results: ResultEntry[] }>("/api/results?limit=5"),
+          apiClient<MeForGreeting>("/api/users/me"),
         ]);
         if (analyticsData.status === "fulfilled") setAnalytics(analyticsData.value ?? null);
         else console.error("Failed to load analytics", analyticsData.reason);
         if (resultsData.status === "fulfilled") setResults(resultsData.value?.results ?? []);
         else console.error("Failed to load results", resultsData.reason);
+        if (meData.status === "fulfilled") setMe(meData.value ?? null);
       } finally {
         setLoading(false);
       }
@@ -66,6 +92,7 @@ export default function DashboardPage() {
   }, []);
 
   const bestSubject = analytics?.subjectPerformance?.sort((a, b) => b.percentage - a.percentage)[0];
+  const greeting = buildGreeting(me);
 
   return (
     <motion.div
@@ -77,8 +104,8 @@ export default function DashboardPage() {
       {/* Header */}
       <motion.div variants={fadeUp} className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-2">Welcome back! 👋</h1>
-          <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400">Here is a summary of your recent UTME preparation.</p>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-2">{greeting.primary}</h1>
+          <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400">{greeting.sub}</p>
         </div>
         <Link href="/exam/new" className="btn-primary w-full sm:w-auto flex items-center justify-center gap-2 py-3.5 sm:py-2.5">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>

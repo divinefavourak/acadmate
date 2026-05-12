@@ -21,6 +21,7 @@ model User {
   passwordHash  String?
   role          Role      @default(STUDENT)
   plan          Plan      @default(FREE)
+  onboardedAt   DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -34,6 +35,7 @@ model User {
   triggeredNotifications AdminNotification[] @relation("NotificationTriggeredBy")
   generatedTokens AccessToken[] @relation("GeneratedTokens")
   redeemedToken   AccessToken?  @relation("RedeemedToken")
+  authoredBlogPosts BlogPost[]  @relation("AuthoredBlogPosts")
 
   @@index([email])
   @@map("users")
@@ -100,6 +102,7 @@ model VerificationToken {
 model StudentProfile {
   id           String   @id @default(cuid())
   userId       String   @unique
+  age          Int?
   targetYear   Int?
   courseChoice String?
   institution  String?
@@ -571,4 +574,37 @@ enum ImportStatus {
 enum Plan {
   FREE
   PREMIUM
+}
+
+enum BlogCategory {
+  UTME
+  POST_UTME
+  JAMB
+  SCHOOL_NEWS
+  STUDY_TIPS
+  SCHOLARSHIPS
+  CAREER
+  ANNOUNCEMENT
+  GENERAL
+}
+
+model BlogPost {
+  id            String       @id @default(cuid())
+  slug          String       @unique
+  title         String
+  excerpt       String       @db.Text
+  body          String       @db.Text
+  coverImageUrl String?      @db.Text
+  category      BlogCategory @default(GENERAL)
+  authorId      String
+  publishedAt   DateTime?
+  notifiedAt    DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  author User @relation("AuthoredBlogPosts", fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([publishedAt])
+  @@index([category, publishedAt])
+  @@map("blog_posts")
 }

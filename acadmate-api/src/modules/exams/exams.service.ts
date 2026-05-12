@@ -5,6 +5,7 @@ import {
   GoneException,
   HttpException,
   HttpStatus,
+  BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
@@ -63,11 +64,29 @@ export class ExamsService {
     } else if (input.mode === 'TOPIC') {
       factoryInput = { mode: 'TOPIC', subjectId: input.subjectId, topicId: input.topicId, questionCount: input.questionCount ?? 20 };
     } else {
+      // Post-UTME composition needs the user's UTME subject combination — without
+      // it we can't build the subject-balanced paper the spec expects.
+      const profile = await this.prisma.studentProfile.findUnique({
+        where: { userId },
+        select: {
+          courseSubjectCombinations: { select: { subjectId: true } },
+        },
+      });
+      const utmeSubjectIds =
+        profile?.courseSubjectCombinations.map((c) => c.subjectId) ?? [];
+
+      if (utmeSubjectIds.length < 3) {
+        throw new BadRequestException(
+          'Set your UTME subject combination in your profile before taking a Post-UTME exam.',
+        );
+      }
+
       factoryInput = {
         mode: 'POST_UTME',
         school: input.school,
         year: input.year,
         questionCount: input.questionCount ?? 40,
+        utmeSubjectIds,
       } satisfies PostUtmeExamInput;
     }
 

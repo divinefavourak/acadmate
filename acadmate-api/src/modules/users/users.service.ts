@@ -16,15 +16,23 @@ export class UsersService {
         email: true,
         role: true,
         plan: true,
+        onboardedAt: true,
         createdAt: true,
         studentProfile: {
           select: {
             id: true,
+            age: true,
             targetYear: true,
             courseChoice: true,
             institution: true,
             avatarConfig: true,
             avatarUrl: true,
+            courseSubjectCombinations: {
+              select: {
+                subjectId: true,
+                subject: { select: { id: true, name: true, code: true } },
+              },
+            },
           },
         },
       },
@@ -39,14 +47,16 @@ export class UsersService {
     userId: string,
     dto: {
       name?: string;
+      age?: number;
       targetYear?: number;
       courseChoice?: string;
       institution?: string;
       avatarConfig?: Record<string, unknown>;
       avatarUrl?: string;
+      utmeSubjectIds?: string[];
     },
   ) {
-    const { name, avatarConfig, avatarUrl, ...rest } = dto;
+    const { name, avatarConfig, avatarUrl, utmeSubjectIds, ...rest } = dto;
 
     const jsonConfig = avatarConfig !== undefined
       ? { avatarConfig: avatarConfig as Prisma.InputJsonValue }
@@ -60,22 +70,109 @@ export class UsersService {
     const createData: Prisma.StudentProfileUncheckedCreateInput = { userId, ...rest, ...jsonConfig, ...urlField };
     const updateData: Prisma.StudentProfileUncheckedUpdateInput = { ...rest, ...jsonConfig, ...urlField };
 
-    await this.prisma.$transaction([
-      ...(name
-        ? [this.prisma.user.update({ where: { id: userId }, data: { name } })]
-        : []),
-      ...(Object.keys(updateData).length > 0
-        ? [
-            this.prisma.studentProfile.upsert({
-              where: { userId },
-              create: createData,
-              update: updateData,
-            }),
-          ]
-        : []),
-    ]);
+    const profileChanged =
+      Object.keys(updateData).length > 0 || utmeSubjectIds !== undefined;
+
+    await this.prisma.$transaction(async (tx) => {
+      if (name) {
+        await tx.user.update({ where: { id: userId }, data: { name } });
+      }
+
+      if (!profileChanged) return;
+
+      const profile = await tx.studentProfile.upsert({
+        where: { userId },
+        create: createData,
+        update: updateData,
+        select: { id: true },
+      });
+
+      if (utmeSubjectIds !== undefined) {
+        await this.syncUtmeSubjects(tx, profile.id, utmeSubjectIds);
+      }
+    });
 
     return this.getMe(userId);
+  }
+
+  // POST /users/me/onboarding — first-time onboarding wizard submission
+  async completeOnboarding(
+    userId: string,
+    dto: {
+      name?: string;
+      age: number;
+      institution: string;
+      utmeSubjectIds: string[];
+      avatarConfig?: Record<string, unknown>;
+      avatarUrl?: string;
+    },
+  ) {
+    const { name, age, institution, utmeSubjectIds, avatarConfig, avatarUrl } = dto;
+
+    // Validate the 3 subjects exist, are active, and aren't English (English is implied)
+    const subjects = await this.prisma.subject.findMany({
+      where: { id: { in: utmeSubjectIds }, isActive: true },
+      select: { id: true, code: true },
+    });
+
+    if (subjects.length !== 3) {
+      throw new BadRequestException('Please select 3 valid UTME subjects.');
+    }
+    if (subjects.some((s) => s.code === 'ENG')) {
+      throw new BadRequestException(
+        'Use of English is automatically included — please pick 3 other subjects.',
+      );
+    }
+    if (new Set(subjects.map((s) => s.id)).size !== 3) {
+      throw new BadRequestException('UTME subjects must be unique.');
+    }
+
+    const jsonConfig =
+      avatarConfig !== undefined
+        ? { avatarConfig: avatarConfig as Prisma.InputJsonValue }
+        : {};
+    const urlField =
+      avatarUrl !== undefined && avatarUrl !== ''
+        ? { avatarUrl }
+        : {};
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: userId },
+        data: {
+          onboardedAt: new Date(),
+          ...(name ? { name } : {}),
+        },
+      });
+
+      const profile = await tx.studentProfile.upsert({
+        where: { userId },
+        create: { userId, age, institution, ...jsonConfig, ...urlField },
+        update: { age, institution, ...jsonConfig, ...urlField },
+        select: { id: true },
+      });
+
+      await this.syncUtmeSubjects(tx, profile.id, utmeSubjectIds);
+    });
+
+    return this.getMe(userId);
+  }
+
+  // Replace the user's UTME subject combination in-place.
+  private async syncUtmeSubjects(
+    tx: Prisma.TransactionClient,
+    studentProfileId: string,
+    subjectIds: string[],
+  ) {
+    await tx.courseSubjectCombination.deleteMany({
+      where: { studentProfileId },
+    });
+    if (subjectIds.length > 0) {
+      await tx.courseSubjectCombination.createMany({
+        data: subjectIds.map((subjectId) => ({ studentProfileId, subjectId })),
+        skipDuplicates: true,
+      });
+    }
   }
 
   async deleteMe(userId: string) {

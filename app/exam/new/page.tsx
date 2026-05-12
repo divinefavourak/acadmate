@@ -33,6 +33,12 @@ interface ProseText {
   _count: { questions: number };
 }
 
+interface MeForExam {
+  studentProfile: {
+    courseSubjectCombinations: { subjectId: string }[];
+  } | null;
+}
+
 type Mode = "MOCK" | "PRACTICE" | "TOPIC" | "POST_UTME";
 
 export default function NewExamPage() {
@@ -56,19 +62,28 @@ export default function NewExamPage() {
 
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState("");
+  const [utmeComboCount, setUtmeComboCount] = useState<number | null>(null);
 
   useEffect(() => {
     Promise.allSettled([
       apiClient<{ subjects: Subject[] }>("/api/subjects"),
       apiClient<{ texts: ProseText[] }>("/api/prose"),
-    ]).then(([sResult, pResult]) => {
+      apiClient<MeForExam>("/api/users/me"),
+    ]).then(([sResult, pResult, meResult]) => {
       const subjList = sResult.status === "fulfilled" ? (sResult.value.subjects ?? []) : [];
       const proseList = pResult.status === "fulfilled" ? (pResult.value.texts ?? []) : [];
       setSubjects(subjList);
       setProseTexts(proseList);
       if (subjList.length > 0) setSelectedSubject(subjList[0].id);
+      if (meResult.status === "fulfilled") {
+        setUtmeComboCount(
+          meResult.value.studentProfile?.courseSubjectCombinations.length ?? 0,
+        );
+      }
     }).finally(() => setLoadingData(false));
   }, []);
+
+  const utmeComboMissing = utmeComboCount !== null && utmeComboCount < 3;
 
   // Fetch topics when subject changes (TOPIC mode)
   useEffect(() => {
@@ -99,6 +114,10 @@ export default function NewExamPage() {
     setError("");
 
     if (mode === "POST_UTME") {
+      if (utmeComboMissing) {
+        setError("Set your UTME subject combination in your profile before starting Post-UTME.");
+        return;
+      }
       router.push("/exam/post-utme/schools");
       return;
     }
@@ -163,7 +182,7 @@ export default function NewExamPage() {
       : mode === "TOPIC"
       ? !selectedTopic
       : mode === "POST_UTME"
-      ? false // never disabled — card click handles navigation
+      ? utmeComboMissing
       : !selectedSubject);
 
   return (
@@ -455,20 +474,41 @@ export default function NewExamPage() {
 
           {/* POST_UTME — info banner (no inline config, wizard handles it) */}
           {mode === "POST_UTME" && (
-            <div className="glass-panel p-5 rounded-2xl flex items-start gap-4">
-              <div className="flex-shrink-0 w-9 h-9 rounded-xl bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center mt-0.5">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-600 dark:text-indigo-400">
-                  <path d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Z"/>
-                  <path d="m3 9 2.45-4.9A2 2 0 0 1 7.24 3h9.52a2 2 0 0 1 1.8 1.1L21 9"/>
-                  <path d="M12 3v6"/>
-                </svg>
-              </div>
-              <div className="min-w-0">
-                <div className="font-semibold text-sm mb-1">Institution-specific past papers</div>
-                <div className="text-xs text-slate-500 dark:text-slate-400">
-                  Click &quot;Continue&quot; to choose your school and the year of paper you want to practice.
+            <div className="space-y-3">
+              <div className="glass-panel p-5 rounded-2xl flex items-start gap-4">
+                <div className="flex-shrink-0 w-9 h-9 rounded-xl bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center mt-0.5">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-600 dark:text-indigo-400">
+                    <path d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Z"/>
+                    <path d="m3 9 2.45-4.9A2 2 0 0 1 7.24 3h9.52a2 2 0 0 1 1.8 1.1L21 9"/>
+                    <path d="M12 3v6"/>
+                  </svg>
+                </div>
+                <div className="min-w-0">
+                  <div className="font-semibold text-sm mb-1">Institution-specific past papers</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">
+                    Each Post-UTME paper is composed of English + Math + General Knowledge + your UTME subject combination. Click &quot;Continue&quot; to pick your school and year.
+                  </div>
                 </div>
               </div>
+
+              {utmeComboMissing && (
+                <div className="p-4 rounded-2xl bg-amber-500/8 border border-amber-500/25 flex items-start gap-3">
+                  <span className="text-xl shrink-0">⚠️</span>
+                  <div className="min-w-0">
+                    <p className="font-semibold text-amber-300 text-sm mb-1">UTME combination not set</p>
+                    <p className="text-xs text-slate-400 mb-2">
+                      Post-UTME papers pull from your UTME subjects. Set them in your profile first.
+                    </p>
+                    <Link
+                      href="/dashboard/profile"
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-300 hover:text-amber-200 transition-colors"
+                    >
+                      Set my UTME subjects
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                    </Link>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

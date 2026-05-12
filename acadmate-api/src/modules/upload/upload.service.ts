@@ -18,7 +18,18 @@ export class UploadService {
 
   private readonly maxSizeBytes = 5 * 1024 * 1024; // 5 MB
 
-  async uploadImage(file: UploadedMulterFile): Promise<{ url: string }> {
+  // Whitelist of caller-supplied folder hints. Mapping to a fixed Cloudinary
+  // folder (rather than letting the client pass arbitrary strings) prevents an
+  // admin from polluting the asset tree with unexpected paths.
+  private readonly folderMap: Record<string, string> = {
+    questions: 'acadmate/questions',
+    blog: 'acadmate/blog',
+  };
+
+  async uploadImage(
+    file: UploadedMulterFile,
+    folderKey: string = 'questions',
+  ): Promise<{ url: string }> {
     if (!this.allowedMimeTypes.includes(file.mimetype)) {
       throw new BadRequestException('Only JPEG, PNG, GIF, or WebP images are allowed');
     }
@@ -27,8 +38,8 @@ export class UploadService {
       throw new BadRequestException('Image must be under 5 MB');
     }
 
+    const folder = this.folderMap[folderKey] ?? this.folderMap.questions;
     const timestamp = Math.floor(Date.now() / 1000);
-    const folder = 'acadmate/questions';
 
     // Cloudinary signature (identical to existing Next.js upload route)
     const toSign = `folder=${folder}&timestamp=${timestamp}${this.apiSecret}`;
