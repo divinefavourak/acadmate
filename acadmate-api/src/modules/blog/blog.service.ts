@@ -211,9 +211,16 @@ export class BlogService {
     });
 
     if (!post.notifiedAt) {
+      this.logger.log(
+        `Publishing post ${id} ("${updated.title}") — dispatching premium email blast`,
+      );
       // Fire-and-forget so the publish response isn't blocked by SMTP latency.
       void this.notifyPremiumUsers(updated.id).catch((err) =>
         this.logger.error(`Blog notification batch failed for post ${updated.id}`, err),
+      );
+    } else {
+      this.logger.log(
+        `Publishing post ${id} ("${updated.title}") — email blast skipped, notifiedAt already set at ${post.notifiedAt.toISOString()}`,
       );
     }
 
@@ -230,6 +237,25 @@ export class BlogService {
       where: { id },
       data: { publishedAt: null },
     });
+  }
+
+  // Manually trigger the premium email blast for a published post. Unlike the
+  // automatic publish-time blast, this always re-sends (bypasses the
+  // notifiedAt guard) so admins can recover from SMTP failures or send to
+  // newly-added premium users.
+  async notify(id: string) {
+    const post = await this.prisma.blogPost.findUnique({
+      where: { id },
+      select: { id: true, publishedAt: true, title: true },
+    });
+    if (!post) throw new NotFoundException('Post not found');
+    if (!post.publishedAt) {
+      throw new BadRequestException('Post must be published before sending email');
+    }
+
+    this.logger.log(`Manual email blast requested for post ${id} ("${post.title}")`);
+    const result = await this.notifyPremiumUsers(id);
+    return result;
   }
 
   // ── Internals ─────────────────────────────────────────────────────────────
@@ -255,23 +281,43 @@ export class BlogService {
     throw new ConflictException('Could not generate a unique slug — please pick one manually.');
   }
 
-  private async notifyPremiumUsers(postId: string) {
+  private async notifyPremiumUsers(
+    postId: string,
+  ): Promise<{ recipients: number; successes: number; failures: number }> {
     const post = await this.prisma.blogPost.findUnique({ where: { id: postId } });
-    if (!post || !post.publishedAt) return;
+    if (!post) {
+      this.logger.warn(`notifyPremiumUsers: post ${postId} not found, skipping`);
+      return { recipients: 0, successes: 0, failures: 0 };
+    }
+    if (!post.publishedAt) {
+      this.logger.warn(
+        `notifyPremiumUsers: post ${postId} has no publishedAt, skipping`,
+      );
+      return { recipients: 0, successes: 0, failures: 0 };
+    }
 
     const recipients = await this.prisma.user.findMany({
       where: { plan: 'PREMIUM', email: { not: '' } },
       select: { email: true, name: true },
     });
 
+    this.logger.log(
+      `notifyPremiumUsers: found ${recipients.length} premium recipient(s) for post "${post.title}"`,
+    );
+
     if (recipients.length === 0) {
-      // No premium users yet — still mark notified so we don't try every publish.
-      await this.prisma.blogPost.update({
-        where: { id: postId },
-        data: { notifiedAt: new Date() },
-      });
-      return;
+      // Leave notifiedAt null so a future publish (once PREMIUM users exist)
+      // can still trigger the blast. Marking it here would permanently lock
+      // the post out of email notifications.
+      this.logger.warn(
+        `notifyPremiumUsers: no PREMIUM users in database — nothing to send for post ${postId}`,
+      );
+      return { recipients: 0, successes: 0, failures: 0 };
     }
+
+    this.logger.log(
+      `Dispatching ${recipients.length} blog notification email(s) for post ${postId}...`,
+    );
 
     const results = await Promise.allSettled(
       recipients.map((r) =>
@@ -282,11 +328,9 @@ export class BlogService {
     const failures = results.filter((r) => r.status === 'rejected').length;
     const successes = results.length - failures;
 
-    if (failures > 0) {
-      this.logger.warn(
-        `Blog notify for post ${postId}: ${failures}/${recipients.length} sends failed`,
-      );
-    }
+    this.logger.log(
+      `Blog notify result for post ${postId}: ${successes} sent, ${failures} failed (of ${recipients.length})`,
+    );
 
     // Only mark notified if at least one email went out successfully.
     // If all failed (e.g. SMTP misconfigured), leave notifiedAt null so the
@@ -296,6 +340,9 @@ export class BlogService {
         where: { id: postId },
         data: { notifiedAt: new Date() },
       });
+      this.logger.log(`Marked post ${postId} as notified (notifiedAt set)`);
     }
+
+    return { recipients: recipients.length, successes, failures };
   }
 }

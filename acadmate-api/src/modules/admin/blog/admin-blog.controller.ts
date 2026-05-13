@@ -114,4 +114,13 @@ export class AdminBlogController {
   unpublish(@Param('id') id: string) {
     return this.blogService.unpublish(id);
   }
+
+  @Post(':id/notify')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Manually send the post to all Premium users (can re-send)',
+  })
+  notify(@Param('id') id: string) {
+    return this.blogService.notify(id);
+  }
 }

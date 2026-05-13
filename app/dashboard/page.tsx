@@ -102,12 +102,12 @@ export default function DashboardPage() {
       animate="visible"
     >
       {/* Header */}
-      <motion.div variants={fadeUp} className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-2">{greeting.primary}</h1>
+      <motion.div variants={fadeUp} className="flex flex-col md:flex-row md:items-end justify-between gap-4 sm:gap-6">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight mb-1 sm:mb-2 break-words">{greeting.primary}</h1>
           <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400">{greeting.sub}</p>
         </div>
-        <Link href="/exam/new" className="btn-primary w-full sm:w-auto flex items-center justify-center gap-2 py-3.5 sm:py-2.5">
+        <Link href="/exam/new" className="btn-primary w-full sm:w-auto flex items-center justify-center gap-2 py-3 sm:py-2.5 shrink-0">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
           Start New Exam
         </Link>
