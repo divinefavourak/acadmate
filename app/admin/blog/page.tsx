@@ -6,6 +6,30 @@ import { apiClient, ApiError } from "@/lib/api/client";
 import Loader from "@/app/components/Loader";
 import { categoryLabel, type BlogCategory } from "@/app/blog/categories";
 
+function SharePostButton({ slug, title }: { slug: string; title: string }) {
+  const [copied, setCopied] = useState(false);
+
+  async function handleShare() {
+    const url = `${window.location.origin}/blog/${slug}`;
+    if (navigator.share) {
+      try { await navigator.share({ title, url }); } catch { /* cancelled */ }
+      return;
+    }
+    await navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  return (
+    <button
+      onClick={handleShare}
+      className="text-xs font-medium text-slate-400 hover:text-indigo-400 transition-colors"
+    >
+      {copied ? "Copied!" : "Share"}
+    </button>
+  );
+}
+
 interface AdminBlogListItem {
   id: string;
   slug: string;
@@ -179,6 +203,9 @@ export default function AdminBlogListPage() {
                         <Link href={`/admin/blog/${p.id}`} className="text-xs font-medium text-slate-400 hover:text-white">
                           Edit
                         </Link>
+                        {p.publishedAt && (
+                          <SharePostButton slug={p.slug} title={p.title} />
+                        )}
                         <button
                           onClick={() => handleDelete(p.id, p.title)}
                           disabled={busyId === p.id}
