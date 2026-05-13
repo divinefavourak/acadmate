@@ -80,18 +80,18 @@ export default function Home() {
             animate="visible"
           >
             <motion.div variants={fadeUp} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-semibold uppercase tracking-wider mb-6">
-              🎓 Nigeria&apos;s JAMB CBT Practice Platform
+              🎓 Nigeria&apos;s Student Success Platform
             </motion.div>
 
             <motion.h1 variants={fadeUp} className="text-4xl md:text-6xl font-extrabold tracking-tight leading-[1.08] mb-6">
-              Ace your UTME.<br />
+              Ace your exams.<br />
               <span className="bg-linear-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
-                No guesswork.
+                Go further.
               </span>
             </motion.h1>
 
             <motion.p variants={fadeUp} className="text-lg text-slate-400 mb-8 leading-relaxed max-w-xl">
-              Practice with real JAMB past questions, timed CBT simulations, and AI-powered explanations. The smartest way to hit 300+.
+              JAMB & Post-UTME practice, school news, scholarship alerts, and career guides — everything a Nigerian student needs, in one place.
             </motion.p>
 
             <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-10">
@@ -109,7 +109,7 @@ export default function Home() {
                 { val: "8,600+", label: "Past Questions" },
                 { val: "11", label: "Subjects" },
                 { val: "6", label: "Post-UTME Schools" },
-                { val: "300+", label: "Target Score" },
+                { val: "Blog", label: "News & Guides" },
               ].map((s) => (
                 <motion.div key={s.label} variants={fadeUp}>
                   <p className="text-2xl font-extrabold text-white">{s.val}</p>
@@ -187,8 +187,8 @@ export default function Home() {
           whileInView="visible"
           viewport={{ once: true, amount: 0.5 }}
         >
-          <h2 className="text-3xl md:text-5xl font-bold mb-4">Everything to score 300+</h2>
-          <p className="text-slate-400 max-w-xl mx-auto">Built specifically for JAMB UTME & Post-UTME — not generic study tools.</p>
+          <h2 className="text-3xl md:text-5xl font-bold mb-4">Everything a Nigerian student needs</h2>
+          <p className="text-slate-400 max-w-xl mx-auto">Exam prep, school news, scholarship alerts, and career resources — all in one platform.</p>
         </motion.div>
         <motion.div
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"
@@ -207,6 +207,9 @@ export default function Home() {
             { icon: "🎯", title: "Topic Mastery", desc: "Drill specific topics until they're perfect. Identify gaps and close them systematically." },
             { icon: "📖", title: "Literature Guide", desc: "Full summaries, character breakdowns and predicted questions for The Lekki Headmaster and other UTME prose." },
             { icon: "🔐", title: "Google Sign-In", desc: "Register or sign in with your Google account in one click — no password required." },
+            { icon: "📰", title: "Blog & School News", desc: "Stay informed with JAMB updates, university announcements, and study tips written by our team." },
+            { icon: "🎓", title: "Scholarship Alerts", desc: "Never miss a funding opportunity. We publish local and international scholarship announcements for Nigerian students." },
+            { icon: "💼", title: "Career Guidance", desc: "Explore career paths, course requirements, and university admission insights to plan beyond the exam." },
           ].map((f, i) => (
             <motion.div
               key={i}
@@ -423,9 +426,9 @@ export default function Home() {
           </div>
           <div className="absolute inset-0 bg-indigo-600/80" />
           <div className="relative z-10">
-            <h2 className="text-3xl md:text-5xl font-extrabold mb-4 text-white">Ready to crush your JAMB?</h2>
+            <h2 className="text-3xl md:text-5xl font-extrabold mb-4 text-white">Your student journey starts here.</h2>
             <p className="text-indigo-200 text-lg max-w-2xl mx-auto mb-10">
-              Join students who use Acadmate to turn hours of practice into guaranteed admission success.
+              Join Nigerian students who use Acadmate to ace their exams, find scholarships, and build a path beyond admission.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link href="/register" className="w-full sm:w-auto bg-white text-indigo-700 font-bold px-10 py-4 rounded-2xl hover:shadow-xl hover:scale-105 transition-all text-base">
@@ -450,7 +453,7 @@ export default function Home() {
               <span className="font-bold text-slate-300 text-lg">Acadmate</span>
             </Link>
             <p className="text-sm text-slate-500 max-w-xs text-center md:text-left">
-              Helping Nigerian students ace their UTME with confidence and passion
+              Helping Nigerian students ace their exams, find opportunities, and build their future.
             </p>
           </div>
 
