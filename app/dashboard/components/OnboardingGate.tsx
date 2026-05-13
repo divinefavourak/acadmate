@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiClient } from "@/lib/api/client";
-import { getToken } from "@/lib/api/auth";
 import Loader from "@/app/components/Loader";
 
 type CheckStatus = "checking" | "ok" | "redirecting";
@@ -18,12 +17,9 @@ export default function OnboardingGate({ children }: { children: React.ReactNode
   const [status, setStatus] = useState<CheckStatus>("checking");
 
   useEffect(() => {
-    if (!getToken()) {
-      router.replace("/login");
-      setStatus("redirecting");
-      return;
-    }
-
+    // Auth is guaranteed by the middleware (frontend cookie). Do not check the
+    // in-memory token here — it is cleared on page refresh but the cookie persists,
+    // and checking it would create a redirect loop with the middleware.
     let cancelled = false;
     apiClient<MeMinimal>("/api/users/me")
       .then((me) => {

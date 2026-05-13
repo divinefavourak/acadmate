@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiClient, ApiError } from "@/lib/api/client";
-import { getToken } from "@/lib/api/auth";
 import Loader from "@/app/components/Loader";
 import AvatarPicker from "@/app/components/AvatarPicker";
 import UserAvatar from "@/app/components/UserAvatar";
@@ -56,10 +55,6 @@ export default function OnboardingPage() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!getToken()) {
-      router.replace("/login");
-      return;
-    }
     Promise.allSettled([
       apiClient<MeResponse>("/api/users/me"),
       apiClient<{ subjects: Subject[] }>("/api/subjects"),
