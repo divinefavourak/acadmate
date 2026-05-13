@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
+import "katex/dist/katex.min.css";
 import { apiClient, ApiError } from "@/lib/api/client";
 import CloudinaryUploader from "@/app/components/CloudinaryUploader";
 import { BLOG_CATEGORIES, categoryLabel, type BlogCategory } from "@/app/blog/categories";
@@ -260,7 +263,7 @@ export default function BlogEditor({ mode, initial }: BlogEditorProps) {
             ) : (
               <div className="prose prose-invert prose-sm max-w-none p-5 rounded-xl bg-slate-900/40 border border-slate-700 min-h-[400px]">
                 {form.body.trim() ? (
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{form.body}</ReactMarkdown>
+                  <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>{form.body}</ReactMarkdown>
                 ) : (
                   <p className="text-slate-500 italic">Nothing to preview yet — start writing.</p>
                 )}

@@ -280,15 +280,22 @@ export class BlogService {
     );
 
     const failures = results.filter((r) => r.status === 'rejected').length;
+    const successes = results.length - failures;
+
     if (failures > 0) {
       this.logger.warn(
         `Blog notify for post ${postId}: ${failures}/${recipients.length} sends failed`,
       );
     }
 
-    await this.prisma.blogPost.update({
-      where: { id: postId },
-      data: { notifiedAt: new Date() },
-    });
+    // Only mark notified if at least one email went out successfully.
+    // If all failed (e.g. SMTP misconfigured), leave notifiedAt null so the
+    // next publish attempt retries the blast.
+    if (successes > 0) {
+      await this.prisma.blogPost.update({
+        where: { id: postId },
+        data: { notifiedAt: new Date() },
+      });
+    }
   }
 }

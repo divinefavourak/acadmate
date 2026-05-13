@@ -5,6 +5,9 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
+import "katex/dist/katex.min.css";
 import { apiClient, ApiError } from "@/lib/api/client";
 import { categoryLabel, type BlogCategory } from "../categories";
 
@@ -109,7 +112,12 @@ export default function BlogDetailPage() {
       )}
 
       <div className="prose prose-invert prose-lg max-w-none prose-headings:font-bold prose-headings:tracking-tight prose-a:text-indigo-400 prose-a:no-underline hover:prose-a:underline prose-img:rounded-xl prose-code:before:content-none prose-code:after:content-none">
-        <ReactMarkdown remarkPlugins={[remarkGfm]}>{post.body}</ReactMarkdown>
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm, remarkMath]}
+          rehypePlugins={[rehypeKatex]}
+        >
+          {post.body}
+        </ReactMarkdown>
       </div>
 
       <footer className="mt-16 pt-8 border-t border-white/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
