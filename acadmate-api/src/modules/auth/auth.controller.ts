@@ -1,6 +1,6 @@
 import {
   Controller, Post, Get, Body, HttpCode, HttpStatus,
-  Res, UseGuards, Req,
+  Res, UseGuards, Req, UnauthorizedException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
@@ -48,6 +48,20 @@ export class AuthController {
   logout(@Res({ passthrough: true }) res: Response) {
     res.clearCookie('acadmate_token', { path: '/' });
     return { ok: true };
+  }
+
+  // ─── Token relay for cross-domain deployments ─────────────────────────────
+  // The frontend (Vercel) and backend (Render) are on different domains.
+  // After Google OAuth the JWT only exists in the backend's HttpOnly cookie.
+  // The frontend calls this endpoint (credentials: 'include') to get a fresh token,
+  // then mirrors it to its own domain so Next.js middleware can read it.
+  @Get('token')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiOperation({ summary: 'Re-issue token for frontend cookie relay (cross-domain)' })
+  async getToken(@Req() req: Request & { user?: { id: string; email: string; role: string } }) {
+    const user = (req as { user?: { id: string; email: string; role: string } }).user;
+    if (!user) throw new UnauthorizedException();
+    return this.authService.reissueToken(user);
   }
 
   // ─── Google OAuth ────────────────────────────────────────────────────────

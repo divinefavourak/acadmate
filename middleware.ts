@@ -6,8 +6,8 @@ const publicRoutes = ["/", "/login", "/register", "/api/auth", "/auth/callback",
 const adminRoutes = ["/admin", "/api/admin"];
 
 function getSecret(): Uint8Array {
-  const secret = process.env.AUTH_SECRET;
-  if (!secret) throw new Error("AUTH_SECRET is not set");
+  const secret = process.env.JWT_SECRET;
+  if (!secret) throw new Error("JWT_SECRET is not set");
   return new TextEncoder().encode(secret);
 }
 
@@ -53,5 +53,5 @@ export default async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|images/).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|manifest.json|robots.txt|sitemap.xml|images/).*)"],
 };

@@ -4,7 +4,7 @@ import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { removeToken } from "@/lib/api/auth";
+import { signOut } from "@/lib/api/auth";
 
 export const navItems: { href: string; label: string; icon: React.ReactNode; exact?: boolean }[] = [
   {
@@ -120,7 +120,7 @@ export default function Sidebar() {
 
       <div className="p-4 mt-auto border-t border-slate-200 dark:border-slate-800">
         <button
-          onClick={() => { removeToken(); router.push("/"); }}
+          onClick={() => signOut().then(() => router.push("/"))}
           className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-red-500 dark:hover:text-red-400 font-medium transition-colors"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>

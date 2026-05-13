@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { apiClient, ApiError } from "@/lib/api/client";
-import { setToken } from "@/lib/api/auth";
+import { setToken, relayTokenToFrontend } from "@/lib/api/auth";
 import { scaleIn, stagger, fadeUp } from "@/lib/motion";
 import Loader from "@/app/components/Loader";
 
@@ -60,6 +60,7 @@ function LoginForm() {
       );
 
       setToken(data.accessToken);
+      await relayTokenToFrontend(data.accessToken);
       router.push(data.user.role === "ADMIN" ? "/admin" : callbackUrl);
       router.refresh();
     } catch (err) {

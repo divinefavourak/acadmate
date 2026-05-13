@@ -116,6 +116,14 @@ export class AuthService {
     return { ok: true };
   }
 
+  // Used by GET /auth/token so the frontend can relay a token to its own domain cookie
+  // after Google OAuth (where the JWT only lands in the backend's HttpOnly cookie).
+  async reissueToken(user: { id: string; email: string; role: string }) {
+    const payload = { sub: user.id, email: user.email, role: user.role };
+    const accessToken = await this.jwtService.signAsync(payload);
+    return { accessToken };
+  }
+
   // ─── Helpers ──────────────────────────────────────────────────────────────
   private async issueToken(user: { id: string; name: string | null; email: string; role: string }) {
     const payload = { sub: user.id, email: user.email, role: user.role };

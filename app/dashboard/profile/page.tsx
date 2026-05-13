@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Loader from "@/app/components/Loader";
 import { apiClient, ApiError } from "@/lib/api/client";
-import { removeToken } from "@/lib/api/auth";
+import { signOut } from "@/lib/api/auth";
 import UserAvatar from "@/app/components/UserAvatar";
 import AvatarPicker from "@/app/components/AvatarPicker";
 import type { AvatarFullConfig } from "react-nice-avatar";
@@ -148,7 +148,7 @@ export default function ProfilePage() {
     setDeleteError("");
     try {
       await apiClient("/api/users/me", { method: "DELETE" });
-      removeToken();
+      await signOut();
       router.replace("/");
     } catch (err) {
       setDeleteError(err instanceof ApiError ? err.message : "Failed to delete account.");

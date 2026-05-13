@@ -3,6 +3,7 @@
 import { useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { apiClient } from "@/lib/api/client";
+import { setToken, relayTokenToFrontend } from "@/lib/api/auth";
 
 function CallbackHandler() {
   const router = useRouter();
@@ -11,17 +12,20 @@ function CallbackHandler() {
   useEffect(() => {
     const role = searchParams.get("role");
 
-    // The backend already set the HttpOnly cookie before this redirect.
-    // No token is passed in the URL — auth is handled entirely via cookie.
-    if (role === "ADMIN") {
-      router.replace("/admin");
-      return;
-    }
+    // The backend set its HttpOnly cookie (on the Render domain) before this redirect.
+    // We call /api/auth/token (uses that cookie via credentials: 'include') to get a
+    // fresh JWT, then mirror it to the Vercel domain so Next.js middleware can see it.
+    apiClient<{ accessToken: string }>("/api/auth/token")
+      .then(async ({ accessToken }) => {
+        setToken(accessToken);
+        await relayTokenToFrontend(accessToken);
 
-    // Decide between dashboard (returning user) and onboarding (first OAuth sign-in).
-    // The apiClient sends credentials: 'include', so the HttpOnly cookie authenticates this call.
-    apiClient<{ onboardedAt: string | null }>("/api/users/me")
-      .then((me) => {
+        if (role === "ADMIN") {
+          router.replace("/admin");
+          return;
+        }
+
+        const me = await apiClient<{ onboardedAt: string | null }>("/api/users/me");
         router.replace(me.onboardedAt ? "/dashboard" : "/onboarding");
       })
       .catch(() => router.replace("/login?error=oauth_failed"));
