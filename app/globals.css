@@ -1,6 +1,9 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
+/* Class-based dark mode — toggled by ThemeProvider adding .dark to <html> */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #fdfdfd;
   --foreground: #0f172a;
@@ -14,18 +17,16 @@
   --glass-border: rgba(255, 255, 255, 0.3);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #09090b;
-    --foreground: #fafafa;
-    --primary: 243 85% 65%;
-    --primary-hover: 243 85% 75%;
-    --surface: #121214;
-    --border: #27272a;
-    
-    --glass-bg: rgba(24, 24, 27, 0.7);
-    --glass-border: rgba(255, 255, 255, 0.1);
-  }
+html.dark {
+  --background: #09090b;
+  --foreground: #fafafa;
+  --primary: 243 85% 65%;
+  --primary-hover: 243 85% 75%;
+  --surface: #121214;
+  --border: #27272a;
+
+  --glass-bg: rgba(24, 24, 27, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.1);
 }
 
 body {
