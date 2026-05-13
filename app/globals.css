@@ -2,7 +2,7 @@
 @plugin "@tailwindcss/typography";
 
 /* Class-based dark mode — toggled by ThemeProvider adding .dark to <html> */
-@variant dark (&:where(.dark, .dark *));
+@custom-variant dark (&:where(.dark, .dark *));
 
 :root {
   --background: #fdfdfd;
