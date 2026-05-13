@@ -94,7 +94,7 @@ export default function AdminSidebar() {
   const router = useRouter();
 
   return (
-    <aside className="w-64 border-r border-slate-200 dark:border-slate-800 bg-slate-900 text-white flex-col hidden md:flex">
+    <aside className="w-64 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-900 dark:text-white flex-col hidden md:flex">
       <div className="p-6">
         <Link href="/admin" className="flex items-center gap-3 mb-8 group">
           <Image src="/images/logo.jpg" alt="Acadmate Logo" width={36} height={36} className="rounded-xl shadow-md object-cover" />
@@ -111,8 +111,8 @@ export default function AdminSidebar() {
               href={href}
               className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${
                 active
-                  ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30"
-                  : "text-slate-400 hover:bg-slate-800 hover:text-white"
+                  ? "bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30"
+                  : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
               }`}
             >
               {icon}
@@ -123,10 +123,10 @@ export default function AdminSidebar() {
         <NotificationBell />
       </nav>
 
-      <div className="p-4 mt-auto border-t border-slate-800">
+      <div className="p-4 mt-auto border-t border-slate-200 dark:border-slate-800">
         <button
           onClick={() => signOut().then(() => router.push("/"))}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white font-medium transition-colors"
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white font-medium transition-colors"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
           Sign Out

@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 
 type BlogPostForEmail = {
@@ -23,7 +23,7 @@ function categoryLabel(category: string): string {
 }
 
 @Injectable()
-export class MailService {
+export class MailService implements OnModuleInit {
   private readonly logger = new Logger(MailService.name);
 
   private transporter = nodemailer.createTransport({
@@ -35,6 +35,34 @@ export class MailService {
       pass: process.env.SMTP_PASS,
     },
   });
+
+  // Verify SMTP at startup so misconfiguration is visible immediately instead
+  // of surfacing later as silent send failures.
+  async onModuleInit() {
+    const { SMTP_HOST, SMTP_USER, SMTP_PASS, SMTP_FROM, SMTP_PORT } = process.env;
+    const missing: string[] = [];
+    if (!SMTP_HOST) missing.push('SMTP_HOST');
+    if (!SMTP_USER) missing.push('SMTP_USER');
+    if (!SMTP_PASS) missing.push('SMTP_PASS');
+    if (missing.length > 0) {
+      this.logger.warn(
+        `SMTP not fully configured — emails will fail. Missing: ${missing.join(', ')}`,
+      );
+      return;
+    }
+    this.logger.log(
+      `SMTP configured: host=${SMTP_HOST}, port=${SMTP_PORT ?? 587}, user=${SMTP_USER}, from="${SMTP_FROM ?? '(default)'}"`,
+    );
+    try {
+      await this.transporter.verify();
+      this.logger.log('SMTP transporter verified — ready to send mail');
+    } catch (err) {
+      this.logger.error(
+        `SMTP verification failed — emails will fail to send: ${(err as Error).message}`,
+        (err as Error).stack,
+      );
+    }
+  }
 
   async sendPasswordReset(to: string, resetUrl: string) {
     const from = process.env.SMTP_FROM ?? 'Acadmate <noreply@acadmate.app>';
@@ -83,7 +111,8 @@ export class MailService {
       : '';
 
     try {
-      await this.transporter.sendMail({
+      this.logger.log(`Sending blog notification to ${to} — "${post.title}"`);
+      const result = await this.transporter.sendMail({
         from,
         to,
         subject: `New on Acadmate: ${post.title}`,
@@ -105,8 +134,14 @@ export class MailService {
           </div>
         `,
       });
+      this.logger.log(
+        `Blog notification sent to ${to} (messageId: ${result.messageId ?? 'unknown'})`,
+      );
     } catch (err) {
-      this.logger.warn(`Failed to send blog notification to ${to}`, err as Error);
+      this.logger.error(
+        `Failed to send blog notification to ${to}: ${(err as Error).message}`,
+        (err as Error).stack,
+      );
       throw err;
     }
   }
