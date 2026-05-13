@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 const publicRoutes = ["/", "/login", "/register", "/api/auth", "/auth/callback", "/forgot-password", "/reset-password"];
+// Authenticated users visiting these routes are redirected to /dashboard
+const authRedirectRoutes = ["/", "/login", "/register"];
 const adminRoutes = ["/admin", "/api/admin"];
 
 function getSecret(): Uint8Array {
@@ -28,9 +30,21 @@ export default async function middleware(req: NextRequest) {
     pathname.startsWith("/_next") ||
     pathname.startsWith("/favicon");
 
-  if (isPublic) return NextResponse.next();
-
   const rawToken = req.cookies.get("acadmate_token")?.value;
+
+  // Redirect already-authenticated users away from the landing page and auth pages
+  if (isPublic) {
+    const isAuthRedirectRoute = authRedirectRoutes.some((r) => pathname === r);
+    if (isAuthRedirectRoute && rawToken) {
+      const payload = await getPayload(rawToken);
+      if (payload?.sub) {
+        const dest = payload.role === "ADMIN" ? "/admin" : "/dashboard";
+        return NextResponse.redirect(new URL(dest, req.url));
+      }
+    }
+    return NextResponse.next();
+  }
+
   if (!rawToken) {
     const loginUrl = new URL("/login", req.url);
     loginUrl.searchParams.set("callbackUrl", pathname);
