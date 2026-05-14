@@ -44,3 +44,7 @@ yarn-error.log*
 next-env.d.ts
 
 .vercel
+
+# extract-questions.js output (local-only; import via /admin/imports)
+/unilag*.json
+
