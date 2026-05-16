@@ -61,6 +61,8 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
   const [submitting, setSubmitting] = useState(false);
   const [showCalculator, setShowCalculator] = useState(false);
   const [showMobileNav, setShowMobileNav] = useState(false);
+  const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
+  const [submitError, setSubmitError] = useState("");
   const [reportedQuestions, setReportedQuestions] = useState<Set<string>>(new Set());
 
   // Fetch exam session
@@ -129,19 +131,21 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
     saveAnswer(qid, optionId);
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     if (submitting) return;
-    const confirmed = window.confirm(
-      "Are you sure you want to submit your exam? This cannot be undone."
-    );
-    if (!confirmed) return;
+    setSubmitError("");
+    setShowSubmitConfirm(true);
+  };
 
+  const confirmSubmit = async () => {
+    if (submitting) return;
     setSubmitting(true);
+    setSubmitError("");
     try {
       const data = await apiClient<{ result: { id: string } }>(`/api/exams/${id}/submit`, { method: "POST" });
       router.push(`/results/${data.result.id}`);
     } catch {
-      alert("Failed to submit exam. Please try again.");
+      setSubmitError("Failed to submit exam. Please try again.");
       setSubmitting(false);
     }
   };
@@ -443,6 +447,86 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
 
       {/* Calculator modal */}
       {showCalculator && <Calculator onClose={() => setShowCalculator(false)} />}
+
+      {/* Submit confirmation modal */}
+      {showSubmitConfirm && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="submit-confirm-title"
+        >
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => !submitting && setShowSubmitConfirm(false)}
+          />
+          <div className="relative w-full max-w-md bg-white dark:bg-slate-950 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-6 sm:p-7">
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0 w-11 h-11 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-600 dark:text-red-400">
+                  <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+                  <path d="M12 9v4"/>
+                  <path d="M12 17h.01"/>
+                </svg>
+              </div>
+              <div className="min-w-0 flex-1">
+                <h3 id="submit-confirm-title" className="font-bold text-lg text-slate-900 dark:text-slate-100">
+                  Submit exam?
+                </h3>
+                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                  Once submitted, you can&apos;t change your answers.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-5 rounded-xl bg-slate-50 dark:bg-slate-900/60 p-4 space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-slate-500 dark:text-slate-400">Answered</span>
+                <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                  {answeredIndexes.length} / {questions.length}
+                </span>
+              </div>
+              {questions.length - answeredIndexes.length > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-slate-500 dark:text-slate-400">Unanswered</span>
+                  <span className="font-semibold text-red-600 dark:text-red-400">
+                    {questions.length - answeredIndexes.length}
+                  </span>
+                </div>
+              )}
+              {markedIndexes.length > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-slate-500 dark:text-slate-400">Flagged for review</span>
+                  <span className="font-semibold text-amber-600 dark:text-amber-400">
+                    {markedIndexes.length}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {submitError && (
+              <p className="mt-4 text-sm text-red-600 dark:text-red-400">{submitError}</p>
+            )}
+
+            <div className="mt-6 flex gap-3 justify-end">
+              <button
+                onClick={() => setShowSubmitConfirm(false)}
+                disabled={submitting}
+                className="btn-secondary px-4 py-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Keep working
+              </button>
+              <button
+                onClick={confirmSubmit}
+                disabled={submitting}
+                className="px-4 py-2 rounded-xl font-semibold text-sm bg-red-600 hover:bg-red-700 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {submitting ? "Submitting…" : "Submit exam"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Right Sidebar */}
       <aside className="w-80 bg-white/90 dark:bg-black/90 backdrop-blur-md border-l border-slate-200 dark:border-slate-800 flex-col hidden lg:flex">
