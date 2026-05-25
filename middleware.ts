@@ -2,7 +2,7 @@ import { jwtVerify } from "jose";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const publicRoutes = ["/", "/login", "/register", "/api/auth", "/auth/callback", "/forgot-password", "/reset-password"];
+const publicRoutes = ["/", "/login", "/register", "/api/auth", "/auth/callback", "/forgot-password", "/reset-password", "/blog", "/api/blog", "/forum", "/api/forum"];
 // Authenticated users visiting these routes are redirected to /dashboard
 const authRedirectRoutes = ["/", "/login", "/register"];
 const adminRoutes = ["/admin", "/api/admin"];

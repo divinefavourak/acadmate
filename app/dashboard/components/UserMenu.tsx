@@ -1,19 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import UserAvatar from "@/app/components/UserAvatar";
-import { apiClient } from "@/lib/api/client";
-
-interface MeWithAvatar {
-  name: string | null;
-  email: string;
-  role: string;
-  studentProfile: {
-    avatarConfig: Record<string, unknown> | null;
-    avatarUrl: string | null;
-  } | null;
-}
+import { useUser } from "@/app/context/UserContext";
 
 type Props = {
   /** Compact mode renders just the avatar (used in the mobile header). */
@@ -22,24 +11,10 @@ type Props = {
 };
 
 export default function UserMenu({ compact = false, className = "" }: Props) {
-  const [me, setMe] = useState<MeWithAvatar | null>(null);
+  const { user } = useUser();
 
-  useEffect(() => {
-    let cancelled = false;
-    apiClient<MeWithAvatar>("/api/users/me")
-      .then((data) => {
-        if (!cancelled) setMe(data);
-      })
-      .catch(() => {
-        /* keep fallback avatar */
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const avatarConfig = me?.studentProfile?.avatarConfig ?? null;
-  const avatarUrl = me?.studentProfile?.avatarUrl ?? null;
+  const avatarConfig = user?.studentProfile?.avatarConfig ?? null;
+  const avatarUrl = user?.studentProfile?.avatarUrl ?? null;
 
   if (compact) {
     return (
@@ -48,7 +23,7 @@ export default function UserMenu({ compact = false, className = "" }: Props) {
         aria-label="Profile"
         className={`shrink-0 rounded-full ring-2 ring-transparent hover:ring-indigo-500/40 transition ${className}`}
       >
-        <UserAvatar avatarConfig={avatarConfig} avatarUrl={avatarUrl} name={me?.name} size={36} />
+        <UserAvatar avatarConfig={avatarConfig} avatarUrl={avatarUrl} name={user?.name} size={36} />
       </Link>
     );
   }
@@ -58,10 +33,10 @@ export default function UserMenu({ compact = false, className = "" }: Props) {
       href="/dashboard/profile"
       className={`flex items-center gap-3 p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors ${className}`}
     >
-      <UserAvatar avatarConfig={avatarConfig} avatarUrl={avatarUrl} name={me?.name} size={40} />
+      <UserAvatar avatarConfig={avatarConfig} avatarUrl={avatarUrl} name={user?.name} size={40} />
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold truncate">{me?.name ?? "Loading…"}</p>
-        <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{me?.email ?? ""}</p>
+        <p className="text-sm font-semibold truncate">{user?.name ?? "Loading…"}</p>
+        <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{user?.email ?? ""}</p>
       </div>
       <svg
         xmlns="http://www.w3.org/2000/svg"

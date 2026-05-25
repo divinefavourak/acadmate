@@ -9,6 +9,9 @@ import Calculator from "../components/Calculator";
 import MathText from "@/app/components/MathText";
 import Loader from "@/app/components/Loader";
 import { apiClient } from "@/lib/api/client";
+import { useExamGuard } from "../hooks/useExamGuard";
+import type { StrikeWarning } from "../hooks/useExamGuard";
+import ExamBriefing from "../components/ExamBriefing";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -64,6 +67,7 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [reportedQuestions, setReportedQuestions] = useState<Set<string>>(new Set());
+  const [examStarted, setExamStarted] = useState(false);
 
   // Fetch exam session
   useEffect(() => {
@@ -96,6 +100,20 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
       .catch(() => setError("Failed to load exam. Please refresh."))
       .finally(() => setLoading(false));
   }, [id, router]);
+
+  // Disable copy, cut, and right-click for the lifetime of the exam page
+  useEffect(() => {
+    if (!session) return;
+    const block = (e: Event) => e.preventDefault();
+    document.addEventListener("copy", block);
+    document.addEventListener("cut", block);
+    document.addEventListener("contextmenu", block);
+    return () => {
+      document.removeEventListener("copy", block);
+      document.removeEventListener("cut", block);
+      document.removeEventListener("contextmenu", block);
+    };
+  }, [session]);
 
   const questions = session?.questions ?? [];
   const currentSQ = questions[currentIndex];
@@ -166,6 +184,21 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
     } catch { /* session already expired */ }
   };
 
+  // Auto-submit used by the exam guard on strike exhaustion
+  const handleAutoSubmit = useCallback(async () => {
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      const data = await apiClient<{ result: { id: string } }>(`/api/exams/${id}/submit`, { method: "POST" });
+      router.push(`/results/${data.result.id}?autosubmit=1`);
+    } catch {
+      setSubmitting(false);
+    }
+  }, [id, router, submitting]);
+
+  const { strikes, warning, isFullscreen, dismissWarning, requestFullscreen } =
+    useExamGuard(session !== null && examStarted, handleAutoSubmit);
+
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -179,6 +212,18 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
       <div className="flex h-screen items-center justify-center">
         <div className="text-red-500">{error || "Exam not found."}</div>
       </div>
+    );
+  }
+
+  // Briefing gate — shown before the exam starts
+  if (!examStarted) {
+    return (
+      <ExamBriefing
+        mode={session.mode}
+        totalQuestions={session.totalQuestions}
+        durationMinutes={session.durationMinutes}
+        onStart={() => setExamStarted(true)}
+      />
     );
   }
 
@@ -273,6 +318,25 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
           </div>
 
           <Timer initialMinutes={minutesRemaining} onExpire={handleExpire} />
+
+          {/* Fullscreen nudge + strike counter */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {!isFullscreen && (
+              <button
+                onClick={requestFullscreen}
+                title="Enter fullscreen"
+                className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold border border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+                Fullscreen
+              </button>
+            )}
+            {strikes > 0 && (
+              <span className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-red-100 dark:bg-red-950/40 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800">
+                ⚠ {strikes}/{2}
+              </span>
+            )}
+          </div>
 
           <button
             onClick={handleSubmit}
@@ -445,6 +509,9 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
         </div>
       </main>
 
+      {/* Strike warning modal */}
+      {warning && <StrikeWarningModal warning={warning} onDismiss={dismissWarning} />}
+
       {/* Calculator modal */}
       {showCalculator && <Calculator onClose={() => setShowCalculator(false)} />}
 
@@ -528,7 +595,7 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
         </div>
       )}
 
-      {/* Right Sidebar */}
+      {/* Right Sidebar — question navigator */}
       <aside className="w-80 bg-white/90 dark:bg-black/90 backdrop-blur-md border-l border-slate-200 dark:border-slate-800 flex-col hidden lg:flex">
         <div className="p-6 border-b border-slate-200 dark:border-slate-800">
           <h3 className="font-bold text-lg">Question Navigator</h3>
@@ -567,6 +634,78 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
           </div>
         </div>
       </aside>
+    </div>
+  );
+}
+
+// ─── Strike Warning Modal ─────────────────────────────────────────────────────
+
+function StrikeWarningModal({
+  warning,
+  onDismiss,
+}: {
+  warning: StrikeWarning;
+  onDismiss: () => void;
+}) {
+  const { type, strike, isFinal } = warning;
+
+  const reason =
+    type === "tab"
+      ? "You switched to another tab or window"
+      : "You exited fullscreen mode";
+
+  return (
+    <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+      <div className="w-full max-w-md bg-white dark:bg-slate-950 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+        {/* Coloured top bar */}
+        <div className={`h-1.5 w-full ${isFinal ? "bg-red-600" : "bg-amber-500"}`} />
+
+        <div className="p-6 sm:p-8 space-y-5">
+          {/* Icon + heading */}
+          <div className="flex items-start gap-4">
+            <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center ${
+              isFinal ? "bg-red-100 dark:bg-red-900/30" : "bg-amber-100 dark:bg-amber-900/30"
+            }`}>
+              {isFinal ? (
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-600 dark:text-red-400">
+                  <circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>
+                </svg>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-600 dark:text-amber-400">
+                  <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/>
+                </svg>
+              )}
+            </div>
+            <div>
+              <h2 className="font-bold text-lg text-slate-900 dark:text-slate-100">
+                {isFinal ? "Exam Auto-Submitted" : `Strike ${strike} of ${2}`}
+              </h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">{reason}</p>
+            </div>
+          </div>
+
+          {/* Body */}
+          <div className={`rounded-xl p-4 text-sm ${
+            isFinal
+              ? "bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-300"
+              : "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300"
+          }`}>
+            {isFinal
+              ? "You have used both strikes. Your exam is being submitted now. You will be redirected to your results shortly."
+              : `This is a monitored exam. One more violation will automatically submit your exam.`}
+          </div>
+
+          {/* Action */}
+          {!isFinal && (
+            <button
+              onClick={onDismiss}
+              className="w-full py-3 rounded-xl font-bold text-sm bg-indigo-600 hover:bg-indigo-700 text-white transition-colors"
+            >
+              I understand — return to exam
+            </button>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

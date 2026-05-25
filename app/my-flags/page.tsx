@@ -34,7 +34,7 @@ export default function MyFlagsPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    apiClient<{ flags: FlagEntry[] }>("/api/my-flags")
+    apiClient<{ flags: FlagEntry[] }>("/api/flags")
       .then((data) => setFlags(data?.flags ?? []))
       .catch((err) => {
         console.error("Failed to load flagged questions", err);

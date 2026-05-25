@@ -1,8 +1,10 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { SCHOOLS } from "@/features/post-utme/constants";
+import { schoolHasQuestions } from "@/features/post-utme/api";
 import Folder from "@/app/admin/components/Folder";
 
 const SCHOOL_COLORS = [
@@ -12,6 +14,21 @@ const SCHOOL_COLORS = [
 
 export default function PostUtmeSchoolsPage() {
   const router = useRouter();
+  const [available, setAvailable] = useState<Record<string, boolean | null>>(
+    () => Object.fromEntries(SCHOOLS.map((s) => [s.id, null]))
+  );
+
+  useEffect(() => {
+    Promise.all(
+      SCHOOLS.map((s) =>
+        schoolHasQuestions(s.id)
+          .then((has) => [s.id, has] as const)
+          .catch(() => [s.id, false] as const)
+      )
+    ).then((results) =>
+      setAvailable(Object.fromEntries(results))
+    );
+  }, []);
 
   return (
     <div className="space-y-8">
@@ -34,23 +51,39 @@ export default function PostUtmeSchoolsPage() {
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-6 max-w-2xl">
-        {SCHOOLS.map((school, i) => (
-          <button
-            key={school.id}
-            onClick={() => router.push(`/exam/post-utme/packs?school=${encodeURIComponent(school.id)}`)}
-            className="flex flex-col items-center gap-3 group focus:outline-none"
-          >
-            <Folder color={SCHOOL_COLORS[i % SCHOOL_COLORS.length]} size={1.2} />
-            <div className="text-center">
-              <p className="font-bold text-sm group-hover:text-indigo-400 dark:group-hover:text-indigo-400 transition-colors">
-                {school.abbr}
-              </p>
-              <p className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-[120px]">
-                {school.location}
-              </p>
-            </div>
-          </button>
-        ))}
+        {SCHOOLS.map((school, i) => {
+          const status = available[school.id]; // null=loading, true=ready, false=coming soon
+          const isReady = status === true;
+          const isLoading = status === null;
+
+          return (
+            <button
+              key={school.id}
+              onClick={() => isReady && router.push(`/exam/post-utme/packs?school=${encodeURIComponent(school.id)}`)}
+              disabled={!isReady}
+              className={`flex flex-col items-center gap-3 group focus:outline-none transition-opacity ${
+                isLoading ? "opacity-60" : !isReady ? "opacity-40 cursor-not-allowed" : ""
+              }`}
+            >
+              <Folder color={SCHOOL_COLORS[i % SCHOOL_COLORS.length]} size={1.2} />
+              <div className="text-center">
+                <p className={`font-bold text-sm transition-colors ${
+                  isReady ? "group-hover:text-indigo-400 dark:group-hover:text-indigo-400" : ""
+                }`}>
+                  {school.abbr}
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-[120px]">
+                  {school.location}
+                </p>
+                {status === false && (
+                  <span className="mt-1 inline-block text-[10px] font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400">
+                    Coming soon
+                  </span>
+                )}
+              </div>
+            </button>
+          );
+        })}
       </div>
 
       <p className="text-xs text-slate-400 dark:text-slate-600">
