@@ -222,7 +222,14 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
         mode={session.mode}
         totalQuestions={session.totalQuestions}
         durationMinutes={session.durationMinutes}
-        onStart={() => setExamStarted(true)}
+        onStart={async () => {
+          const { expiresAt } = await apiClient<{ expiresAt: string }>(
+            `/api/exams/${id}/start`,
+            { method: "POST" },
+          );
+          setSession((prev) => prev ? { ...prev, expiresAt } : prev);
+          setExamStarted(true);
+        }}
       />
     );
   }

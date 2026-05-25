@@ -317,7 +317,7 @@ export class ExamFactoryService {
     }
 
     const questionIds = fisherYates(collected);
-    return { questionIds, durationMinutes: desiredCount * 2 };
+    return { questionIds, durationMinutes: Math.round(desiredCount * 0.75) };
   }
 }
 

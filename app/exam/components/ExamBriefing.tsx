@@ -1,10 +1,11 @@
+import { useState } from "react";
 import Image from "next/image";
 
 interface Props {
   mode: string;
   totalQuestions: number;
   durationMinutes: number;
-  onStart: () => void;
+  onStart: () => Promise<void>;
 }
 
 const MODE_LABEL: Record<string, string> = {
@@ -22,14 +23,23 @@ const RULES = [
 ];
 
 export default function ExamBriefing({ mode, totalQuestions, durationMinutes, onStart }: Props) {
+  const [starting, setStarting] = useState(false);
+  const [startError, setStartError] = useState("");
+
   async function handleBegin() {
-    // Request fullscreen inside the click handler — this is the user gesture window.
+    setStarting(true);
+    setStartError("");
     try {
       await document.documentElement.requestFullscreen();
     } catch {
-      // User declined or browser doesn't support — exam still proceeds.
+      // User declined or browser doesn't support — proceed anyway.
     }
-    onStart();
+    try {
+      await onStart();
+    } catch {
+      setStarting(false);
+      setStartError("Failed to start exam. Please try again.");
+    }
   }
 
   return (
@@ -82,10 +92,15 @@ export default function ExamBriefing({ mode, totalQuestions, durationMinutes, on
         {/* CTA */}
         <button
           onClick={handleBegin}
-          className="w-full py-4 rounded-2xl font-bold text-base bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] text-white transition-all shadow-lg shadow-indigo-500/20"
+          disabled={starting}
+          className="w-full py-4 rounded-2xl font-bold text-base bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] text-white transition-all shadow-lg shadow-indigo-500/20 disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          I understand — Begin Exam
+          {starting ? "Starting…" : "I understand — Begin Exam"}
         </button>
+
+        {startError && (
+          <p className="text-center text-xs text-red-500">{startError}</p>
+        )}
 
         <p className="text-center text-xs text-slate-400">
           By starting, you agree to complete this exam honestly without assistance.

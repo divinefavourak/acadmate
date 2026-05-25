@@ -74,6 +74,13 @@ export class ExamsController {
     return this.examsService.saveAnswers(user.id, id, dto);
   }
 
+  @Post(':id/start')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Start timing for an exam session (sets expiresAt)' })
+  startExam(@CurrentUser() user: JwtUser, @Param('id') id: string) {
+    return this.examsService.startExam(user.id, id);
+  }
+
   @Post(':id/submit')
   @HttpCode(HttpStatus.OK)
   @Throttle({ default: { limit: 10, ttl: 60_000 } })

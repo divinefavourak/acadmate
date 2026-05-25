@@ -1,6 +1,7 @@
 import {
   Injectable,
   NotFoundException,
+  ForbiddenException,
   ConflictException,
   GoneException,
   HttpException,
@@ -94,8 +95,6 @@ export class ExamsService {
       const { questionIds, durationMinutes } =
         await this.examFactory.build(factoryInput);
 
-      const expiresAt = new Date(Date.now() + durationMinutes * 60 * 1000);
-
       const examSession = await this.prisma.examSession.create({
         data: {
           userId,
@@ -105,7 +104,7 @@ export class ExamsService {
           school: 'school' in input ? input.school : undefined,
           totalQuestions: questionIds.length,
           durationMinutes,
-          expiresAt,
+          // expiresAt is set by POST /exams/:id/start when the user clicks Begin
           questions: {
             create: questionIds.map((qid, idx) => ({
               questionId: qid,
@@ -130,6 +129,24 @@ export class ExamsService {
       }
       throw err;
     }
+  }
+
+  // ─── POST /exams/:id/start ────────────────────────────────────────────────
+  async startExam(userId: string, id: string) {
+    const session = await this.prisma.examSession.findUnique({
+      where: { id },
+      select: { id: true, userId: true, status: true, durationMinutes: true, expiresAt: true },
+    });
+    if (!session) throw new NotFoundException('Session not found');
+    if (session.userId !== userId) throw new ForbiddenException();
+    if (session.status !== 'IN_PROGRESS') throw new BadRequestException('Session is already ended');
+
+    // Idempotent: if already started, return the existing expiry
+    if (session.expiresAt) return { expiresAt: session.expiresAt };
+
+    const expiresAt = new Date(Date.now() + session.durationMinutes * 60_000);
+    await this.prisma.examSession.update({ where: { id }, data: { expiresAt } });
+    return { expiresAt };
   }
 
   // ─── GET /exams/active ────────────────────────────────────────────────────
