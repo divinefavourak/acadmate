@@ -75,10 +75,14 @@ export class ForumService {
     if (!ALLOWED_CATEGORIES.includes(dto.category)) {
       throw new BadRequestException(`Invalid category: ${dto.category}`);
     }
+    const title = dto.title.trim();
+    const body  = dto.body.trim();
+    if (!title) throw new BadRequestException('Title cannot be blank');
+    if (!body)  throw new BadRequestException('Body cannot be blank');
     const thread = await this.prisma.forumThread.create({
       data: {
-        title: dto.title.trim(),
-        body: dto.body.trim(),
+        title,
+        body,
         category: dto.category,
         authorId,
       },
@@ -96,6 +100,9 @@ export class ForumService {
   }
 
   async createReply(authorId: string, threadId: string, body: string) {
+    const trimmed = body.trim();
+    if (!trimmed) throw new BadRequestException('Reply cannot be blank');
+
     const thread = await this.prisma.forumThread.findUnique({
       where: { id: threadId },
       select: { id: true },
@@ -103,7 +110,7 @@ export class ForumService {
     if (!thread) throw new NotFoundException('Thread not found');
 
     const reply = await this.prisma.forumReply.create({
-      data: { body: body.trim(), threadId, authorId },
+      data: { body: trimmed, threadId, authorId },
       select: {
         id: true,
         body: true,

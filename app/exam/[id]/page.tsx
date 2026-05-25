@@ -191,7 +191,9 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
     try {
       const data = await apiClient<{ result: { id: string } }>(`/api/exams/${id}/submit`, { method: "POST" });
       router.push(`/results/${data.result.id}?autosubmit=1`);
-    } catch { /* ignore */ }
+    } catch {
+      setSubmitting(false);
+    }
   }, [id, router, submitting]);
 
   const { strikes, warning, isFullscreen, dismissWarning, requestFullscreen } =
