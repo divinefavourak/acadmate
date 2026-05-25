@@ -26,6 +26,13 @@ export function fetchPostUtmeQuestions(school: string): Promise<BrowseQuestionsR
   return apiClient<BrowseQuestionsResponse>(`/api/questions?${params}`);
 }
 
+/** Cheap probe — returns true if the school has at least one published question. */
+export async function schoolHasQuestions(school: string): Promise<boolean> {
+  const params = new URLSearchParams({ examType: 'POST_UTME', school, limit: '1' });
+  const data = await apiClient<BrowseQuestionsResponse>(`/api/questions?${params}`);
+  return data.total > 0;
+}
+
 /**
  * Create a POST_UTME exam session. The backend selects questions matching the
  * school + year filter, shuffles them, and returns the session ID.

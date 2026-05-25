@@ -176,7 +176,7 @@ function FeaturedCard({ post }: { post: BlogListItem }) {
   return (
     <Link
       href={`/blog/${post.slug}`}
-      className="group block rounded-3xl overflow-hidden border border-slate-200 dark:border-white/10 bg-white dark:bg-gradient-to-br dark:from-white/[0.04] dark:to-white/[0.01] hover:border-indigo-500/40 transition-all"
+      className="group block rounded-3xl overflow-hidden border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.04] hover:border-indigo-500/40 transition-all"
     >
       <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
         <div className="aspect-video md:aspect-auto bg-slate-100 dark:bg-slate-900 relative overflow-hidden">

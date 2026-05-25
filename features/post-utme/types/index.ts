@@ -4,6 +4,8 @@ export interface School {
   name: string;
   abbr: string;
   location: string;
+  /** Path relative to /public, e.g. "/logos/unilag.png". Shown in school header; falls back to abbr text. */
+  logoUrl?: string;
 }
 
 export interface YearPack {

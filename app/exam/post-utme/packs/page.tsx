@@ -8,6 +8,7 @@ import { SCHOOLS, DEFAULT_QUESTION_COUNT } from "@/features/post-utme/constants"
 import { ApiError } from "@/lib/api/client";
 import type { YearPack } from "@/features/post-utme/types";
 import Loader from "@/app/components/Loader";
+import { SchoolLogo } from "@/features/post-utme/SchoolLogo";
 
 // ─── Year pack card ────────────────────────────────────────────────────────────
 
@@ -137,6 +138,44 @@ function PacksContent() {
 
   if (!school) return null; // redirect in-flight
 
+  // ── Coming soon screen ───────────────────────────────────────────────────────
+  if (!loading && !fetchError && packs.length === 0) {
+    return (
+      <div className="space-y-8">
+        <nav className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+          <Link href="/exam/new" className="hover:text-slate-700 dark:hover:text-slate-300 transition-colors">
+            Start Exam
+          </Link>
+          <span>/</span>
+          <Link href="/exam/post-utme/schools" className="hover:text-slate-700 dark:hover:text-slate-300 transition-colors">
+            Post-UTME
+          </Link>
+          <span>/</span>
+          <span className="text-slate-800 dark:text-slate-200 font-medium">{school.abbr}</span>
+        </nav>
+
+        <div className="flex flex-col items-center justify-center gap-6 py-20 text-center max-w-sm mx-auto">
+          <SchoolLogo school={school} size={80} />
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-500 dark:text-amber-400">
+              Coming Soon
+            </p>
+            <h2 className="text-2xl font-bold">{school.name}</h2>
+            <p className="text-slate-500 dark:text-slate-400 text-sm">
+              We're working on adding past papers for this school. Check back soon!
+            </p>
+          </div>
+          <Link
+            href="/exam/post-utme/schools"
+            className="text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:underline"
+          >
+            ← Back to schools
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   const totalAvailable = packs.reduce((n, p) => n + p.questionCount, 0);
   const cappedMax = Math.min(
     selectedYear != null
@@ -165,11 +204,7 @@ function PacksContent() {
 
       {/* Header */}
       <div className="flex items-center gap-4">
-        <div className="flex-shrink-0 w-14 h-14 rounded-2xl bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center">
-          <span className="text-indigo-600 dark:text-indigo-400 font-extrabold text-sm">
-            {school.abbr.slice(0, 3)}
-          </span>
-        </div>
+        <SchoolLogo school={school} size={56} />
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{school.name}</h1>
           <p className="text-slate-500 dark:text-slate-400 mt-0.5">
@@ -239,7 +274,7 @@ function PacksContent() {
               </span>
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              ~{Math.min(questionCount, Math.max(cappedMax, 10)) * 2} minutes
+              ~{Math.round(Math.min(questionCount, Math.max(cappedMax, 10)) * 0.75)} minutes
               {selectedYear != null && packs.find((p) => p.year === selectedYear) && (
                 <> · {packs.find((p) => p.year === selectedYear)!.questionCount} questions available for {selectedYear}</>
               )}
