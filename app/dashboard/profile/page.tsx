@@ -8,6 +8,7 @@ import { apiClient, ApiError } from "@/lib/api/client";
 import { signOut } from "@/lib/api/auth";
 import UserAvatar from "@/app/components/UserAvatar";
 import AvatarPicker from "@/app/components/AvatarPicker";
+import { useUser } from "@/app/context/UserContext";
 import type { AvatarFullConfig } from "react-nice-avatar";
 
 interface UserProfile {
@@ -38,6 +39,7 @@ const YEARS = Array.from({ length: 6 }, (_, i) => CURRENT_YEAR + i);
 
 export default function ProfilePage() {
   const router = useRouter();
+  const { refetch: refetchUser } = useUser();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -125,6 +127,7 @@ export default function ProfilePage() {
         }),
       });
       setProfile(updated);
+      refetchUser();
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
@@ -140,6 +143,7 @@ export default function ProfilePage() {
       body: JSON.stringify(data),
     });
     setProfile(updated);
+    refetchUser();
     setShowAvatarPicker(false);
   }
 

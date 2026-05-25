@@ -7,6 +7,7 @@ import StatCard from "./components/StatCard";
 import Loader from "@/app/components/Loader";
 import { apiClient } from "@/lib/api/client";
 import { fadeUp, stagger } from "@/lib/motion";
+import { useUser } from "@/app/context/UserContext";
 
 interface AnalyticsData {
   totalTests: number;
@@ -24,11 +25,6 @@ interface ResultEntry {
   examSession: { id: string; mode: string; status: string };
 }
 
-interface MeForGreeting {
-  name: string | null;
-  onboardedAt: string | null;
-}
-
 const FRESH_WELCOME_HOURS = 24;
 
 function firstName(full: string | null | undefined) {
@@ -36,11 +32,11 @@ function firstName(full: string | null | undefined) {
   return full.trim().split(/\s+/)[0] ?? "";
 }
 
-function buildGreeting(me: MeForGreeting | null) {
-  const name = firstName(me?.name);
-  const suffix = name ? `, ${name}` : "";
-  if (!me?.onboardedAt) return { primary: `Welcome${suffix}! 👋`, sub: "Let's get you set up." };
-  const hoursSinceOnboarding = (Date.now() - new Date(me.onboardedAt).getTime()) / 3_600_000;
+function buildGreeting(name: string | null, onboardedAt: string | null) {
+  const fn = firstName(name);
+  const suffix = fn ? `, ${fn}` : "";
+  if (!onboardedAt) return { primary: `Welcome${suffix}! 👋`, sub: "Let's get you set up." };
+  const hoursSinceOnboarding = (Date.now() - new Date(onboardedAt).getTime()) / 3_600_000;
   if (hoursSinceOnboarding < FRESH_WELCOME_HOURS) {
     return { primary: `Welcome${suffix}! 👋`, sub: "Ready for your first practice exam?" };
   }
@@ -65,25 +61,21 @@ function modeLabel(mode: string) {
 }
 
 export default function DashboardPage() {
+  const { user } = useUser();
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [results, setResults] = useState<ResultEntry[]>([]);
-  const [me, setMe] = useState<MeForGreeting | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const [analyticsData, resultsData, meData] = await Promise.allSettled([
+        const [analyticsData, resultsData] = await Promise.allSettled([
           apiClient<AnalyticsData>("/api/analytics"),
           apiClient<{ results: ResultEntry[] }>("/api/results?limit=5"),
-          apiClient<MeForGreeting>("/api/users/me"),
         ]);
         if (analyticsData.status === "fulfilled") setAnalytics(analyticsData.value ?? null);
         else console.error("Failed to load analytics", analyticsData.reason);
         if (resultsData.status === "fulfilled") setResults(resultsData.value?.results ?? []);
-        else console.error("Failed to load results", resultsData.reason);
-        if (meData.status === "fulfilled") setMe(meData.value ?? null);
       } finally {
         setLoading(false);
       }
@@ -92,7 +84,7 @@ export default function DashboardPage() {
   }, []);
 
   const bestSubject = analytics?.subjectPerformance?.sort((a, b) => b.percentage - a.percentage)[0];
-  const greeting = buildGreeting(me);
+  const greeting = buildGreeting(user?.name ?? null, user?.onboardedAt ?? null);
 
   return (
     <motion.div
