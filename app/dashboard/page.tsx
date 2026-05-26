@@ -1,29 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import StatCard from "./components/StatCard";
 import Loader from "@/app/components/Loader";
-import { apiClient } from "@/lib/api/client";
 import { fadeUp, stagger } from "@/lib/motion";
 import { useUser } from "@/app/context/UserContext";
-
-interface AnalyticsData {
-  totalTests: number;
-  averageScore: number;
-  bestScore: number;
-  subjectPerformance: { subjectId: string; name: string; percentage: number }[];
-}
-
-interface ResultEntry {
-  id: string;
-  score: number;
-  correct: number;
-  totalQuestions: number;
-  createdAt: string;
-  examSession: { id: string; mode: string; status: string };
-}
+import { useDashboard } from "@/lib/hooks/useDashboard";
 
 const FRESH_WELCOME_HOURS = 24;
 
@@ -62,26 +45,10 @@ function modeLabel(mode: string) {
 
 export default function DashboardPage() {
   const { user } = useUser();
-  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
-  const [results, setResults] = useState<ResultEntry[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data, loading } = useDashboard();
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        const [analyticsData, resultsData] = await Promise.allSettled([
-          apiClient<AnalyticsData>("/api/analytics"),
-          apiClient<{ results: ResultEntry[] }>("/api/results?limit=5"),
-        ]);
-        if (analyticsData.status === "fulfilled") setAnalytics(analyticsData.value ?? null);
-        else console.error("Failed to load analytics", analyticsData.reason);
-        if (resultsData.status === "fulfilled") setResults(resultsData.value?.results ?? []);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchData();
-  }, []);
+  const analytics = data?.analytics ?? null;
+  const results = data?.results ?? [];
 
   const bestSubject = analytics?.subjectPerformance?.sort((a, b) => b.percentage - a.percentage)[0];
   const greeting = buildGreeting(user?.name ?? null, user?.onboardedAt ?? null);
