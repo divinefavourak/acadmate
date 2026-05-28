@@ -43,10 +43,11 @@ function sleep(ms) {
 function imageToBase64(filePath) {
   const buf = fs.readFileSync(filePath);
   const ext = path.extname(filePath).toLowerCase().replace('.', '');
-  const mime = ext === 'jpg' ? 'image/jpeg'
+  const mime = ext === 'jpg'  ? 'image/jpeg'
              : ext === 'jpeg' ? 'image/jpeg'
              : ext === 'png'  ? 'image/png'
              : ext === 'webp' ? 'image/webp'
+             : ext === 'gif'  ? 'image/gif'
              : 'image/jpeg';
   return { base64: buf.toString('base64'), mime };
 }
@@ -136,10 +137,8 @@ Rules:
 - Do NOT include the question number in the text field
 - Return ONLY the JSON array, no markdown fences, no prose`;
 
-  const model = gemini.getGenerativeModel({ model: VISION_MODEL });
-
-  const response = await callWithRetry(() =>
-    model.generateContent({
+  const response = await callWithRetry((modelName) =>
+    gemini.getGenerativeModel({ model: modelName }).generateContent({
       contents: [{
         role: 'user',
         parts: [
@@ -193,9 +192,9 @@ ${JSON.stringify(payload, null, 2)}
 
 Return ONLY a JSON array with the same length and index order. Each element: { "i": number, "correctOption": string, "explanation": string }`;
 
-  const response = await callWithRetry(() =>
+  const response = await callWithRetry((modelName) =>
     anthropic.messages.create({
-      model: CORRECTION_MODEL,
+      model: modelName,
       max_tokens: 4096,
       messages: [{ role: 'user', content: prompt }],
     }),

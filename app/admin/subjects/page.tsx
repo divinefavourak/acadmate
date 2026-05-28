@@ -72,18 +72,20 @@ export default function SubjectsPage() {
 
   async function handleSaveEdit(e: React.FormEvent) {
     e.preventDefault();
+    const subjectId = editingId;
+    if (!subjectId) return;
     const name = editName.trim();
     const code = editCode.trim().toUpperCase();
     if (!name || !code) { setEditError("Name and code are required."); return; }
     setEditSaving(true);
     setEditError("");
     try {
-      await apiClient(`/api/admin/subjects/${editingId}`, {
+      await apiClient(`/api/admin/subjects/${subjectId}`, {
         method: "PATCH",
         body: JSON.stringify({ name, code, description: editDescription.trim() || null }),
       });
       setSubjects((prev) => prev.map((s) =>
-        s.id === editingId ? { ...s, name, code, description: editDescription.trim() || null } : s
+        s.id === subjectId ? { ...s, name, code, description: editDescription.trim() || null } : s
       ));
       setEditingId(null);
     } catch (err) {

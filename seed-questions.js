@@ -68,12 +68,10 @@ async function main() {
     const key  = `${subjectId}:${name.trim().toLowerCase()}`;
     if (topicCache.has(key)) return topicCache.get(key);
     const norm  = name.trim();
-    const topic = await prisma.topic.upsert({
-      where:  { subjectId_name: { subjectId, name: norm } },
-      update: {},
-      create: { subjectId, name: norm, isActive: true },
-      select: { id: true },
-    });
+    let topic   = await prisma.topic.findFirst({ where: { subjectId, name: { equals: norm, mode: 'insensitive' } }, select: { id: true } });
+    if (!topic) {
+      topic = await prisma.topic.create({ data: { subjectId, name: norm, isActive: true }, select: { id: true } });
+    }
     topicCache.set(key, topic.id);
     return topic.id;
   }
@@ -112,6 +110,10 @@ async function main() {
       aiAssisted:  true,
       isPublished: true,
     });
+
+    if (q.correctOption === null) {
+      console.warn(`  [no answer] question skipped (correctOption is null): "${String(q.text).slice(0, 80)}"`);
+    }
 
     ['A', 'B', 'C', 'D'].forEach((l, idx) => {
       if (!q[`option${l}`]) return;
@@ -160,7 +162,6 @@ async function main() {
   }
 
   console.log(`\nFinished. ${inserted} questions inserted into the database.\n`);
-  await prisma.$disconnect();
 }
 
 main()

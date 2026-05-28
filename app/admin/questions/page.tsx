@@ -428,10 +428,7 @@ function QuestionsPage() {
 
   async function handleClearFlag(id: string) {
     try {
-      await apiClient(`/api/admin/questions/${id}`, {
-        method: "PATCH",
-        body: JSON.stringify({ isFlagged: false }),
-      });
+      await apiClient(`/api/admin/questions/${id}/resolve-flag`, { method: "PATCH" });
       setQuestions((prev) => prev.map((q) => q.id === id ? { ...q, isFlagged: false, flagCount: 0 } : q));
       setFlaggedQuestions((prev) => prev.filter((q) => q.id !== id));
     } catch (err) {
@@ -668,7 +665,7 @@ function QuestionsPage() {
           setUploadingImage={setUploadingImage}
           setFormError={setFormError}
         />
-      ) : !activeCategory ? (
+      ) : !activeCategory && !subjectIdParam ? (
         /* ── Category picker ─────────────────────────────── */
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-lg">
           <CategoryCard
@@ -728,7 +725,7 @@ function QuestionsPage() {
             );
           })}
         </div>
-      ) : activeYear === null ? (
+      ) : activeYear === null && !subjectIdParam ? (
         /* ── Year picker ─────────────────────────────────── */
         <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 flex flex-col items-center justify-center min-h-[300px]">
           <h2 className="text-lg font-medium text-white mb-6">
