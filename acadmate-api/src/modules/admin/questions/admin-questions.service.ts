@@ -176,6 +176,22 @@ export class AdminQuestionsService {
     return { deleted: true };
   }
 
+  // PATCH /admin/questions/bulk/publish
+  async bulkPublish(adminId: string, ids: string[], isPublished: boolean) {
+    const result = await this.prisma.question.updateMany({
+      where: { id: { in: ids } },
+      data: { isPublished },
+    });
+    await this.prisma.adminActivityLog.create({
+      data: {
+        adminId,
+        action: isPublished ? 'BULK_PUBLISH' : 'BULK_UNPUBLISH',
+        details: { count: result.count },
+      },
+    });
+    return { updated: result.count };
+  }
+
   // PATCH /admin/questions/:id/publish
   async togglePublish(adminId: string, id: string, isPublished: boolean) {
     const question = await this.prisma.question.update({

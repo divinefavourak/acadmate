@@ -3,7 +3,7 @@ import {
   HttpCode, HttpStatus,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
-import { IsOptional, IsString, IsEnum, IsInt, IsBoolean, Min, Max } from 'class-validator';
+import { IsOptional, IsString, IsEnum, IsInt, IsBoolean, IsArray, Min, Max } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
 import { Difficulty, ExamType } from '@prisma/client';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
@@ -26,6 +26,11 @@ class AdminQuestionQueryDto {
 }
 
 class PublishDto {
+  @IsBoolean() isPublished: boolean;
+}
+
+class BulkPublishDto {
+  @IsArray() @IsString({ each: true }) ids: string[];
   @IsBoolean() isPublished: boolean;
 }
 
@@ -54,6 +59,12 @@ export class AdminQuestionsController {
   @ApiOperation({ summary: 'Create a question' })
   createQuestion(@CurrentUser() user: JwtUser, @Body() dto: any) {
     return this.adminQuestionsService.createQuestion(user.id, dto);
+  }
+
+  @Patch('bulk/publish')
+  @ApiOperation({ summary: 'Bulk publish / unpublish questions by ID list' })
+  bulkPublish(@CurrentUser() user: JwtUser, @Body() dto: BulkPublishDto) {
+    return this.adminQuestionsService.bulkPublish(user.id, dto.ids, dto.isPublished);
   }
 
   @Patch(':id')

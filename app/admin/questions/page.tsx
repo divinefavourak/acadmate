@@ -132,8 +132,12 @@ function QuestionsPage() {
   const [analyticsData, setAnalyticsData] = useState<{ subject: string; questions: number; flagged: number }[]>([]);
   const [loadingAnalytics, setLoadingAnalytics] = useState(false);
 
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkPublishing, setBulkPublishing] = useState(false);
+
   const searchParams = useSearchParams();
   const highlightId = searchParams.get("highlight");
+  const subjectIdParam = searchParams.get("subjectId");
   const highlightRef = useRef<HTMLDivElement | null>(null);
 
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -208,6 +212,21 @@ function QuestionsPage() {
 
   // Load questions
   useEffect(() => {
+    setSelectedIds(new Set());
+
+    // Direct subject view (from ?subjectId= URL param)
+    if (subjectIdParam) {
+      setLoading(true);
+      const params = new URLSearchParams({ limit: String(limit), offset: String(page * limit) });
+      params.set("subjectId", subjectIdParam);
+      if (publishedFilter !== "") params.set("isPublished", publishedFilter);
+      apiClient<{ questions: QuestionEntry[]; total: number }>(`/api/admin/questions?${params}`)
+        .then((data) => { setQuestions(data.questions ?? []); setTotal(data.total ?? 0); })
+        .catch((err) => console.error("Failed to load questions", err))
+        .finally(() => setLoading(false));
+      return;
+    }
+
     const hasContext =
       (activeCategory === "JAMB" && activeSubject && activeYear !== null) ||
       (activeCategory === "POST_UTME" && activeSchool && activeYear !== null);
@@ -237,7 +256,7 @@ function QuestionsPage() {
       })
       .catch((err) => console.error("Failed to load questions", err))
       .finally(() => setLoading(false));
-  }, [page, publishedFilter, activeCategory, activeSubject, activeSchool, activeYear]);
+  }, [page, publishedFilter, activeCategory, activeSubject, activeSchool, activeYear, subjectIdParam]);
 
   // Load topics when form subject changes
   useEffect(() => {
@@ -295,6 +314,37 @@ function QuestionsPage() {
       body: JSON.stringify({ isPublished: !current }),
     });
     setQuestions((prev) => prev.map((q) => q.id === id ? { ...q, isPublished: !current } : q));
+  }
+
+  async function handleBulkPublish(isPublished: boolean) {
+    if (selectedIds.size === 0) return;
+    setBulkPublishing(true);
+    try {
+      await apiClient("/api/admin/questions/bulk/publish", {
+        method: "PATCH",
+        body: JSON.stringify({ ids: [...selectedIds], isPublished }),
+      });
+      setQuestions((prev) => prev.map((q) => selectedIds.has(q.id) ? { ...q, isPublished } : q));
+      setSelectedIds(new Set());
+    } catch (err) {
+      console.error("Bulk publish failed", err);
+    } finally {
+      setBulkPublishing(false);
+    }
+  }
+
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    setSelectedIds((prev) =>
+      prev.size === questions.length ? new Set() : new Set(questions.map((q) => q.id))
+    );
   }
 
   async function handlePreview(id: string) {
@@ -461,6 +511,7 @@ function QuestionsPage() {
     : null;
 
   const canShowQuestions =
+    !!subjectIdParam ||
     (activeCategory === "JAMB" && activeSubject && activeYear !== null) ||
     (activeCategory === "POST_UTME" && activeSchool && activeYear !== null);
 
@@ -685,6 +736,28 @@ function QuestionsPage() {
       ) : (
         /* ── Questions list ──────────────────────────────── */
         <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6">
+          {selectedIds.size > 0 && (
+            <div className="flex items-center gap-3 mb-4 px-3 py-2.5 rounded-xl bg-indigo-950/60 border border-indigo-700/50">
+              <span className="text-sm text-indigo-300 font-medium flex-1">{selectedIds.size} selected</span>
+              <button
+                onClick={() => handleBulkPublish(true)}
+                disabled={bulkPublishing}
+                className="px-3 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-semibold disabled:opacity-50 transition-colors"
+              >
+                Publish All
+              </button>
+              <button
+                onClick={() => handleBulkPublish(false)}
+                disabled={bulkPublishing}
+                className="px-3 py-1.5 rounded-lg bg-slate-600 hover:bg-slate-500 text-white text-xs font-semibold disabled:opacity-50 transition-colors"
+              >
+                Unpublish All
+              </button>
+              <button onClick={() => setSelectedIds(new Set())} className="text-slate-400 hover:text-slate-200 text-xs">
+                Clear
+              </button>
+            </div>
+          )}
           {loading ? (
             <p className="text-slate-400 text-sm py-8 text-center">Loading…</p>
           ) : questions.length === 0 ? (
@@ -728,6 +801,14 @@ function QuestionsPage() {
                 <table className="w-full text-left border-collapse text-sm">
                   <thead>
                     <tr className="border-b border-slate-700 text-slate-400">
+                      <th className="pb-3 pr-3 w-8">
+                        <input
+                          type="checkbox"
+                          checked={questions.length > 0 && selectedIds.size === questions.length}
+                          onChange={toggleSelectAll}
+                          className="rounded border-slate-600 bg-slate-800 text-indigo-500 cursor-pointer"
+                        />
+                      </th>
                       <th className="pb-3 font-medium">Question</th>
                       <th className="pb-3 font-medium">Topic</th>
                       <th className="pb-3 font-medium">Difficulty</th>
@@ -739,7 +820,15 @@ function QuestionsPage() {
                   <tbody>
                     {questions.map((q, i) => (
                       <tr key={q.id}
-                        className={`${i < questions.length - 1 ? "border-b border-slate-800" : ""} ${q.isFlagged ? "bg-red-950/20" : ""} hover:bg-slate-800/50 transition-colors`}>
+                        className={`${i < questions.length - 1 ? "border-b border-slate-800" : ""} ${q.isFlagged ? "bg-red-950/20" : ""} ${selectedIds.has(q.id) ? "bg-indigo-950/20" : ""} hover:bg-slate-800/50 transition-colors`}>
+                        <td className="py-3 pr-3">
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.has(q.id)}
+                            onChange={() => toggleSelect(q.id)}
+                            className="rounded border-slate-600 bg-slate-800 text-indigo-500 cursor-pointer"
+                          />
+                        </td>
                         <td className="py-3 text-white max-w-xs"><p className="truncate">{q.text}</p></td>
                         <td className="py-3 text-slate-500">{q.topic ? q.topic.name : "—"}</td>
                         <td className={`py-3 font-medium ${difficultyColors[q.difficulty] ?? "text-slate-400"}`}>{q.difficulty}</td>
