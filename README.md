@@ -132,3 +132,4 @@ The frontend deploys to **Vercel** and the backend deploys to **Render** (Docker
 **Render (backend):** set all vars from `acadmate-api/.env.example` that are marked `sync: false` in `render.yaml`.
 
 > **Gmail SMTP:** `SMTP_PASS` must be a 16-character **App Password**, not your Gmail login password. Generate one at myaccount.google.com → Security → App Passwords.
+![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/divinefavourak/acadmate?utm_source=oss&utm_medium=github&utm_campaign=divinefavourak%2Facadmate&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)
