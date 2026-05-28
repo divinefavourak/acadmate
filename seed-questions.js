@@ -65,9 +65,10 @@ async function main() {
   }
 
   async function getTopicId(subjectId, name) {
-    const key  = `${subjectId}:${name.trim().toLowerCase()}`;
-    if (topicCache.has(key)) return topicCache.get(key);
     const norm  = name.trim();
+    if (!norm) return null;
+    const key  = `${subjectId}:${norm.toLowerCase()}`;
+    if (topicCache.has(key)) return topicCache.get(key);
     let topic   = await prisma.topic.findFirst({ where: { subjectId, name: { equals: norm, mode: 'insensitive' } }, select: { id: true } });
     if (!topic) {
       topic = await prisma.topic.create({ data: { subjectId, name: norm, isActive: true }, select: { id: true } });
@@ -79,7 +80,7 @@ async function main() {
   process.stdout.write('Resolving subjects & topics… ');
   for (const q of questions) {
     const subjectId = await getSubjectId(q.subject || 'General Knowledge');
-    if (q.topic) await getTopicId(subjectId, q.topic);
+    if (q.topic?.trim()) await getTopicId(subjectId, q.topic);
   }
   console.log('done\n');
 
@@ -90,12 +91,22 @@ async function main() {
   const optionRows       = [];
   const explanationRows  = [];
 
+  const VALID_OPTIONS = new Set(['A', 'B', 'C', 'D']);
+
   for (const q of questions) {
-    const subjectKey = (q.subject || 'General Knowledge').trim().toLowerCase();
-    const subjectId  = subjectCache.get(subjectKey);
-    const topicKey   = q.topic ? `${subjectId}:${q.topic.trim().toLowerCase()}` : null;
-    const topicId    = topicKey ? (topicCache.get(topicKey) ?? null) : null;
-    const qId        = randomUUID();
+    const subjectKey    = (q.subject || 'General Knowledge').trim().toLowerCase();
+    const subjectId     = subjectCache.get(subjectKey);
+    const topicKey      = q.topic?.trim() ? `${subjectId}:${q.topic.trim().toLowerCase()}` : null;
+    const topicId       = topicKey ? (topicCache.get(topicKey) ?? null) : null;
+    const correctOption = typeof q.correctOption === 'string'
+      ? q.correctOption.trim().toUpperCase()
+      : null;
+    const validAnswer   = VALID_OPTIONS.has(correctOption);
+    const qId           = randomUUID();
+
+    if (!validAnswer) {
+      console.warn(`  [no answer] inserting unpublished (correctOption="${q.correctOption}"): "${String(q.text).slice(0, 80)}"`);
+    }
 
     questionRows.push({
       id:          qId,
@@ -108,12 +119,8 @@ async function main() {
       difficulty:  VALID_DIFFICULTY.has(q.difficulty) ? q.difficulty : 'MEDIUM',
       sourceType:  'IMPORTED',
       aiAssisted:  true,
-      isPublished: true,
+      isPublished: validAnswer,
     });
-
-    if (q.correctOption === null) {
-      console.warn(`  [no answer] question skipped (correctOption is null): "${String(q.text).slice(0, 80)}"`);
-    }
 
     ['A', 'B', 'C', 'D'].forEach((l, idx) => {
       if (!q[`option${l}`]) return;
@@ -122,7 +129,7 @@ async function main() {
         questionId: qId,
         label:      l,
         text:       String(q[`option${l}`]),
-        isCorrect:  q.correctOption === l,
+        isCorrect:  correctOption === l,
         sortOrder:  idx,
       });
     });

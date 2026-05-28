@@ -77,17 +77,18 @@ export default function SubjectsPage() {
     const name = editName.trim();
     const code = editCode.trim().toUpperCase();
     if (!name || !code) { setEditError("Name and code are required."); return; }
+    const description = editDescription.trim() || null;
     setEditSaving(true);
     setEditError("");
     try {
       await apiClient(`/api/admin/subjects/${subjectId}`, {
         method: "PATCH",
-        body: JSON.stringify({ name, code, description: editDescription.trim() || null }),
+        body: JSON.stringify({ name, code, description }),
       });
       setSubjects((prev) => prev.map((s) =>
-        s.id === subjectId ? { ...s, name, code, description: editDescription.trim() || null } : s
+        s.id === subjectId ? { ...s, name, code, description } : s
       ));
-      setEditingId(null);
+      setEditingId((current) => current === subjectId ? null : current);
     } catch (err) {
       setEditError(err instanceof ApiError ? err.message : "Failed to save.");
     } finally {
