@@ -1,16 +1,19 @@
 #!/usr/bin/env node
 /**
  * extract-questions.js
- * Extracts Post-UTME exam questions from booklet photos using Groq Vision.
+ * Extracts Post-UTME exam questions from booklet photos using Gemini Vision,
+ * then corrects and verifies answers with Claude.
  *
  * Usage:
  *   node extract-questions.js <photos-folder> <output.json> [year]
+ *   node extract-questions.js <output.json> --correct-only
  *
  * Env:
- *   GROQ_API_KEY  — required
+ *   GEMINI_API_KEY    — required (vision extraction)
+ *   ANTHROPIC_API_KEY — required (correction pass)
  *
  * Install once:
- *   npm install groq-sdk
+ *   npm install @google/generative-ai @anthropic-ai/sdk
  */
 
 const fs        = require('fs');
@@ -216,8 +219,8 @@ Return ONLY a JSON array with the same length and index order. Each element: { "
     }
     return updated;
   } catch (e) {
-    console.warn(`  [verify parse error] batch ${batchIndex}: ${e.message} — keeping originals`);
-    return questions;
+    console.warn(`  [verify parse error] batch ${batchIndex}: ${e.message} — keeping originals (${questions.length} questions unverified)`);
+    return questions.map(q => ({ ...q, _unverified: true }));
   }
 }
 
@@ -271,9 +274,12 @@ async function main() {
       if (i + VERIFY_BATCH < allQuestions.length) await sleep(1500);
     }
 
-    const needsImages = verified.filter(q => needsImageFlag(q.text) || q.text.includes('[diagram required]'));
-    fs.writeFileSync(realOutput, JSON.stringify(verified, null, 2));
-    console.log(`\nSaved ${verified.length} questions → ${realOutput}`);
+    const unverifiedCount = verified.filter(q => q._unverified).length;
+    if (unverifiedCount > 0) console.warn(`\nWARNING: ${unverifiedCount} question(s) could not be verified — manual review required.`);
+    const clean = verified.map(({ _unverified, ...q }) => q);
+    const needsImages = clean.filter(q => needsImageFlag(q.text) || q.text.includes('[diagram required]'));
+    fs.writeFileSync(realOutput, JSON.stringify(clean, null, 2));
+    console.log(`\nSaved ${clean.length} questions → ${realOutput}`);
     if (needsImages.length > 0) {
       const sidecarPath = realOutput.replace(/\.json$/i, '-needs-images.json');
       fs.writeFileSync(sidecarPath, JSON.stringify(needsImages.map(q => ({ text: q.text, subject: q.subject, topic: q.topic, note: 'Requires diagram/figure image' })), null, 2));
@@ -317,8 +323,8 @@ async function main() {
         startIndex   = progress.lastProcessedIndex + 1;
         console.log(`\nResuming from image ${startIndex + 1}/${allFiles.length} (${allQuestions.length} questions already extracted)`);
       }
-    } catch {
-      console.warn('Could not read progress files — starting fresh');
+    } catch (e) {
+      console.warn(`Could not read progress files (${e.message}) — starting fresh`);
     }
   }
 
@@ -361,18 +367,18 @@ async function main() {
   }
 
   // ── Phase 3: write outputs ─────────────────────────────────────────────────
-  const needsImages = verified.filter(q => needsImageFlag(q.text) || q.text.includes('[diagram required]'));
+  const unverifiedCount = verified.filter(q => q._unverified).length;
+  if (unverifiedCount > 0) console.warn(`\nWARNING: ${unverifiedCount} question(s) could not be verified — manual review required.`);
+  const clean = verified.map(({ _unverified, ...q }) => q);
+  const needsImages = clean.filter(q => needsImageFlag(q.text) || q.text.includes('[diagram required]'));
 
-  fs.writeFileSync(outputFile, JSON.stringify(verified, null, 2));
-  console.log(`\nSaved ${verified.length} questions → ${outputFile}`);
+  fs.writeFileSync(outputFile, JSON.stringify(clean, null, 2));
+  console.log(`\nSaved ${clean.length} questions → ${outputFile}`);
 
   if (needsImages.length > 0) {
     const sidecarPath = outputFile.replace(/\.json$/i, '-needs-images.json');
-    fs.writeFileSync(sidecarPath, JSON.stringify(needsImages.map(q => ({
-      text: q.text,
-      subject: q.subject,
-      topic: q.topic,
-      note: 'Requires diagram/figure image',
+    fs.writeFileSync(sidecarPath, JSON.stringify(needsImages.map(({ text, subject, topic }) => ({
+      text, subject, topic, note: 'Requires diagram/figure image',
     })), null, 2));
     console.log(`Flagged ${needsImages.length} question(s) needing images → ${sidecarPath}`);
   }

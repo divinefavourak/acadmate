@@ -134,6 +134,8 @@ function QuestionsPage() {
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkPublishing, setBulkPublishing] = useState(false);
+  const [bulkError, setBulkError] = useState("");
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   const searchParams = useSearchParams();
   const highlightId = searchParams.get("highlight");
@@ -217,12 +219,13 @@ function QuestionsPage() {
     // Direct subject view (from ?subjectId= URL param)
     if (subjectIdParam) {
       setLoading(true);
+      setFetchError(null);
       const params = new URLSearchParams({ limit: String(limit), offset: String(page * limit) });
       params.set("subjectId", subjectIdParam);
       if (publishedFilter !== "") params.set("isPublished", publishedFilter);
       apiClient<{ questions: QuestionEntry[]; total: number }>(`/api/admin/questions?${params}`)
         .then((data) => { setQuestions(data.questions ?? []); setTotal(data.total ?? 0); })
-        .catch((err) => console.error("Failed to load questions", err))
+        .catch((err) => { console.error("Failed to load questions", err); setFetchError("Could not load questions. Please refresh."); })
         .finally(() => setLoading(false));
       return;
     }
@@ -239,6 +242,7 @@ function QuestionsPage() {
     }
 
     setLoading(true);
+    setFetchError(null);
     const params = new URLSearchParams({
       limit: String(limit),
       offset: String(page * limit),
@@ -254,7 +258,7 @@ function QuestionsPage() {
         setQuestions(data.questions ?? []);
         setTotal(data.total ?? 0);
       })
-      .catch((err) => console.error("Failed to load questions", err))
+      .catch((err) => { console.error("Failed to load questions", err); setFetchError("Could not load questions. Please refresh."); })
       .finally(() => setLoading(false));
   }, [page, publishedFilter, activeCategory, activeSubject, activeSchool, activeYear, subjectIdParam]);
 
@@ -309,16 +313,22 @@ function QuestionsPage() {
   }
 
   async function togglePublish(id: string, current: boolean) {
-    await apiClient(`/api/admin/questions/${id}/publish`, {
-      method: "PATCH",
-      body: JSON.stringify({ isPublished: !current }),
-    });
-    setQuestions((prev) => prev.map((q) => q.id === id ? { ...q, isPublished: !current } : q));
+    try {
+      await apiClient(`/api/admin/questions/${id}/publish`, {
+        method: "PATCH",
+        body: JSON.stringify({ isPublished: !current }),
+      });
+      setQuestions((prev) => prev.map((q) => q.id === id ? { ...q, isPublished: !current } : q));
+    } catch (err) {
+      console.error("Toggle publish failed", err);
+      setFormError(err instanceof Error ? err.message : "Failed to update publish status.");
+    }
   }
 
   async function handleBulkPublish(isPublished: boolean) {
     if (selectedIds.size === 0) return;
     setBulkPublishing(true);
+    setBulkError("");
     try {
       await apiClient("/api/admin/questions/bulk/publish", {
         method: "PATCH",
@@ -328,6 +338,7 @@ function QuestionsPage() {
       setSelectedIds(new Set());
     } catch (err) {
       console.error("Bulk publish failed", err);
+      setBulkError(err instanceof Error ? err.message : `Failed to ${isPublished ? "publish" : "unpublish"} questions.`);
     } finally {
       setBulkPublishing(false);
     }
@@ -354,6 +365,7 @@ function QuestionsPage() {
       setPreviewQuestion(question);
     } catch (err) {
       console.error("Failed to load preview", err);
+      setFormError(err instanceof Error ? err.message : "Failed to load question preview.");
     } finally {
       setLoadingPreview(null);
     }
@@ -368,6 +380,7 @@ function QuestionsPage() {
       setTotal((prev) => prev - 1);
     } catch (err) {
       console.error("Failed to delete question", err);
+      setFormError(err instanceof Error ? err.message : "Failed to delete question.");
     } finally {
       setDeleting(false);
       setDeleteId(null);
@@ -407,18 +420,24 @@ function QuestionsPage() {
       setEditError("");
     } catch (err) {
       console.error("Failed to load question for edit", err);
+      setFormError(err instanceof Error ? err.message : "Failed to load question for editing.");
     } finally {
       setLoadingEdit(null);
     }
   }
 
   async function handleClearFlag(id: string) {
-    await apiClient(`/api/admin/questions/${id}`, {
-      method: "PATCH",
-      body: JSON.stringify({ isFlagged: false }),
-    });
-    setQuestions((prev) => prev.map((q) => q.id === id ? { ...q, isFlagged: false, flagCount: 0 } : q));
-    setFlaggedQuestions((prev) => prev.filter((q) => q.id !== id));
+    try {
+      await apiClient(`/api/admin/questions/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ isFlagged: false }),
+      });
+      setQuestions((prev) => prev.map((q) => q.id === id ? { ...q, isFlagged: false, flagCount: 0 } : q));
+      setFlaggedQuestions((prev) => prev.filter((q) => q.id !== id));
+    } catch (err) {
+      console.error("Clear flag failed", err);
+      setFormError(err instanceof Error ? err.message : "Failed to clear flag.");
+    }
   }
 
   async function handleSaveEdit(e: React.FormEvent) {
@@ -736,9 +755,13 @@ function QuestionsPage() {
       ) : (
         /* ── Questions list ──────────────────────────────── */
         <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6">
+          {fetchError && (
+            <p className="text-red-400 text-sm mb-4 bg-red-900/20 border border-red-800 rounded-lg px-4 py-2">{fetchError}</p>
+          )}
           {selectedIds.size > 0 && (
-            <div className="flex items-center gap-3 mb-4 px-3 py-2.5 rounded-xl bg-indigo-950/60 border border-indigo-700/50">
+            <div className="flex flex-wrap items-center gap-3 mb-4 px-3 py-2.5 rounded-xl bg-indigo-950/60 border border-indigo-700/50">
               <span className="text-sm text-indigo-300 font-medium flex-1">{selectedIds.size} selected</span>
+              {bulkError && <span className="text-xs text-red-400 w-full">{bulkError}</span>}
               <button
                 onClick={() => handleBulkPublish(true)}
                 disabled={bulkPublishing}
@@ -753,7 +776,7 @@ function QuestionsPage() {
               >
                 Unpublish All
               </button>
-              <button onClick={() => setSelectedIds(new Set())} className="text-slate-400 hover:text-slate-200 text-xs">
+              <button onClick={() => { setSelectedIds(new Set()); setBulkError(""); }} className="text-slate-400 hover:text-slate-200 text-xs">
                 Clear
               </button>
             </div>

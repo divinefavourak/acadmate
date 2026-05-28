@@ -22,9 +22,11 @@ if (fs.existsSync(envPath)) {
   }
 }
 
-const { PrismaClient } = require('./acadmate-api/node_modules/@prisma/client');
+const { PrismaClient } = require(require('path').join(__dirname, 'acadmate-api/node_modules/@prisma/client'));
 
 const BATCH_SIZE = 100;
+
+const prisma = new PrismaClient();
 
 async function main() {
   const [,, jsonFile, school, examType] = process.argv;
@@ -43,8 +45,6 @@ async function main() {
   const questions = JSON.parse(fs.readFileSync(jsonFile, 'utf8').replace(/^﻿/, ''));
   console.log(`\nLoaded   : ${questions.length} questions`);
   console.log(`School   : ${school}  |  ExamType : ${examType}\n`);
-
-  const prisma = new PrismaClient();
 
   // ── Step 1: resolve all subjects & topics sequentially (fills cache, no races)
   const subjectCache = new Map(); // name.lower → id
@@ -163,7 +163,9 @@ async function main() {
   await prisma.$disconnect();
 }
 
-main().catch(async err => {
-  console.error('\nFatal error:', err.message ?? err);
-  process.exit(1);
-});
+main()
+  .catch(err => {
+    console.error('\nFatal error:', err.message ?? err);
+    process.exitCode = 1;
+  })
+  .finally(() => prisma.$disconnect());

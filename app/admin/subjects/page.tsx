@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import Link from "next/link";
 import Loader from "@/app/components/Loader";
 import { apiClient, ApiError } from "@/lib/api/client";
@@ -201,9 +201,8 @@ export default function SubjectsPage() {
               </thead>
               <tbody>
                 {subjects.map((s, i) => (
-                  <>
+                  <Fragment key={s.id}>
                     <tr
-                      key={s.id}
                       className={`${i < subjects.length - 1 && editingId !== s.id ? "border-b border-slate-800" : ""} hover:bg-slate-800/50 transition-colors`}
                     >
                       <td className="py-3">
@@ -241,7 +240,7 @@ export default function SubjectsPage() {
                       </td>
                     </tr>
                     {editingId === s.id && (
-                      <tr key={`${s.id}-edit`} className={`${i < subjects.length - 1 ? "border-b border-slate-800" : ""}`}>
+                      <tr className={`${i < subjects.length - 1 ? "border-b border-slate-800" : ""}`}>
                         <td colSpan={5} className="py-3 px-0">
                           <form onSubmit={handleSaveEdit} className="bg-slate-900/60 border border-indigo-700/40 rounded-xl p-4 space-y-3">
                             <div className="flex flex-col sm:flex-row gap-3">
@@ -286,7 +285,7 @@ export default function SubjectsPage() {
                         </td>
                       </tr>
                     )}
-                  </>
+                  </Fragment>
                 ))}
               </tbody>
             </table>
