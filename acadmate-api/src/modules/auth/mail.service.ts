@@ -1,5 +1,5 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import * as nodemailer from 'nodemailer';
+import * as sgMail from '@sendgrid/mail';
 
 type BlogPostForEmail = {
   slug: string;
@@ -22,54 +22,44 @@ function categoryLabel(category: string): string {
   return category.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (m) => m.toUpperCase());
 }
 
+type SendGridError = { response?: { body?: { errors?: unknown } } };
+
+function isSendGridError(err: unknown): err is SendGridError {
+  return typeof err === 'object' && err !== null && 'response' in err;
+}
+
 @Injectable()
 export class MailService implements OnModuleInit {
   private readonly logger = new Logger(MailService.name);
+  private ready = false;
+  private from = '';
 
-  private transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT ?? 587),
-    secure: process.env.SMTP_SECURE === 'true',
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-  });
-
-  // Verify SMTP at startup so misconfiguration is visible immediately instead
-  // of surfacing later as silent send failures.
-  async onModuleInit() {
-    const { SMTP_HOST, SMTP_USER, SMTP_PASS, SMTP_FROM, SMTP_PORT } = process.env;
+  onModuleInit() {
+    const apiKey = process.env.SENDGRID_API_KEY;
+    const from = process.env.SMTP_FROM;
     const missing: string[] = [];
-    if (!SMTP_HOST) missing.push('SMTP_HOST');
-    if (!SMTP_USER) missing.push('SMTP_USER');
-    if (!SMTP_PASS) missing.push('SMTP_PASS');
+    if (!apiKey) missing.push('SENDGRID_API_KEY');
+    if (!from) missing.push('SMTP_FROM');
     if (missing.length > 0) {
-      this.logger.warn(
-        `SMTP not fully configured — emails will fail. Missing: ${missing.join(', ')}`,
-      );
+      this.logger.warn(`SendGrid not fully configured — emails will fail. Missing: ${missing.join(', ')}`);
       return;
     }
+    sgMail.setApiKey(apiKey!);
+    this.from = from!;
+    this.ready = true;
     this.logger.log(
-      `SMTP configured: host=${SMTP_HOST}, port=${SMTP_PORT ?? 587}, user=${SMTP_USER}, from="${SMTP_FROM ?? '(default)'}"`,
+      `SendGrid configured: from="${this.from}", key=…${apiKey!.slice(-4)}`,
     );
-    try {
-      await this.transporter.verify();
-      this.logger.log('SMTP transporter verified — ready to send mail');
-    } catch (err) {
-      this.logger.error(
-        `SMTP verification failed — emails will fail to send: ${(err as Error).message}`,
-        (err as Error).stack,
-      );
-    }
   }
 
   async sendPasswordReset(to: string, resetUrl: string) {
-    const from = process.env.SMTP_FROM ?? 'Acadmate <noreply@acadmate.app>';
+    if (!this.ready) {
+      throw new Error('SendGrid is not configured — SENDGRID_API_KEY or SMTP_FROM is missing');
+    }
 
     try {
-      await this.transporter.sendMail({
-        from,
+      await sgMail.send({
+        from: this.from,
         to,
         subject: 'Reset your Acadmate password',
         html: `
@@ -87,7 +77,13 @@ export class MailService implements OnModuleInit {
         `,
       });
     } catch (err) {
-      this.logger.error(`Failed to send password reset email to ${to}`, err);
+      const detail = isSendGridError(err)
+        ? JSON.stringify(err.response?.body?.errors)
+        : err instanceof Error ? err.message : String(err);
+      this.logger.error(
+        `Failed to send password reset email to ${to}: ${detail}`,
+        err instanceof Error ? err.stack : undefined,
+      );
       throw err;
     }
   }
@@ -97,7 +93,10 @@ export class MailService implements OnModuleInit {
     recipientName: string | null,
     post: BlogPostForEmail,
   ) {
-    const from = process.env.SMTP_FROM ?? 'Acadmate <noreply@acadmate.app>';
+    if (!this.ready) {
+      throw new Error('SendGrid is not configured — SENDGRID_API_KEY or SMTP_FROM is missing');
+    }
+
     const baseUrl = (process.env.FRONTEND_URL ?? 'https://acadmate.app').replace(/\/$/, '');
     const postUrl = `${baseUrl}/blog/${encodeURIComponent(post.slug)}`;
 
@@ -112,8 +111,8 @@ export class MailService implements OnModuleInit {
 
     try {
       this.logger.log(`Sending blog notification to ${to} — "${post.title}"`);
-      const result = await this.transporter.sendMail({
-        from,
+      await sgMail.send({
+        from: this.from,
         to,
         subject: `New on Acadmate: ${post.title}`,
         html: `
@@ -134,13 +133,14 @@ export class MailService implements OnModuleInit {
           </div>
         `,
       });
-      this.logger.log(
-        `Blog notification sent to ${to} (messageId: ${result.messageId ?? 'unknown'})`,
-      );
+      this.logger.log(`Blog notification sent to ${to} — "${post.title}"`);
     } catch (err) {
+      const detail = isSendGridError(err)
+        ? JSON.stringify(err.response?.body?.errors)
+        : err instanceof Error ? err.message : String(err);
       this.logger.error(
-        `Failed to send blog notification to ${to}: ${(err as Error).message}`,
-        (err as Error).stack,
+        `Failed to send blog notification to ${to}: ${detail}`,
+        err instanceof Error ? err.stack : undefined,
       );
       throw err;
     }
