@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { CacheService } from '../../cache/cache.service';
 
 type TrendPoint  = { id: string; score: number; mode: string; date: Date };
 type SubjectPerf = { subjectId: string; name: string; correct: number; total: number; percentage: number };
@@ -14,23 +15,24 @@ export interface AnalyticsResult {
   weakTopics: WeakTopic[];
 }
 
+const CACHE_TTL = 60; // 60 s — matches the old in-memory TTL
+
 @Injectable()
 export class AnalyticsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cache: CacheService,
+  ) {}
 
-  private readonly cache = new Map<string, { data: AnalyticsResult; expiresAt: number }>();
-  private readonly CACHE_TTL_MS = 60_000;
-
-  invalidateCache(userId: string): void {
-    this.cache.delete(`analytics:${userId}`);
+  async invalidateCache(userId: string): Promise<void> {
+    await this.cache.del(`analytics:${userId}`);
   }
 
   async getStudentAnalytics(userId: string, limit: number = 100): Promise<AnalyticsResult> {
-    const cacheKey = `analytics:${userId}`;
-    const cached = this.cache.get(cacheKey);
-    if (cached && Date.now() < cached.expiresAt) {
-      return cached.data;
-    }
+    const KEY = `analytics:${userId}`;
+
+    const cached = await this.cache.get<AnalyticsResult>(KEY);
+    if (cached) return cached;
 
     const results = await this.prisma.result.findMany({
       where: { userId },
@@ -63,7 +65,7 @@ export class AnalyticsService {
         subjectPerformance: [],
         weakTopics: [],
       };
-      this.cache.set(cacheKey, { data: empty, expiresAt: Date.now() + this.CACHE_TTL_MS });
+      void this.cache.set(KEY, empty, CACHE_TTL);
       return empty;
     }
 
@@ -123,7 +125,7 @@ export class AnalyticsService {
       weakTopics,
     };
 
-    this.cache.set(cacheKey, { data, expiresAt: Date.now() + this.CACHE_TTL_MS });
+    void this.cache.set(KEY, data, CACHE_TTL);
     return data;
   }
 }

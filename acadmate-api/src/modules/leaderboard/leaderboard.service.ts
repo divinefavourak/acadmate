@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { CacheService } from '../../cache/cache.service';
 
 export type LeaderboardType = 'UTME' | 'POST_UTME';
 
@@ -13,12 +14,27 @@ export type LeaderboardEntry = {
   points: number;
 };
 
+const TTL = 600; // 10 min — good enough freshness without thrashing the DB
+
 @Injectable()
 export class LeaderboardService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cache: CacheService,
+  ) {}
 
   async getLeaderboard(type: LeaderboardType = 'UTME', limit = 50): Promise<LeaderboardEntry[]> {
-    // Resolve which exam sessions belong to this leaderboard type
+    const KEY = `leaderboard:${type}:${limit}`;
+
+    const cached = await this.cache.get<LeaderboardEntry[]>(KEY);
+    if (cached) return cached;
+
+    const data = await this.computeLeaderboard(type, limit);
+    void this.cache.set(KEY, data, TTL);
+    return data;
+  }
+
+  private async computeLeaderboard(type: LeaderboardType, limit: number): Promise<LeaderboardEntry[]> {
     const sessions = await this.prisma.examSession.findMany({
       where: { mode: type === 'POST_UTME' ? 'POST_UTME' : { not: 'POST_UTME' } },
       select: { id: true },

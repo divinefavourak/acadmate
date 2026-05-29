@@ -1,10 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { CacheService } from '../../../cache/cache.service';
 import { Difficulty, ExamType } from '@prisma/client';
 
 @Injectable()
 export class AdminQuestionsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cache: CacheService,
+  ) {}
 
   // ─── Auto-validate after create/update (ported verbatim) ─────────────────
   async autoValidateQuestion(questionId: string) {
@@ -150,6 +154,8 @@ export class AdminQuestionsService {
     }
 
     await this.autoValidateQuestion(question.id);
+    // New question could appear in browse results
+    await this.cache.delByPrefix('questions:browse:');
     return question;
   }
 
@@ -172,6 +178,10 @@ export class AdminQuestionsService {
     }
 
     await this.autoValidateQuestion(id);
+    await Promise.all([
+      this.cache.del(`questions:detail:${id}`),
+      this.cache.delByPrefix('questions:browse:'),
+    ]);
     return question;
   }
 
@@ -185,6 +195,10 @@ export class AdminQuestionsService {
     } catch (logErr) {
       console.error('[AdminQuestionsService] Activity log failed after deleteQuestion', logErr);
     }
+    await Promise.all([
+      this.cache.del(`questions:detail:${id}`),
+      this.cache.delByPrefix('questions:browse:'),
+    ]);
     return { deleted: true };
   }
 
@@ -205,6 +219,8 @@ export class AdminQuestionsService {
     } catch (logErr) {
       console.error('[AdminQuestionsService] Activity log failed after bulkPublish', logErr);
     }
+    // Wipe everything — bulk changes affect many question + browse keys
+    await this.cache.delByPrefix('questions:');
     return { updated: result.count };
   }
 
@@ -227,6 +243,10 @@ export class AdminQuestionsService {
     } catch (logErr) {
       console.error('[AdminQuestionsService] Activity log failed after togglePublish', logErr);
     }
+    await Promise.all([
+      this.cache.del(`questions:detail:${id}`),
+      this.cache.delByPrefix('questions:browse:'),
+    ]);
     return question;
   }
 
@@ -247,7 +267,8 @@ export class AdminQuestionsService {
       data: { adminId, action: 'RESOLVE_FLAG', entityType: 'question', entityId: questionId },
     });
 
+    // isFlagged changed — bust the detail cache for this question
+    await this.cache.del(`questions:detail:${questionId}`);
     return { resolved: true };
   }
-
 }

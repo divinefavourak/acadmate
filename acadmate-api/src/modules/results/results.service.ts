@@ -1,13 +1,37 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { CacheService } from '../../cache/cache.service';
+
+const LIST_TTL   = 120;    // 2 min — busted immediately when a new exam is submitted
+const DETAIL_TTL = 86_400; // 24 h  — results are immutable once created, no busting needed
 
 @Injectable()
 export class ResultsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cache: CacheService,
+  ) {}
 
   // GET /results — paginated result history
   async listResults(userId: string, limit: number, offset: number) {
     const safeLimit = Math.min(limit, 50);
+    const KEY = `results:list:${userId}:${safeLimit}:${offset}`;
+
+    type ListResult = {
+      results: {
+        id: string; score: number; correct: number; incorrect: number;
+        unanswered: number; totalQuestions: number; createdAt: Date;
+        examSession: {
+          id: string; mode: string; status: string;
+          durationMinutes: number; startedAt: Date | null; submittedAt: Date | null;
+        };
+      }[];
+      total: number; limit: number; offset: number;
+    };
+
+    const cached = await this.cache.get<ListResult>(KEY);
+    if (cached) return cached;
+
     const [results, total] = await this.prisma.$transaction([
       this.prisma.result.findMany({
         where: { userId },
@@ -37,12 +61,29 @@ export class ResultsService {
       this.prisma.result.count({ where: { userId } }),
     ]);
 
-    return { results, total, limit: safeLimit, offset };
+    const data = { results, total, limit: safeLimit, offset };
+    void this.cache.set(KEY, data, LIST_TTL);
+    return data;
   }
 
   // GET /results/:id — detailed result with normalized breakdown tables
   async getResult(userId: string, resultId: string) {
-    const result = await this.prisma.result.findFirst({
+    const KEY = `results:detail:${resultId}`;
+
+    // Results are immutable — once created they never change.
+    // We cache with a long TTL and never need to bust this key.
+    const cached = await this.cache.get<Awaited<ReturnType<ResultsService['fetchResult']>>>(KEY);
+    if (cached) return cached;
+
+    const result = await this.fetchResult(userId, resultId);
+    if (!result) throw new NotFoundException('Result not found');
+
+    void this.cache.set(KEY, result, DETAIL_TTL);
+    return result;
+  }
+
+  private fetchResult(userId: string, resultId: string) {
+    return this.prisma.result.findFirst({
       where: { id: resultId, userId },
       select: {
         id: true,
@@ -85,7 +126,6 @@ export class ResultsService {
             },
           },
         },
-        // Normalized breakdown tables — no JSON
         subjectBreakdowns: {
           select: { subjectId: true, name: true, correct: true, total: true },
         },
@@ -94,8 +134,5 @@ export class ResultsService {
         },
       },
     });
-
-    if (!result) throw new NotFoundException('Result not found');
-    return result;
   }
 }

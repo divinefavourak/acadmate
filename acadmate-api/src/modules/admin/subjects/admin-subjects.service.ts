@@ -1,9 +1,13 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { CacheService } from '../../../cache/cache.service';
 
 @Injectable()
 export class AdminSubjectsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cache: CacheService,
+  ) {}
 
   // ─── Subjects ─────────────────────────────────────────────────────────────
   async listSubjects() {
@@ -60,9 +64,11 @@ export class AdminSubjectsService {
     name: string; code: string; description?: string;
     isActive?: boolean; sortOrder?: number;
   }) {
-    return this.prisma.subject.create({
+    const result = await this.prisma.subject.create({
       data: { ...dto, code: dto.code.toUpperCase() },
     });
+    await this.cache.delByPrefix('subjects:');
+    return result;
   }
 
   async updateSubject(id: string, dto: Partial<{
@@ -71,13 +77,19 @@ export class AdminSubjectsService {
   }>) {
     const subject = await this.prisma.subject.findUnique({ where: { id } });
     if (!subject) throw new NotFoundException('Subject not found');
-    return this.prisma.subject.update({ where: { id }, data: { ...dto, ...(dto.code && { code: dto.code.toUpperCase() }) } });
+    const result = await this.prisma.subject.update({
+      where: { id },
+      data: { ...dto, ...(dto.code && { code: dto.code.toUpperCase() }) },
+    });
+    await this.cache.delByPrefix('subjects:');
+    return result;
   }
 
   async deleteSubject(id: string) {
     const subject = await this.prisma.subject.findUnique({ where: { id } });
     if (!subject) throw new NotFoundException('Subject not found');
     await this.prisma.subject.delete({ where: { id } });
+    await this.cache.delByPrefix('subjects:');
     return { deleted: true };
   }
 
@@ -100,7 +112,9 @@ export class AdminSubjectsService {
     subjectId: string; name: string; description?: string;
     isActive?: boolean; sortOrder?: number;
   }) {
-    return this.prisma.topic.create({ data: dto });
+    const result = await this.prisma.topic.create({ data: dto });
+    await this.cache.delByPrefix('subjects:');
+    return result;
   }
 
   async updateTopic(id: string, dto: Partial<{
@@ -108,13 +122,16 @@ export class AdminSubjectsService {
   }>) {
     const topic = await this.prisma.topic.findUnique({ where: { id } });
     if (!topic) throw new NotFoundException('Topic not found');
-    return this.prisma.topic.update({ where: { id }, data: dto });
+    const result = await this.prisma.topic.update({ where: { id }, data: dto });
+    await this.cache.delByPrefix('subjects:');
+    return result;
   }
 
   async deleteTopic(id: string) {
     const topic = await this.prisma.topic.findUnique({ where: { id } });
     if (!topic) throw new NotFoundException('Topic not found');
     await this.prisma.topic.delete({ where: { id } });
+    await this.cache.delByPrefix('subjects:');
     return { deleted: true };
   }
 }

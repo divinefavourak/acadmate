@@ -8,7 +8,10 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { bodyParser: false });
+  const app = await NestFactory.create(AppModule, {
+    bodyParser: false,
+    logger: ['log', 'warn', 'error', 'debug'],
+  });
   app.use(json({ limit: '50mb' }));
   app.getHttpAdapter().getInstance().set('trust proxy', 1);
   app.setGlobalPrefix('api', { exclude: ['health'] });
