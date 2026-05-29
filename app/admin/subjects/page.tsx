@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
+import Link from "next/link";
 import Loader from "@/app/components/Loader";
 import { apiClient, ApiError } from "@/lib/api/client";
 
@@ -26,6 +27,14 @@ export default function SubjectsPage() {
   const [createError, setCreateError] = useState("");
   const [saving, setSaving] = useState(false);
 
+  // Edit form
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editCode, setEditCode] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editError, setEditError] = useState("");
+  const [editSaving, setEditSaving] = useState(false);
+
   function loadSubjects() {
     setLoading(true);
     apiClient<{ subjects: SubjectEntry[] }>("/api/admin/subjects")
@@ -50,6 +59,40 @@ export default function SubjectsPage() {
       );
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to update subject status.");
+    }
+  }
+
+  function startEdit(s: SubjectEntry) {
+    setEditingId(s.id);
+    setEditName(s.name);
+    setEditCode(s.code);
+    setEditDescription(s.description ?? "");
+    setEditError("");
+  }
+
+  async function handleSaveEdit(e: React.FormEvent) {
+    e.preventDefault();
+    const subjectId = editingId;
+    if (!subjectId) return;
+    const name = editName.trim();
+    const code = editCode.trim().toUpperCase();
+    if (!name || !code) { setEditError("Name and code are required."); return; }
+    const description = editDescription.trim() || null;
+    setEditSaving(true);
+    setEditError("");
+    try {
+      await apiClient(`/api/admin/subjects/${subjectId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ name, code, description }),
+      });
+      setSubjects((prev) => prev.map((s) =>
+        s.id === subjectId ? { ...s, name, code, description } : s
+      ));
+      setEditingId((current) => current === subjectId ? null : current);
+    } catch (err) {
+      setEditError(err instanceof ApiError ? err.message : "Failed to save.");
+    } finally {
+      setEditSaving(false);
     }
   }
 
@@ -156,35 +199,96 @@ export default function SubjectsPage() {
                   <th className="pb-3 font-medium">Code</th>
                   <th className="pb-3 font-medium">Topics</th>
                   <th className="pb-3 font-medium">Questions</th>
-                  <th className="pb-3 font-medium text-right">Status</th>
+                  <th className="pb-3 font-medium text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {subjects.map((s, i) => (
-                  <tr
-                    key={s.id}
-                    className={`${i < subjects.length - 1 ? "border-b border-slate-800" : ""} hover:bg-slate-800/50 transition-colors`}
-                  >
-                    <td className="py-3">
-                      <p className="font-medium text-white">{s.name}</p>
-                      {s.description && <p className="text-xs text-slate-500 mt-0.5">{s.description}</p>}
-                    </td>
-                    <td className="py-3 text-slate-400 font-mono">{s.code}</td>
-                    <td className="py-3 text-slate-300">{s._count.topics}</td>
-                    <td className="py-3 text-slate-300">{s._count.questions}</td>
-                    <td className="py-3 text-right">
-                      <button
-                        onClick={() => toggleActive(s.id, s.isActive)}
-                        className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
-                          s.isActive
-                            ? "bg-emerald-900/30 text-emerald-400 hover:bg-emerald-900/50"
-                            : "bg-slate-700 text-slate-400 hover:bg-slate-600"
-                        }`}
-                      >
-                        {s.isActive ? "Active" : "Inactive"}
-                      </button>
-                    </td>
-                  </tr>
+                  <Fragment key={s.id}>
+                    <tr
+                      className={`${i < subjects.length - 1 && editingId !== s.id ? "border-b border-slate-800" : ""} hover:bg-slate-800/50 transition-colors`}
+                    >
+                      <td className="py-3">
+                        <p className="font-medium text-white">{s.name}</p>
+                        {s.description && <p className="text-xs text-slate-500 mt-0.5">{s.description}</p>}
+                      </td>
+                      <td className="py-3 text-slate-400 font-mono">{s.code}</td>
+                      <td className="py-3 text-slate-300">{s._count.topics}</td>
+                      <td className="py-3 text-slate-300">{s._count.questions}</td>
+                      <td className="py-3 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <Link
+                            href={`/admin/questions?subjectId=${s.id}`}
+                            className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-slate-700 text-slate-300 hover:bg-slate-600 transition-colors"
+                          >
+                            View Questions
+                          </Link>
+                          <button
+                            onClick={() => editingId === s.id ? setEditingId(null) : startEdit(s)}
+                            className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-indigo-900/30 text-indigo-400 hover:bg-indigo-900/50 transition-colors"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => toggleActive(s.id, s.isActive)}
+                            className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                              s.isActive
+                                ? "bg-emerald-900/30 text-emerald-400 hover:bg-emerald-900/50"
+                                : "bg-slate-700 text-slate-400 hover:bg-slate-600"
+                            }`}
+                          >
+                            {s.isActive ? "Active" : "Inactive"}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                    {editingId === s.id && (
+                      <tr className={`${i < subjects.length - 1 ? "border-b border-slate-800" : ""}`}>
+                        <td colSpan={5} className="py-3 px-0">
+                          <form onSubmit={handleSaveEdit} className="bg-slate-900/60 border border-indigo-700/40 rounded-xl p-4 space-y-3">
+                            <div className="flex flex-col sm:flex-row gap-3">
+                              <div className="flex-1 space-y-1">
+                                <label className="text-xs font-medium text-slate-400">Name</label>
+                                <input
+                                  value={editName}
+                                  onChange={(e) => setEditName(e.target.value)}
+                                  className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                                />
+                              </div>
+                              <div className="w-full sm:w-32 space-y-1">
+                                <label className="text-xs font-medium text-slate-400">Code</label>
+                                <input
+                                  value={editCode}
+                                  onChange={(e) => setEditCode(e.target.value.toUpperCase())}
+                                  maxLength={10}
+                                  className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                                />
+                              </div>
+                              <div className="flex-1 space-y-1">
+                                <label className="text-xs font-medium text-slate-400">Description (optional)</label>
+                                <input
+                                  value={editDescription}
+                                  onChange={(e) => setEditDescription(e.target.value)}
+                                  className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                                />
+                              </div>
+                            </div>
+                            {editError && <p className="text-red-400 text-xs">{editError}</p>}
+                            <div className="flex gap-2">
+                              <button type="submit" disabled={editSaving}
+                                className="px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold disabled:opacity-50 transition-colors">
+                                {editSaving ? "Saving…" : "Save"}
+                              </button>
+                              <button type="button" onClick={() => setEditingId(null)}
+                                className="px-4 py-1.5 rounded-lg border border-slate-700 text-slate-300 hover:bg-slate-800 text-xs font-medium transition-colors">
+                                Cancel
+                              </button>
+                            </div>
+                          </form>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
                 ))}
               </tbody>
             </table>

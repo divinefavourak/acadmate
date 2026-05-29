@@ -71,7 +71,7 @@ export class AdminSubjectsService {
   }>) {
     const subject = await this.prisma.subject.findUnique({ where: { id } });
     if (!subject) throw new NotFoundException('Subject not found');
-    return this.prisma.subject.update({ where: { id }, data: dto });
+    return this.prisma.subject.update({ where: { id }, data: { ...dto, ...(dto.code && { code: dto.code.toUpperCase() }) } });
   }
 
   async deleteSubject(id: string) {

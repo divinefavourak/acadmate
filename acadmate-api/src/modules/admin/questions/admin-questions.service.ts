@@ -141,9 +141,13 @@ export class AdminQuestionsService {
       include: { options: true, explanation: true },
     });
 
-    await this.prisma.adminActivityLog.create({
-      data: { adminId, action: 'CREATE_QUESTION', entityType: 'question', entityId: question.id },
-    });
+    try {
+      await this.prisma.adminActivityLog.create({
+        data: { adminId, action: 'CREATE_QUESTION', entityType: 'question', entityId: question.id },
+      });
+    } catch (logErr) {
+      console.error('[AdminQuestionsService] Activity log failed after createQuestion', logErr);
+    }
 
     await this.autoValidateQuestion(question.id);
     return question;
@@ -159,9 +163,13 @@ export class AdminQuestionsService {
       include: { options: true, explanation: true },
     });
 
-    await this.prisma.adminActivityLog.create({
-      data: { adminId, action: 'UPDATE_QUESTION', entityType: 'question', entityId: id },
-    });
+    try {
+      await this.prisma.adminActivityLog.create({
+        data: { adminId, action: 'UPDATE_QUESTION', entityType: 'question', entityId: id },
+      });
+    } catch (logErr) {
+      console.error('[AdminQuestionsService] Activity log failed after updateQuestion', logErr);
+    }
 
     await this.autoValidateQuestion(id);
     return question;
@@ -170,10 +178,34 @@ export class AdminQuestionsService {
   // DELETE /admin/questions/:id
   async deleteQuestion(adminId: string, id: string) {
     await this.prisma.question.delete({ where: { id } });
-    await this.prisma.adminActivityLog.create({
-      data: { adminId, action: 'DELETE_QUESTION', entityType: 'question', entityId: id },
-    });
+    try {
+      await this.prisma.adminActivityLog.create({
+        data: { adminId, action: 'DELETE_QUESTION', entityType: 'question', entityId: id },
+      });
+    } catch (logErr) {
+      console.error('[AdminQuestionsService] Activity log failed after deleteQuestion', logErr);
+    }
     return { deleted: true };
+  }
+
+  // PATCH /admin/questions/bulk/publish
+  async bulkPublish(adminId: string, ids: string[], isPublished: boolean) {
+    const result = await this.prisma.question.updateMany({
+      where: { id: { in: ids } },
+      data: { isPublished },
+    });
+    try {
+      await this.prisma.adminActivityLog.create({
+        data: {
+          adminId,
+          action: isPublished ? 'BULK_PUBLISH' : 'BULK_UNPUBLISH',
+          details: { count: result.count, ids },
+        },
+      });
+    } catch (logErr) {
+      console.error('[AdminQuestionsService] Activity log failed after bulkPublish', logErr);
+    }
+    return { updated: result.count };
   }
 
   // PATCH /admin/questions/:id/publish
@@ -183,14 +215,18 @@ export class AdminQuestionsService {
       data: { isPublished },
       select: { id: true, isPublished: true },
     });
-    await this.prisma.adminActivityLog.create({
-      data: {
-        adminId,
-        action: isPublished ? 'PUBLISH_QUESTION' : 'UNPUBLISH_QUESTION',
-        entityType: 'question',
-        entityId: id,
-      },
-    });
+    try {
+      await this.prisma.adminActivityLog.create({
+        data: {
+          adminId,
+          action: isPublished ? 'PUBLISH_QUESTION' : 'UNPUBLISH_QUESTION',
+          entityType: 'question',
+          entityId: id,
+        },
+      });
+    } catch (logErr) {
+      console.error('[AdminQuestionsService] Activity log failed after togglePublish', logErr);
+    }
     return question;
   }
 

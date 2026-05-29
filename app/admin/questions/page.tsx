@@ -132,8 +132,14 @@ function QuestionsPage() {
   const [analyticsData, setAnalyticsData] = useState<{ subject: string; questions: number; flagged: number }[]>([]);
   const [loadingAnalytics, setLoadingAnalytics] = useState(false);
 
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkPublishing, setBulkPublishing] = useState(false);
+  const [bulkError, setBulkError] = useState("");
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
   const searchParams = useSearchParams();
   const highlightId = searchParams.get("highlight");
+  const subjectIdParam = searchParams.get("subjectId");
   const highlightRef = useRef<HTMLDivElement | null>(null);
 
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -208,6 +214,22 @@ function QuestionsPage() {
 
   // Load questions
   useEffect(() => {
+    setSelectedIds(new Set());
+
+    // Direct subject view (from ?subjectId= URL param)
+    if (subjectIdParam) {
+      setLoading(true);
+      setFetchError(null);
+      const params = new URLSearchParams({ limit: String(limit), offset: String(page * limit) });
+      params.set("subjectId", subjectIdParam);
+      if (publishedFilter !== "") params.set("isPublished", publishedFilter);
+      apiClient<{ questions: QuestionEntry[]; total: number }>(`/api/admin/questions?${params}`)
+        .then((data) => { setQuestions(data.questions ?? []); setTotal(data.total ?? 0); })
+        .catch((err) => { console.error("Failed to load questions", err); setFetchError("Could not load questions. Please refresh."); })
+        .finally(() => setLoading(false));
+      return;
+    }
+
     const hasContext =
       (activeCategory === "JAMB" && activeSubject && activeYear !== null) ||
       (activeCategory === "POST_UTME" && activeSchool && activeYear !== null);
@@ -220,6 +242,7 @@ function QuestionsPage() {
     }
 
     setLoading(true);
+    setFetchError(null);
     const params = new URLSearchParams({
       limit: String(limit),
       offset: String(page * limit),
@@ -235,9 +258,9 @@ function QuestionsPage() {
         setQuestions(data.questions ?? []);
         setTotal(data.total ?? 0);
       })
-      .catch((err) => console.error("Failed to load questions", err))
+      .catch((err) => { console.error("Failed to load questions", err); setFetchError("Could not load questions. Please refresh."); })
       .finally(() => setLoading(false));
-  }, [page, publishedFilter, activeCategory, activeSubject, activeSchool, activeYear]);
+  }, [page, publishedFilter, activeCategory, activeSubject, activeSchool, activeYear, subjectIdParam]);
 
   // Load topics when form subject changes
   useEffect(() => {
@@ -290,11 +313,49 @@ function QuestionsPage() {
   }
 
   async function togglePublish(id: string, current: boolean) {
-    await apiClient(`/api/admin/questions/${id}/publish`, {
-      method: "PATCH",
-      body: JSON.stringify({ isPublished: !current }),
+    try {
+      await apiClient(`/api/admin/questions/${id}/publish`, {
+        method: "PATCH",
+        body: JSON.stringify({ isPublished: !current }),
+      });
+      setQuestions((prev) => prev.map((q) => q.id === id ? { ...q, isPublished: !current } : q));
+    } catch (err) {
+      console.error("Toggle publish failed", err);
+      setFormError(err instanceof Error ? err.message : "Failed to update publish status.");
+    }
+  }
+
+  async function handleBulkPublish(isPublished: boolean) {
+    if (selectedIds.size === 0) return;
+    setBulkPublishing(true);
+    setBulkError("");
+    try {
+      await apiClient("/api/admin/questions/bulk/publish", {
+        method: "PATCH",
+        body: JSON.stringify({ ids: [...selectedIds], isPublished }),
+      });
+      setQuestions((prev) => prev.map((q) => selectedIds.has(q.id) ? { ...q, isPublished } : q));
+      setSelectedIds(new Set());
+    } catch (err) {
+      console.error("Bulk publish failed", err);
+      setBulkError(err instanceof Error ? err.message : `Failed to ${isPublished ? "publish" : "unpublish"} questions.`);
+    } finally {
+      setBulkPublishing(false);
+    }
+  }
+
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
     });
-    setQuestions((prev) => prev.map((q) => q.id === id ? { ...q, isPublished: !current } : q));
+  }
+
+  function toggleSelectAll() {
+    setSelectedIds((prev) =>
+      prev.size === questions.length ? new Set() : new Set(questions.map((q) => q.id))
+    );
   }
 
   async function handlePreview(id: string) {
@@ -304,6 +365,7 @@ function QuestionsPage() {
       setPreviewQuestion(question);
     } catch (err) {
       console.error("Failed to load preview", err);
+      setFormError(err instanceof Error ? err.message : "Failed to load question preview.");
     } finally {
       setLoadingPreview(null);
     }
@@ -318,6 +380,7 @@ function QuestionsPage() {
       setTotal((prev) => prev - 1);
     } catch (err) {
       console.error("Failed to delete question", err);
+      setFormError(err instanceof Error ? err.message : "Failed to delete question.");
     } finally {
       setDeleting(false);
       setDeleteId(null);
@@ -357,18 +420,21 @@ function QuestionsPage() {
       setEditError("");
     } catch (err) {
       console.error("Failed to load question for edit", err);
+      setFormError(err instanceof Error ? err.message : "Failed to load question for editing.");
     } finally {
       setLoadingEdit(null);
     }
   }
 
   async function handleClearFlag(id: string) {
-    await apiClient(`/api/admin/questions/${id}`, {
-      method: "PATCH",
-      body: JSON.stringify({ isFlagged: false }),
-    });
-    setQuestions((prev) => prev.map((q) => q.id === id ? { ...q, isFlagged: false, flagCount: 0 } : q));
-    setFlaggedQuestions((prev) => prev.filter((q) => q.id !== id));
+    try {
+      await apiClient(`/api/admin/questions/${id}/resolve-flag`, { method: "PATCH" });
+      setQuestions((prev) => prev.map((q) => q.id === id ? { ...q, isFlagged: false, flagCount: 0 } : q));
+      setFlaggedQuestions((prev) => prev.filter((q) => q.id !== id));
+    } catch (err) {
+      console.error("Clear flag failed", err);
+      setFormError(err instanceof Error ? err.message : "Failed to clear flag.");
+    }
   }
 
   async function handleSaveEdit(e: React.FormEvent) {
@@ -461,6 +527,7 @@ function QuestionsPage() {
     : null;
 
   const canShowQuestions =
+    !!subjectIdParam ||
     (activeCategory === "JAMB" && activeSubject && activeYear !== null) ||
     (activeCategory === "POST_UTME" && activeSchool && activeYear !== null);
 
@@ -598,7 +665,7 @@ function QuestionsPage() {
           setUploadingImage={setUploadingImage}
           setFormError={setFormError}
         />
-      ) : !activeCategory ? (
+      ) : !activeCategory && !subjectIdParam ? (
         /* ── Category picker ─────────────────────────────── */
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-lg">
           <CategoryCard
@@ -658,7 +725,7 @@ function QuestionsPage() {
             );
           })}
         </div>
-      ) : activeYear === null ? (
+      ) : activeYear === null && !subjectIdParam ? (
         /* ── Year picker ─────────────────────────────────── */
         <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 flex flex-col items-center justify-center min-h-[300px]">
           <h2 className="text-lg font-medium text-white mb-6">
@@ -685,6 +752,32 @@ function QuestionsPage() {
       ) : (
         /* ── Questions list ──────────────────────────────── */
         <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6">
+          {fetchError && (
+            <p className="text-red-400 text-sm mb-4 bg-red-900/20 border border-red-800 rounded-lg px-4 py-2">{fetchError}</p>
+          )}
+          {selectedIds.size > 0 && (
+            <div className="flex flex-wrap items-center gap-3 mb-4 px-3 py-2.5 rounded-xl bg-indigo-950/60 border border-indigo-700/50">
+              <span className="text-sm text-indigo-300 font-medium flex-1">{selectedIds.size} selected</span>
+              {bulkError && <span className="text-xs text-red-400 w-full">{bulkError}</span>}
+              <button
+                onClick={() => handleBulkPublish(true)}
+                disabled={bulkPublishing}
+                className="px-3 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-semibold disabled:opacity-50 transition-colors"
+              >
+                Publish All
+              </button>
+              <button
+                onClick={() => handleBulkPublish(false)}
+                disabled={bulkPublishing}
+                className="px-3 py-1.5 rounded-lg bg-slate-600 hover:bg-slate-500 text-white text-xs font-semibold disabled:opacity-50 transition-colors"
+              >
+                Unpublish All
+              </button>
+              <button onClick={() => { setSelectedIds(new Set()); setBulkError(""); }} className="text-slate-400 hover:text-slate-200 text-xs">
+                Clear
+              </button>
+            </div>
+          )}
           {loading ? (
             <p className="text-slate-400 text-sm py-8 text-center">Loading…</p>
           ) : questions.length === 0 ? (
@@ -728,6 +821,14 @@ function QuestionsPage() {
                 <table className="w-full text-left border-collapse text-sm">
                   <thead>
                     <tr className="border-b border-slate-700 text-slate-400">
+                      <th className="pb-3 pr-3 w-8">
+                        <input
+                          type="checkbox"
+                          checked={questions.length > 0 && selectedIds.size === questions.length}
+                          onChange={toggleSelectAll}
+                          className="rounded border-slate-600 bg-slate-800 text-indigo-500 cursor-pointer"
+                        />
+                      </th>
                       <th className="pb-3 font-medium">Question</th>
                       <th className="pb-3 font-medium">Topic</th>
                       <th className="pb-3 font-medium">Difficulty</th>
@@ -739,7 +840,15 @@ function QuestionsPage() {
                   <tbody>
                     {questions.map((q, i) => (
                       <tr key={q.id}
-                        className={`${i < questions.length - 1 ? "border-b border-slate-800" : ""} ${q.isFlagged ? "bg-red-950/20" : ""} hover:bg-slate-800/50 transition-colors`}>
+                        className={`${i < questions.length - 1 ? "border-b border-slate-800" : ""} ${q.isFlagged ? "bg-red-950/20" : ""} ${selectedIds.has(q.id) ? "bg-indigo-950/20" : ""} hover:bg-slate-800/50 transition-colors`}>
+                        <td className="py-3 pr-3">
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.has(q.id)}
+                            onChange={() => toggleSelect(q.id)}
+                            className="rounded border-slate-600 bg-slate-800 text-indigo-500 cursor-pointer"
+                          />
+                        </td>
                         <td className="py-3 text-white max-w-xs"><p className="truncate">{q.text}</p></td>
                         <td className="py-3 text-slate-500">{q.topic ? q.topic.name : "—"}</td>
                         <td className={`py-3 font-medium ${difficultyColors[q.difficulty] ?? "text-slate-400"}`}>{q.difficulty}</td>
