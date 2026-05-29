@@ -1,5 +1,5 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import * as nodemailer from 'nodemailer';
+import * as sgMail from '@sendgrid/mail';
 
 type BlogPostForEmail = {
   slug: string;
@@ -25,50 +25,31 @@ function categoryLabel(category: string): string {
 @Injectable()
 export class MailService implements OnModuleInit {
   private readonly logger = new Logger(MailService.name);
+  private ready = false;
 
-  private transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT ?? 587),
-    secure: process.env.SMTP_SECURE === 'true',
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-  });
-
-  // Verify SMTP at startup so misconfiguration is visible immediately instead
-  // of surfacing later as silent send failures.
-  async onModuleInit() {
-    const { SMTP_HOST, SMTP_USER, SMTP_PASS, SMTP_FROM, SMTP_PORT } = process.env;
-    const missing: string[] = [];
-    if (!SMTP_HOST) missing.push('SMTP_HOST');
-    if (!SMTP_USER) missing.push('SMTP_USER');
-    if (!SMTP_PASS) missing.push('SMTP_PASS');
-    if (missing.length > 0) {
-      this.logger.warn(
-        `SMTP not fully configured — emails will fail. Missing: ${missing.join(', ')}`,
-      );
+  onModuleInit() {
+    const apiKey = process.env.SENDGRID_API_KEY;
+    const from = process.env.SMTP_FROM ?? 'Acadmate <noreply@acadmate.app>';
+    if (!apiKey) {
+      this.logger.warn('SENDGRID_API_KEY not set — emails will fail to send');
       return;
     }
+    sgMail.setApiKey(apiKey);
+    this.ready = true;
     this.logger.log(
-      `SMTP configured: host=${SMTP_HOST}, port=${SMTP_PORT ?? 587}, user=${SMTP_USER}, from="${SMTP_FROM ?? '(default)'}"`,
+      `SendGrid configured: from="${from}", key=…${apiKey.slice(-4)}`,
     );
-    try {
-      await this.transporter.verify();
-      this.logger.log('SMTP transporter verified — ready to send mail');
-    } catch (err) {
-      this.logger.error(
-        `SMTP verification failed — emails will fail to send: ${(err as Error).message}`,
-        (err as Error).stack,
-      );
-    }
   }
 
   async sendPasswordReset(to: string, resetUrl: string) {
+    if (!this.ready) {
+      this.logger.warn(`Skipping password reset email to ${to} — SendGrid not configured`);
+      return;
+    }
     const from = process.env.SMTP_FROM ?? 'Acadmate <noreply@acadmate.app>';
 
     try {
-      await this.transporter.sendMail({
+      await sgMail.send({
         from,
         to,
         subject: 'Reset your Acadmate password',
@@ -87,7 +68,9 @@ export class MailService implements OnModuleInit {
         `,
       });
     } catch (err) {
-      this.logger.error(`Failed to send password reset email to ${to}`, err);
+      const sgErrors = (err as any)?.response?.body?.errors;
+      const detail = sgErrors ? JSON.stringify(sgErrors) : (err as Error).message;
+      this.logger.error(`Failed to send password reset email to ${to}: ${detail}`, (err as Error).stack);
       throw err;
     }
   }
@@ -97,6 +80,10 @@ export class MailService implements OnModuleInit {
     recipientName: string | null,
     post: BlogPostForEmail,
   ) {
+    if (!this.ready) {
+      this.logger.warn(`Skipping blog notification to ${to} — SendGrid not configured`);
+      return;
+    }
     const from = process.env.SMTP_FROM ?? 'Acadmate <noreply@acadmate.app>';
     const baseUrl = (process.env.FRONTEND_URL ?? 'https://acadmate.app').replace(/\/$/, '');
     const postUrl = `${baseUrl}/blog/${encodeURIComponent(post.slug)}`;
@@ -112,7 +99,7 @@ export class MailService implements OnModuleInit {
 
     try {
       this.logger.log(`Sending blog notification to ${to} — "${post.title}"`);
-      const result = await this.transporter.sendMail({
+      await sgMail.send({
         from,
         to,
         subject: `New on Acadmate: ${post.title}`,
@@ -134,12 +121,12 @@ export class MailService implements OnModuleInit {
           </div>
         `,
       });
-      this.logger.log(
-        `Blog notification sent to ${to} (messageId: ${result.messageId ?? 'unknown'})`,
-      );
+      this.logger.log(`Blog notification sent to ${to} — "${post.title}"`);
     } catch (err) {
+      const sgErrors = (err as any)?.response?.body?.errors;
+      const detail = sgErrors ? JSON.stringify(sgErrors) : (err as Error).message;
       this.logger.error(
-        `Failed to send blog notification to ${to}: ${(err as Error).message}`,
+        `Failed to send blog notification to ${to}: ${detail}`,
         (err as Error).stack,
       );
       throw err;
