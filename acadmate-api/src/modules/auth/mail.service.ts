@@ -28,6 +28,16 @@ function isGmailApiError(err: unknown): err is GmailApiError {
   return typeof err === 'object' && err !== null && 'errors' in err;
 }
 
+function sanitizeHeader(value: string): string {
+  return value.replace(/[\r\n]+/g, ' ').trim();
+}
+
+function maskEmail(email: string): string {
+  const [local, domain] = email.split('@');
+  if (!domain) return '***';
+  return `${local.slice(0, 2)}***@${domain}`;
+}
+
 @Injectable()
 export class MailService implements OnModuleInit {
   private readonly logger = new Logger(MailService.name);
@@ -67,9 +77,9 @@ export class MailService implements OnModuleInit {
     if (!this.gmail) throw new Error('Gmail API not initialized');
 
     const raw = [
-      `From: ${this.from}`,
-      `To: ${to}`,
-      `Subject: ${subject}`,
+      `From: ${sanitizeHeader(this.from)}`,
+      `To: ${sanitizeHeader(to)}`,
+      `Subject: ${sanitizeHeader(subject)}`,
       'MIME-Version: 1.0',
       'Content-Type: text/html; charset=utf-8',
       '',
@@ -84,7 +94,7 @@ export class MailService implements OnModuleInit {
 
   async sendPasswordReset(to: string, resetUrl: string) {
     if (!this.ready) {
-      throw new Error('Gmail API is not configured — check GMAIL_REFRESH_TOKEN, GMAIL_USER, SMTP_FROM');
+      throw new Error('Gmail API is not configured — check GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GMAIL_REFRESH_TOKEN, GMAIL_USER, SMTP_FROM');
     }
 
     try {
@@ -106,7 +116,7 @@ export class MailService implements OnModuleInit {
         ? err.errors?.map((e) => e.message).join('; ')
         : err instanceof Error ? err.message : String(err);
       this.logger.error(
-        `Failed to send password reset email to ${to}: ${detail}`,
+        `Failed to send password reset email to ${maskEmail(to)}: ${detail}`,
         err instanceof Error ? err.stack : undefined,
       );
       throw err;
@@ -119,7 +129,7 @@ export class MailService implements OnModuleInit {
     post: BlogPostForEmail,
   ) {
     if (!this.ready) {
-      throw new Error('Gmail API is not configured — check GMAIL_REFRESH_TOKEN, GMAIL_USER, SMTP_FROM');
+      throw new Error('Gmail API is not configured — check GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GMAIL_REFRESH_TOKEN, GMAIL_USER, SMTP_FROM');
     }
 
     const baseUrl = (process.env.FRONTEND_URL ?? 'https://acadmate.app').replace(/\/$/, '');
@@ -135,7 +145,7 @@ export class MailService implements OnModuleInit {
       : '';
 
     try {
-      this.logger.log(`Sending blog notification to ${to} — "${post.title}"`);
+      this.logger.log(`Sending blog notification to ${maskEmail(to)} — "${post.title}"`);
       await this.sendMail(to, `New on Acadmate: ${post.title}`, `
         <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:8px">
           <p style="color:#475569;font-size:13px;margin:0 0 4px;text-transform:uppercase;letter-spacing:0.06em">${label}</p>
@@ -153,13 +163,13 @@ export class MailService implements OnModuleInit {
           </p>
         </div>
       `);
-      this.logger.log(`Blog notification sent to ${to} — "${post.title}"`);
+      this.logger.log(`Blog notification sent to ${maskEmail(to)} — "${post.title}"`);
     } catch (err) {
       const detail = isGmailApiError(err)
         ? err.errors?.map((e) => e.message).join('; ')
         : err instanceof Error ? err.message : String(err);
       this.logger.error(
-        `Failed to send blog notification to ${to}: ${detail}`,
+        `Failed to send blog notification to ${maskEmail(to)}: ${detail}`,
         err instanceof Error ? err.stack : undefined,
       );
       throw err;
