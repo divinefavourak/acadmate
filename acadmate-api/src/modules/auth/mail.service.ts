@@ -22,35 +22,44 @@ function categoryLabel(category: string): string {
   return category.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (m) => m.toUpperCase());
 }
 
+type SendGridError = { response?: { body?: { errors?: unknown } } };
+
+function isSendGridError(err: unknown): err is SendGridError {
+  return typeof err === 'object' && err !== null && 'response' in err;
+}
+
 @Injectable()
 export class MailService implements OnModuleInit {
   private readonly logger = new Logger(MailService.name);
   private ready = false;
+  private from = '';
 
   onModuleInit() {
     const apiKey = process.env.SENDGRID_API_KEY;
-    const from = process.env.SMTP_FROM ?? 'Acadmate <noreply@acadmate.app>';
-    if (!apiKey) {
-      this.logger.warn('SENDGRID_API_KEY not set — emails will fail to send');
+    const from = process.env.SMTP_FROM;
+    const missing: string[] = [];
+    if (!apiKey) missing.push('SENDGRID_API_KEY');
+    if (!from) missing.push('SMTP_FROM');
+    if (missing.length > 0) {
+      this.logger.warn(`SendGrid not fully configured — emails will fail. Missing: ${missing.join(', ')}`);
       return;
     }
-    sgMail.setApiKey(apiKey);
+    sgMail.setApiKey(apiKey!);
+    this.from = from!;
     this.ready = true;
     this.logger.log(
-      `SendGrid configured: from="${from}", key=…${apiKey.slice(-4)}`,
+      `SendGrid configured: from="${this.from}", key=…${apiKey!.slice(-4)}`,
     );
   }
 
   async sendPasswordReset(to: string, resetUrl: string) {
     if (!this.ready) {
-      this.logger.warn(`Skipping password reset email to ${to} — SendGrid not configured`);
-      return;
+      throw new Error('SendGrid is not configured — SENDGRID_API_KEY or SMTP_FROM is missing');
     }
-    const from = process.env.SMTP_FROM ?? 'Acadmate <noreply@acadmate.app>';
 
     try {
       await sgMail.send({
-        from,
+        from: this.from,
         to,
         subject: 'Reset your Acadmate password',
         html: `
@@ -68,9 +77,13 @@ export class MailService implements OnModuleInit {
         `,
       });
     } catch (err) {
-      const sgErrors = (err as any)?.response?.body?.errors;
-      const detail = sgErrors ? JSON.stringify(sgErrors) : (err as Error).message;
-      this.logger.error(`Failed to send password reset email to ${to}: ${detail}`, (err as Error).stack);
+      const detail = isSendGridError(err)
+        ? JSON.stringify(err.response?.body?.errors)
+        : err instanceof Error ? err.message : String(err);
+      this.logger.error(
+        `Failed to send password reset email to ${to}: ${detail}`,
+        err instanceof Error ? err.stack : undefined,
+      );
       throw err;
     }
   }
@@ -81,10 +94,9 @@ export class MailService implements OnModuleInit {
     post: BlogPostForEmail,
   ) {
     if (!this.ready) {
-      this.logger.warn(`Skipping blog notification to ${to} — SendGrid not configured`);
-      return;
+      throw new Error('SendGrid is not configured — SENDGRID_API_KEY or SMTP_FROM is missing');
     }
-    const from = process.env.SMTP_FROM ?? 'Acadmate <noreply@acadmate.app>';
+
     const baseUrl = (process.env.FRONTEND_URL ?? 'https://acadmate.app').replace(/\/$/, '');
     const postUrl = `${baseUrl}/blog/${encodeURIComponent(post.slug)}`;
 
@@ -100,7 +112,7 @@ export class MailService implements OnModuleInit {
     try {
       this.logger.log(`Sending blog notification to ${to} — "${post.title}"`);
       await sgMail.send({
-        from,
+        from: this.from,
         to,
         subject: `New on Acadmate: ${post.title}`,
         html: `
@@ -123,11 +135,12 @@ export class MailService implements OnModuleInit {
       });
       this.logger.log(`Blog notification sent to ${to} — "${post.title}"`);
     } catch (err) {
-      const sgErrors = (err as any)?.response?.body?.errors;
-      const detail = sgErrors ? JSON.stringify(sgErrors) : (err as Error).message;
+      const detail = isSendGridError(err)
+        ? JSON.stringify(err.response?.body?.errors)
+        : err instanceof Error ? err.message : String(err);
       this.logger.error(
         `Failed to send blog notification to ${to}: ${detail}`,
-        (err as Error).stack,
+        err instanceof Error ? err.stack : undefined,
       );
       throw err;
     }
