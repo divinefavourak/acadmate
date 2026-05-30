@@ -68,7 +68,9 @@ export class ResultsService {
 
   // GET /results/:id — detailed result with normalized breakdown tables
   async getResult(userId: string, resultId: string) {
-    const KEY = `results:detail:${resultId}`;
+    // userId is included in the key so one user can never receive another
+    // user's cached result (resultIds are UUIDs but still worth scoping).
+    const KEY = `results:detail:${userId}:${resultId}`;
 
     // Results are immutable — once created they never change.
     // We cache with a long TTL and never need to bust this key.

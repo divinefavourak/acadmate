@@ -25,11 +25,12 @@ export class AnalyticsService {
   ) {}
 
   async invalidateCache(userId: string): Promise<void> {
-    await this.cache.del(`analytics:${userId}`);
+    // Bust all limit variants for this user with a prefix sweep.
+    await this.cache.delByPrefix(`analytics:${userId}:`);
   }
 
   async getStudentAnalytics(userId: string, limit: number = 100): Promise<AnalyticsResult> {
-    const KEY = `analytics:${userId}`;
+    const KEY = `analytics:${userId}:${limit}`;
 
     const cached = await this.cache.get<AnalyticsResult>(KEY);
     if (cached) return cached;

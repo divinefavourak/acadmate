@@ -91,7 +91,7 @@ export class CacheService implements OnModuleDestroy {
     }
   }
 
-  onModuleDestroy() {
-    void this.redis.quit();
+  async onModuleDestroy() {
+    await this.redis.quit();
   }
 }

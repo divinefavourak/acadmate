@@ -154,8 +154,10 @@ export class AdminQuestionsService {
     }
 
     await this.autoValidateQuestion(question.id);
-    // New question could appear in browse results
-    await this.cache.delByPrefix('questions:browse:');
+    await Promise.all([
+      this.cache.delByPrefix('questions:browse:'),
+      this.cache.delByPrefix('subjects:'), // _count on subjects changes
+    ]);
     return question;
   }
 
@@ -198,6 +200,7 @@ export class AdminQuestionsService {
     await Promise.all([
       this.cache.del(`questions:detail:${id}`),
       this.cache.delByPrefix('questions:browse:'),
+      this.cache.delByPrefix('subjects:'), // _count on subjects changes
     ]);
     return { deleted: true };
   }
@@ -219,8 +222,10 @@ export class AdminQuestionsService {
     } catch (logErr) {
       console.error('[AdminQuestionsService] Activity log failed after bulkPublish', logErr);
     }
-    // Wipe everything — bulk changes affect many question + browse keys
-    await this.cache.delByPrefix('questions:');
+    await Promise.all([
+      this.cache.delByPrefix('questions:'),
+      this.cache.delByPrefix('subjects:'), // _count on subjects changes
+    ]);
     return { updated: result.count };
   }
 
@@ -246,6 +251,7 @@ export class AdminQuestionsService {
     await Promise.all([
       this.cache.del(`questions:detail:${id}`),
       this.cache.delByPrefix('questions:browse:'),
+      this.cache.delByPrefix('subjects:'), // isPublished changed — _count on subjects changes
     ]);
     return question;
   }

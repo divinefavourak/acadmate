@@ -1,6 +1,7 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# Claude Code internal files — settings are tracked selectively; worktrees are ephemeral
+# Claude Code internal files — machine-specific settings and ephemeral state
+.claude/settings.local.json
 .claude/worktrees/
 .claude/agents/
 # dependencies
