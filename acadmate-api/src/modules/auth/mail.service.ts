@@ -32,6 +32,15 @@ function sanitizeHeader(value: string): string {
   return value.replace(/[\r\n]+/g, ' ').trim();
 }
 
+// RFC 2047 encoded-word for non-ASCII subject/header values.
+// Email headers are ASCII-only by spec; non-ASCII must be wrapped as
+// =?UTF-8?B?<base64>?= so clients decode it correctly instead of
+// guessing Latin-1 and producing garbage like "NigeriaÃ¢Â€Â™s".
+function encodeRfc2047(text: string): string {
+  if (/^[\x20-\x7E]*$/.test(text)) return text; // pure ASCII — no encoding needed
+  return `=?UTF-8?B?${Buffer.from(text, 'utf8').toString('base64')}?=`;
+}
+
 function maskEmail(email: string): string {
   const [local, domain] = email.split('@');
   if (!domain) return '***';
@@ -79,7 +88,7 @@ export class MailService implements OnModuleInit {
     const raw = [
       `From: ${sanitizeHeader(this.from)}`,
       `To: ${sanitizeHeader(to)}`,
-      `Subject: ${sanitizeHeader(subject)}`,
+      `Subject: ${encodeRfc2047(sanitizeHeader(subject))}`,
       'MIME-Version: 1.0',
       'Content-Type: text/html; charset=utf-8',
       '',
