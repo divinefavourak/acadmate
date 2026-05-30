@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { CacheService } from '../../cache/cache.service';
 import { Difficulty, ExamType } from '@prisma/client';
 
 export interface QuestionQuery {
@@ -12,14 +13,47 @@ export interface QuestionQuery {
   offset?: number;
 }
 
+const BROWSE_TTL = 1_800; // 30 min — bust entire prefix on any admin question change
+const DETAIL_TTL = 3_600; // 1 h  — bust single key on admin edit
+
 @Injectable()
 export class QuestionsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cache: CacheService,
+  ) {}
 
   // GET /questions — public browsing (published only)
   async browseQuestions(query: QuestionQuery) {
     const limit = Math.min(query.limit ?? 20, 500);
     const offset = query.offset ?? 0;
+
+    // Build a deterministic key from every filter param so different filter
+    // combinations don't collide. Empty string means "no filter".
+    const KEY = [
+      'questions:browse',
+      query.subjectId ?? '',
+      query.topicId ?? '',
+      query.difficulty ?? '',
+      query.school ?? '',
+      query.examType ?? '',
+      limit,
+      offset,
+    ].join(':');
+
+    type BrowseResult = {
+      questions: {
+        id: string; text: string | null; difficulty: Difficulty; year: number | null;
+        school: string | null; examType: ExamType;
+        subject: { id: string; name: string; code: string };
+        topic: { id: string; name: string } | null;
+        options: { id: string; label: string; text: string; sortOrder: number }[];
+      }[];
+      total: number; limit: number; offset: number;
+    };
+
+    const cached = await this.cache.get<BrowseResult>(KEY);
+    if (cached) return cached;
 
     const where = {
       isPublished: true,
@@ -54,11 +88,27 @@ export class QuestionsService {
       this.prisma.question.count({ where }),
     ]);
 
-    return { questions, total, limit, offset };
+    const data = { questions, total, limit, offset };
+    void this.cache.set(KEY, data, BROWSE_TTL);
+    return data;
   }
 
   // GET /questions/:id — single question with explanation
   async getQuestion(id: string) {
+    const KEY = `questions:detail:${id}`;
+
+    type DetailResult = {
+      id: string; text: string | null; imageUrl: string | null; difficulty: Difficulty;
+      year: number | null;
+      subject: { id: string; name: string; code: string };
+      topic: { id: string; name: string } | null;
+      options: { id: string; label: string; text: string; isCorrect: boolean; sortOrder: number }[];
+      explanation: { text: string; aiAssisted: boolean } | null;
+    };
+
+    const cached = await this.cache.get<DetailResult>(KEY);
+    if (cached) return cached;
+
     const question = await this.prisma.question.findUnique({
       where: { id, isPublished: true },
       select: {
@@ -78,6 +128,8 @@ export class QuestionsService {
     });
 
     if (!question) throw new NotFoundException('Question not found');
+
+    void this.cache.set(KEY, question, DETAIL_TTL);
     return question;
   }
 

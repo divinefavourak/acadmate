@@ -1,10 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { CacheService } from '../../../cache/cache.service';
 import { Difficulty, ExamType } from '@prisma/client';
 
 @Injectable()
 export class AdminQuestionsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cache: CacheService,
+  ) {}
 
   // ─── Auto-validate after create/update (ported verbatim) ─────────────────
   async autoValidateQuestion(questionId: string) {
@@ -150,6 +154,10 @@ export class AdminQuestionsService {
     }
 
     await this.autoValidateQuestion(question.id);
+    await Promise.all([
+      this.cache.delByPrefix('questions:browse:'),
+      this.cache.delByPrefix('subjects:'), // _count on subjects changes
+    ]);
     return question;
   }
 
@@ -172,6 +180,11 @@ export class AdminQuestionsService {
     }
 
     await this.autoValidateQuestion(id);
+    await Promise.all([
+      this.cache.del(`questions:detail:${id}`),
+      this.cache.delByPrefix('questions:browse:'),
+      this.cache.delByPrefix('subjects:'), // subjectId may have changed — _count on subjects changes
+    ]);
     return question;
   }
 
@@ -185,6 +198,11 @@ export class AdminQuestionsService {
     } catch (logErr) {
       console.error('[AdminQuestionsService] Activity log failed after deleteQuestion', logErr);
     }
+    await Promise.all([
+      this.cache.del(`questions:detail:${id}`),
+      this.cache.delByPrefix('questions:browse:'),
+      this.cache.delByPrefix('subjects:'), // _count on subjects changes
+    ]);
     return { deleted: true };
   }
 
@@ -205,6 +223,10 @@ export class AdminQuestionsService {
     } catch (logErr) {
       console.error('[AdminQuestionsService] Activity log failed after bulkPublish', logErr);
     }
+    await Promise.all([
+      this.cache.delByPrefix('questions:'),
+      this.cache.delByPrefix('subjects:'), // _count on subjects changes
+    ]);
     return { updated: result.count };
   }
 
@@ -227,6 +249,11 @@ export class AdminQuestionsService {
     } catch (logErr) {
       console.error('[AdminQuestionsService] Activity log failed after togglePublish', logErr);
     }
+    await Promise.all([
+      this.cache.del(`questions:detail:${id}`),
+      this.cache.delByPrefix('questions:browse:'),
+      this.cache.delByPrefix('subjects:'), // isPublished changed — _count on subjects changes
+    ]);
     return question;
   }
 
@@ -243,11 +270,15 @@ export class AdminQuestionsService {
       }),
     ]);
 
-    await this.prisma.adminActivityLog.create({
-      data: { adminId, action: 'RESOLVE_FLAG', entityType: 'question', entityId: questionId },
-    });
+    try {
+      await this.prisma.adminActivityLog.create({
+        data: { adminId, action: 'RESOLVE_FLAG', entityType: 'question', entityId: questionId },
+      });
+    } catch (logErr) {
+      console.error('[AdminQuestionsService] Activity log failed after resolveFlag', logErr);
+    }
 
+    await this.cache.del(`questions:detail:${questionId}`);
     return { resolved: true };
   }
-
 }

@@ -21,6 +21,7 @@ import { BlogModule } from './modules/blog/blog.module';
 import { ForumModule } from './modules/forum/forum.module';
 import { HealthController } from './health.controller';
 import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
+import { CacheModule } from './cache/cache.module';
 
 @Module({
   controllers: [HealthController],
@@ -33,6 +34,7 @@ import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
     ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 100 }]),
 
     ScheduleModule.forRoot(),
+    CacheModule,
     PrismaModule,
 
     AuthModule,

@@ -8,6 +8,7 @@ import {
 import { Prisma, BlogCategory } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { MailService } from '../auth/mail.service';
+import { CacheService } from '../../cache/cache.service';
 
 const VALID_CATEGORIES: BlogCategory[] = [
   'UTME',
@@ -20,6 +21,11 @@ const VALID_CATEGORIES: BlogCategory[] = [
   'ANNOUNCEMENT',
   'GENERAL',
 ];
+
+// Public blog content is cached for 5 minutes. Any admin write (publish,
+// unpublish, update, delete) immediately wipes all blog:public:* keys.
+const PUBLIC_CACHE_TTL = 300; // 5 min
+const PUBLIC_CACHE_PREFIX = 'blog:public:';
 
 export type CreateBlogPostInput = {
   title: string;
@@ -50,6 +56,7 @@ export class BlogService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly mailService: MailService,
+    private readonly cache: CacheService,
   ) {}
 
   // ── Public ────────────────────────────────────────────────────────────────
@@ -59,6 +66,22 @@ export class BlogService {
     offset: number;
     category?: BlogCategory;
   }) {
+    const KEY = `${PUBLIC_CACHE_PREFIX}list:${opts.limit}:${opts.offset}:${opts.category ?? 'all'}`;
+
+    type ListResult = {
+      posts: {
+        id: string; slug: string; title: string; excerpt: string;
+        coverImageUrl: string | null; category: BlogCategory;
+        publishedAt: Date | null; author: { name: string | null };
+      }[];
+      total: number;
+      limit: number;
+      offset: number;
+    };
+
+    const cached = await this.cache.get<ListResult>(KEY);
+    if (cached) return cached;
+
     const where: Prisma.BlogPostWhereInput = {
       publishedAt: { not: null, lte: new Date() },
       ...(opts.category ? { category: opts.category } : {}),
@@ -84,10 +107,23 @@ export class BlogService {
       this.prisma.blogPost.count({ where }),
     ]);
 
-    return { posts, total, limit: opts.limit, offset: opts.offset };
+    const data = { posts, total, limit: opts.limit, offset: opts.offset };
+    void this.cache.set(KEY, data, PUBLIC_CACHE_TTL);
+    return data;
   }
 
   async getPublicBySlug(slug: string) {
+    const KEY = `${PUBLIC_CACHE_PREFIX}post:${slug}`;
+
+    type PostResult = {
+      id: string; slug: string; title: string; excerpt: string;
+      body: string; coverImageUrl: string | null; category: BlogCategory;
+      publishedAt: Date | null; author: { name: string | null };
+    };
+
+    const cached = await this.cache.get<PostResult>(KEY);
+    if (cached) return cached;
+
     const post = await this.prisma.blogPost.findFirst({
       where: { slug, publishedAt: { not: null, lte: new Date() } },
       select: {
@@ -103,6 +139,8 @@ export class BlogService {
       },
     });
     if (!post) throw new NotFoundException('Post not found');
+
+    void this.cache.set(KEY, post, PUBLIC_CACHE_TTL);
     return post;
   }
 
@@ -176,7 +214,7 @@ export class BlogService {
       }
     }
 
-    return this.prisma.blogPost.update({
+    const result = await this.prisma.blogPost.update({
       where: { id },
       data: {
         title: dto.title?.trim(),
@@ -187,6 +225,9 @@ export class BlogService {
         category: dto.category,
       },
     });
+
+    await this.cache.delByPrefix(PUBLIC_CACHE_PREFIX);
+    return result;
   }
 
   async delete(id: string) {
@@ -195,6 +236,7 @@ export class BlogService {
       .catch(() => {
         throw new NotFoundException('Post not found');
       });
+    await this.cache.delByPrefix(PUBLIC_CACHE_PREFIX);
     return { deleted: true };
   }
 
@@ -209,6 +251,8 @@ export class BlogService {
       where: { id },
       data: { publishedAt: post.publishedAt ?? new Date() },
     });
+
+    await this.cache.delByPrefix(PUBLIC_CACHE_PREFIX);
 
     if (!post.notifiedAt) {
       this.logger.log(
@@ -233,10 +277,12 @@ export class BlogService {
       select: { id: true },
     });
     if (!post) throw new NotFoundException('Post not found');
-    return this.prisma.blogPost.update({
+    const result = await this.prisma.blogPost.update({
       where: { id },
       data: { publishedAt: null },
     });
+    await this.cache.delByPrefix(PUBLIC_CACHE_PREFIX);
+    return result;
   }
 
   // Manually trigger the premium email blast for a published post. Unlike the

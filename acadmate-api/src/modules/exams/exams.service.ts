@@ -17,6 +17,7 @@ import {
 import { ExamExpiryService } from './exam-expiry.service';
 import { ScoringService } from './scoring.service';
 import { AnalyticsService } from '../analytics/analytics.service';
+import { CacheService } from '../../cache/cache.service';
 import { SaveAnswersDto } from './dto/save-answers.dto';
 import { MarkReviewDto } from './dto/mark-review.dto';
 
@@ -34,6 +35,7 @@ export class ExamsService {
     private readonly examExpiry: ExamExpiryService,
     private readonly scoring: ScoringService,
     private readonly analyticsService: AnalyticsService,
+    private readonly cache: CacheService,
   ) {}
 
   // ─── POST /exams ──────────────────────────────────────────────────────────
@@ -415,8 +417,9 @@ export class ExamsService {
       return newResult;
     });
 
-    // New result means analytics are stale — bust the cache immediately.
-    this.analyticsService.invalidateCache(userId);
+    // New result means analytics and results list are stale — bust both caches.
+    void this.analyticsService.invalidateCache(userId);
+    void this.cache.delByPrefix(`results:list:${userId}:`);
 
     return { result };
   }
