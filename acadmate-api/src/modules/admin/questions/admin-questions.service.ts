@@ -183,6 +183,7 @@ export class AdminQuestionsService {
     await Promise.all([
       this.cache.del(`questions:detail:${id}`),
       this.cache.delByPrefix('questions:browse:'),
+      this.cache.delByPrefix('subjects:'), // subjectId may have changed — _count on subjects changes
     ]);
     return question;
   }
@@ -269,11 +270,14 @@ export class AdminQuestionsService {
       }),
     ]);
 
-    await this.prisma.adminActivityLog.create({
-      data: { adminId, action: 'RESOLVE_FLAG', entityType: 'question', entityId: questionId },
-    });
+    try {
+      await this.prisma.adminActivityLog.create({
+        data: { adminId, action: 'RESOLVE_FLAG', entityType: 'question', entityId: questionId },
+      });
+    } catch (logErr) {
+      console.error('[AdminQuestionsService] Activity log failed after resolveFlag', logErr);
+    }
 
-    // isFlagged changed — bust the detail cache for this question
     await this.cache.del(`questions:detail:${questionId}`);
     return { resolved: true };
   }
