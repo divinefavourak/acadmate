@@ -27,10 +27,15 @@ export default function PrivacyPage() {
           <section>
             <h2 className="text-xl font-semibold mb-3">1. Who we are</h2>
             <p>
-              Acadmate (<strong>acadmate.com.ng</strong>) is an online exam preparation platform
-              helping Nigerian students practise for UTME, Post-UTME, and other standardised tests.
-              References to &ldquo;we&rdquo;, &ldquo;us&rdquo;, or &ldquo;our&rdquo; in this policy
-              refer to Acadmate.
+              Acadmate is a product of <strong>Acadmate Business Consult</strong>, accessible at{" "}
+              <strong>acadmate.com.ng</strong>. We provide educational consultation and digital
+              learning resources to help Nigerian students prepare for JAMB/UTME, Post-UTME, and
+              other school-related examinations. We also publish school news, scholarship
+              information, and general academic guidance.
+            </p>
+            <p className="mt-2">
+              References to &ldquo;we&rdquo;, &ldquo;us&rdquo;, or &ldquo;our&rdquo; in this
+              policy refer to Acadmate Business Consult.
             </p>
           </section>
 
@@ -42,12 +47,17 @@ export default function PrivacyPage() {
                 Sign-In) your Google profile details.
               </li>
               <li>
-                <strong>Usage data</strong> — exam attempts, scores, subjects studied, and
-                session activity, used to power your progress dashboard.
+                <strong>Usage data</strong> — exam attempts, scores, subjects studied, topics
+                viewed, and session activity, used to power your progress dashboard.
               </li>
               <li>
-                <strong>Device &amp; log data</strong> — browser type, IP address, and
-                timestamps collected automatically for security and debugging.
+                <strong>Payment data</strong> — when you purchase a subscription or access token,
+                payment is processed by Paystack. We do not store your card details; we only
+                receive a transaction reference and status from Paystack.
+              </li>
+              <li>
+                <strong>Device &amp; log data</strong> — browser type, IP address, and timestamps
+                collected automatically for security and debugging.
               </li>
             </ul>
           </section>
@@ -55,9 +65,11 @@ export default function PrivacyPage() {
           <section>
             <h2 className="text-xl font-semibold mb-3">3. How we use your information</h2>
             <ul className="list-disc pl-5 space-y-1">
-              <li>Provide and improve the Acadmate service.</li>
+              <li>Provide and improve the Acadmate platform and its study tools.</li>
               <li>Authenticate your account and keep it secure.</li>
               <li>Send transactional emails (e.g. password reset, email verification).</li>
+              <li>Process payments and verify subscription access.</li>
+              <li>Publish relevant school news, scholarships, and academic updates.</li>
               <li>Analyse aggregate, anonymised usage to improve question quality and features.</li>
             </ul>
             <p className="mt-3">
@@ -70,8 +82,8 @@ export default function PrivacyPage() {
             <p>
               If you choose to sign in with Google, we receive your name and email address from
               Google&rsquo;s OAuth service. We use this information solely to create and manage
-              your Acadmate account. Acadmate&rsquo;s use of data received from Google APIs
-              adheres to the{" "}
+              your Acadmate account. Acadmate Business Consult&rsquo;s use of data received from
+              Google APIs adheres to the{" "}
               <a
                 href="https://developers.google.com/terms/api-services-user-data-policy"
                 target="_blank"
@@ -93,15 +105,26 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold mb-3">6. Data retention</h2>
+            <h2 className="text-xl font-semibold mb-3">6. Third-party services</h2>
+            <p>We use the following third-party services to operate the platform:</p>
+            <ul className="list-disc pl-5 space-y-1 mt-2">
+              <li><strong>Paystack</strong> — payment processing (subject to Paystack&rsquo;s own privacy policy).</li>
+              <li><strong>Google OAuth</strong> — optional sign-in.</li>
+              <li><strong>SendGrid / Email provider</strong> — transactional email delivery.</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-semibold mb-3">7. Data retention</h2>
             <p>
               Your account data is retained for as long as your account is active. You may
-              request deletion of your account and associated data at any time by emailing us.
+              request deletion of your account and all associated data at any time by contacting
+              us at the email below.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold mb-3">7. Your rights</h2>
+            <h2 className="text-xl font-semibold mb-3">8. Your rights</h2>
             <p>
               You have the right to access, correct, or delete personal data we hold about you.
               To exercise these rights, contact us at the email below.
@@ -109,7 +132,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold mb-3">8. Security</h2>
+            <h2 className="text-xl font-semibold mb-3">9. Security</h2>
             <p>
               We use industry-standard measures (HTTPS, hashed passwords, secure cookies) to
               protect your data. No method of transmission over the internet is 100% secure, but
@@ -118,7 +141,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold mb-3">9. Changes to this policy</h2>
+            <h2 className="text-xl font-semibold mb-3">10. Changes to this policy</h2>
             <p>
               We may update this policy from time to time. The &ldquo;Last updated&rdquo; date at
               the top of this page will reflect any changes. Continued use of Acadmate after
@@ -127,14 +150,14 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold mb-3">10. Contact</h2>
+            <h2 className="text-xl font-semibold mb-3">11. Contact</h2>
             <p>
               Questions about this policy? Email us at{" "}
               <a
-                href="mailto:support@acadmate.com.ng"
+                href="mailto:acadmatebc@gmail.com"
                 className="text-indigo-500 hover:underline"
               >
-                support@acadmate.com.ng
+                acadmatebc@gmail.com
               </a>
               .
             </p>
