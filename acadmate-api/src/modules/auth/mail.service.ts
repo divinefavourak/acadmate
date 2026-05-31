@@ -32,6 +32,12 @@ function sanitizeHeader(value: string): string {
   return value.replace(/[\r\n]+/g, ' ').trim();
 }
 
+// Without RFC 2047 encoding, clients fall back to Latin-1 and garble non-ASCII chars.
+function encodeRfc2047(text: string): string {
+  if (/^[\x20-\x7E]*$/.test(text)) return text;
+  return `=?UTF-8?B?${Buffer.from(text, 'utf8').toString('base64')}?=`;
+}
+
 function maskEmail(email: string): string {
   const [local, domain] = email.split('@');
   if (!domain) return '***';
@@ -79,7 +85,7 @@ export class MailService implements OnModuleInit {
     const raw = [
       `From: ${sanitizeHeader(this.from)}`,
       `To: ${sanitizeHeader(to)}`,
-      `Subject: ${sanitizeHeader(subject)}`,
+      `Subject: ${encodeRfc2047(sanitizeHeader(subject))}`,
       'MIME-Version: 1.0',
       'Content-Type: text/html; charset=utf-8',
       '',
