@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useRef, useState, useCallback } from "react";
 import { apiClient } from "@/lib/api/client";
+import { getToken, setToken } from "@/lib/api/auth";
 
 export interface UserMe {
   name: string | null;
@@ -29,10 +30,25 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState(false);
   const fetchedRef = useRef(false);
 
-  const fetch = useCallback(() => {
+  const fetch = useCallback(async () => {
     setLoading(true);
     setError(false);
     fetchedRef.current = true;
+
+    // After a page refresh the in-memory token is gone. Restore it from the
+    // frontend-domain HttpOnly cookie before making any authenticated API calls.
+    if (!getToken()) {
+      try {
+        const res = await window.fetch('/api/auth/token');
+        if (res.ok) {
+          const { token } = await res.json() as { token: string };
+          setToken(token);
+        }
+      } catch {
+        // no-op — apiClient will handle the 401 if token is still missing
+      }
+    }
+
     apiClient<UserMe>("/api/users/me")
       .then((data) => {
         setUser(data);
