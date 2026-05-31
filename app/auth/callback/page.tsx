@@ -11,12 +11,20 @@ function CallbackHandler() {
 
   useEffect(() => {
     const role = searchParams.get("role");
+    const fragment = window.location.hash.slice(1);
+    const params = new URLSearchParams(fragment);
+    const accessToken = params.get("token");
 
-    // The backend set its HttpOnly cookie (on the Render domain) before this redirect.
-    // We call /api/auth/token (uses that cookie via credentials: 'include') to get a
-    // fresh JWT, then mirror it to the Vercel domain so Next.js middleware can see it.
-    apiClient<{ accessToken: string }>("/api/auth/token")
-      .then(async ({ accessToken }) => {
+    if (!accessToken) {
+      router.replace("/login?error=oauth_failed");
+      return;
+    }
+
+    // Clear the token from the URL immediately so it doesn't linger in history.
+    window.history.replaceState(null, "", window.location.pathname + window.location.search);
+
+    (async () => {
+      try {
         setToken(accessToken);
         await relayTokenToFrontend(accessToken);
 
@@ -27,8 +35,10 @@ function CallbackHandler() {
 
         const me = await apiClient<{ onboardedAt: string | null }>("/api/users/me");
         router.replace(me.onboardedAt ? "/dashboard" : "/onboarding");
-      })
-      .catch(() => router.replace("/login?error=oauth_failed"));
+      } catch {
+        router.replace("/login?error=oauth_failed");
+      }
+    })();
   }, [router, searchParams]);
 
   return (

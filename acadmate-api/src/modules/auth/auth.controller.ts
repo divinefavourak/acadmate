@@ -78,10 +78,8 @@ export class AuthController {
     const profile = req.user as { email: string; name: string; googleId: string };
     const result = await this.authService.googleLogin(profile);
 
-    this.setAuthCookie(res, result.accessToken);
-
     const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:3000';
-    res.redirect(`${frontendUrl}/auth/callback?role=${result.user.role}`);
+    res.redirect(`${frontendUrl}/auth/callback?role=${result.user.role}#token=${encodeURIComponent(result.accessToken)}`);
   }
 
   // ─── Password Reset ──────────────────────────────────────────────────────
