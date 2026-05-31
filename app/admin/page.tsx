@@ -181,6 +181,7 @@ export default function AdminDashboard() {
               valueKey="questions"
               labelKey="subject"
               color="emerald"
+              orientation="horizontal"
               emptyMessage="No subjects found"
             />
           )}

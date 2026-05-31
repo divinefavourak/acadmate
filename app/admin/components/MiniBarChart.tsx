@@ -9,6 +9,7 @@ interface MiniBarChartProps {
   color?: "indigo" | "emerald" | "violet" | "amber";
   emptyMessage?: string;
   className?: string;
+  orientation?: "vertical" | "horizontal";
 }
 
 const COLOR_MAP = {
@@ -32,6 +33,7 @@ export default function MiniBarChart({
   color = "indigo",
   emptyMessage = "No data yet",
   className = "",
+  orientation = "vertical",
 }: MiniBarChartProps) {
   const values = data.map((d) => Number(d[valueKey]) || 0);
   const max = Math.max(...values, 1);
@@ -46,6 +48,34 @@ export default function MiniBarChart({
   }
 
   const barColor = `${COLOR_MAP[color]} ${HOVER_MAP[color]}`;
+
+  if (orientation === "horizontal") {
+    return (
+      <div className={`flex flex-col gap-1.5 ${className}`}>
+        {data.map((d, i) => {
+          const val = values[i];
+          const pct = (val / max) * 100;
+          const label = String(d[labelKey] ?? "");
+          return (
+            <div key={i} className="flex items-center gap-2 group" title={`${label}: ${val}`}>
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 w-24 shrink-0 truncate text-right">
+                {label}
+              </span>
+              <div className="flex-1 h-5 bg-slate-100 dark:bg-slate-800 rounded overflow-hidden">
+                <div
+                  className={`h-full rounded transition-all duration-300 ${barColor} cursor-default`}
+                  style={{ width: `${pct}%`, minWidth: val > 0 ? "4px" : "0" }}
+                />
+              </div>
+              <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 w-8 shrink-0">
+                {val}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
 
   return (
     <div className={`flex flex-col gap-2 h-64 ${className}`}>
