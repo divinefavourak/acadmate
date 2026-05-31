@@ -186,16 +186,14 @@ export class UsersService {
     if (token.usedById) throw new BadRequestException('This access code has already been used.');
     if (token.revokedAt) throw new BadRequestException('This access code has been revoked. Please contact support.');
 
-    await this.prisma.$transaction([
-      this.prisma.accessToken.update({
-        where: { id: token.id },
+    await this.prisma.$transaction(async (tx) => {
+      const { count } = await tx.accessToken.updateMany({
+        where: { id: token.id, usedById: null, revokedAt: null },
         data: { usedById: userId, usedAt: new Date() },
-      }),
-      this.prisma.user.update({
-        where: { id: userId },
-        data: { plan: 'PREMIUM' },
-      }),
-    ]);
+      });
+      if (count === 0) throw new BadRequestException('This access code has already been used.');
+      await tx.user.update({ where: { id: userId }, data: { plan: 'PREMIUM' } });
+    });
 
     return { success: true, message: 'Access code redeemed successfully! You now have Premium access.' };
   }

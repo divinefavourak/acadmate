@@ -64,37 +64,31 @@ export class AdminTokensService {
   }
 
   async revokeToken(tokenId: string) {
-    const token = await this.prisma.accessToken.findUnique({ where: { id: tokenId } });
-    if (!token) throw new NotFoundException('Token not found');
-    if (token.revokedAt) throw new BadRequestException('Token is already revoked');
+    await this.prisma.$transaction(async (tx) => {
+      const token = await tx.accessToken.findUnique({ where: { id: tokenId } });
+      if (!token) throw new NotFoundException('Token not found');
+      if (token.revokedAt) throw new BadRequestException('Token is already revoked');
 
-    await this.prisma.$transaction([
-      this.prisma.accessToken.update({
-        where: { id: tokenId },
-        data: { revokedAt: new Date() },
-      }),
-      ...(token.usedById
-        ? [this.prisma.user.update({ where: { id: token.usedById }, data: { plan: 'FREE' } })]
-        : []),
-    ]);
+      await tx.accessToken.update({ where: { id: tokenId }, data: { revokedAt: new Date() } });
+      if (token.usedById) {
+        await tx.user.update({ where: { id: token.usedById }, data: { plan: 'FREE' } });
+      }
+    });
 
     return { revoked: true };
   }
 
   async reactivateToken(tokenId: string) {
-    const token = await this.prisma.accessToken.findUnique({ where: { id: tokenId } });
-    if (!token) throw new NotFoundException('Token not found');
-    if (!token.revokedAt) throw new BadRequestException('Token is not revoked');
+    await this.prisma.$transaction(async (tx) => {
+      const token = await tx.accessToken.findUnique({ where: { id: tokenId } });
+      if (!token) throw new NotFoundException('Token not found');
+      if (!token.revokedAt) throw new BadRequestException('Token is not revoked');
 
-    await this.prisma.$transaction([
-      this.prisma.accessToken.update({
-        where: { id: tokenId },
-        data: { revokedAt: null },
-      }),
-      ...(token.usedById
-        ? [this.prisma.user.update({ where: { id: token.usedById }, data: { plan: 'PREMIUM' } })]
-        : []),
-    ]);
+      await tx.accessToken.update({ where: { id: tokenId }, data: { revokedAt: null } });
+      if (token.usedById) {
+        await tx.user.update({ where: { id: token.usedById }, data: { plan: 'PREMIUM' } });
+      }
+    });
 
     return { reactivated: true };
   }

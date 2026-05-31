@@ -123,7 +123,8 @@ export class BlogService {
 
     const cached = await this.cache.get<PostResult>(KEY);
     if (cached) {
-      void this.prisma.blogPost.update({ where: { slug }, data: { viewCount: { increment: 1 } } }).catch(() => null);
+      void this.prisma.blogPost.update({ where: { slug }, data: { viewCount: { increment: 1 } } })
+        .catch((err) => this.logger.warn(`viewCount increment failed for slug "${slug}"`, err));
       return cached;
     }
 
@@ -145,7 +146,8 @@ export class BlogService {
     if (!post) throw new NotFoundException('Post not found');
 
     void this.cache.set(KEY, post, PUBLIC_CACHE_TTL);
-    void this.prisma.blogPost.update({ where: { id: post.id }, data: { viewCount: { increment: 1 } } }).catch(() => null);
+    void this.prisma.blogPost.update({ where: { id: post.id }, data: { viewCount: { increment: 1 } } })
+      .catch((err) => this.logger.warn(`viewCount increment failed for post "${post.id}"`, err));
     return post;
   }
 
