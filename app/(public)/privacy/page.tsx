@@ -51,11 +51,6 @@ export default function PrivacyPage() {
                 viewed, and session activity, used to power your progress dashboard.
               </li>
               <li>
-                <strong>Payment data</strong> — when you purchase a subscription or access token,
-                payment is processed by Paystack. We do not store your card details; we only
-                receive a transaction reference and status from Paystack.
-              </li>
-              <li>
                 <strong>Device &amp; log data</strong> — browser type, IP address, and timestamps
                 collected automatically for security and debugging.
               </li>
@@ -68,7 +63,6 @@ export default function PrivacyPage() {
               <li>Provide and improve the Acadmate platform and its study tools.</li>
               <li>Authenticate your account and keep it secure.</li>
               <li>Send transactional emails (e.g. password reset, email verification).</li>
-              <li>Process payments and verify subscription access.</li>
               <li>Publish relevant school news, scholarships, and academic updates.</li>
               <li>Analyse aggregate, anonymised usage to improve question quality and features.</li>
             </ul>
@@ -108,7 +102,6 @@ export default function PrivacyPage() {
             <h2 className="text-xl font-semibold mb-3">6. Third-party services</h2>
             <p>We use the following third-party services to operate the platform:</p>
             <ul className="list-disc pl-5 space-y-1 mt-2">
-              <li><strong>Paystack</strong> — payment processing (subject to Paystack&rsquo;s own privacy policy).</li>
               <li><strong>Google OAuth</strong> — optional sign-in.</li>
               <li><strong>SendGrid / Email provider</strong> — transactional email delivery.</li>
             </ul>
