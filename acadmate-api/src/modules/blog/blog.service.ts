@@ -135,12 +135,14 @@ export class BlogService {
         coverImageUrl: true,
         category: true,
         publishedAt: true,
+        viewCount: true,
         author: { select: { name: true } },
       },
     });
     if (!post) throw new NotFoundException('Post not found');
 
     void this.cache.set(KEY, post, PUBLIC_CACHE_TTL);
+    void this.prisma.blogPost.update({ where: { id: post.id }, data: { viewCount: { increment: 1 } } }).catch(() => null);
     return post;
   }
 
@@ -160,6 +162,7 @@ export class BlogService {
           publishedAt: true,
           notifiedAt: true,
           updatedAt: true,
+          viewCount: true,
           author: { select: { name: true } },
         },
       }),

@@ -129,4 +129,13 @@ export class AnalyticsService {
     void this.cache.set(KEY, data, CACHE_TTL);
     return data;
   }
+
+  async recordVisit(): Promise<void> {
+    const date = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
+    await this.prisma.siteVisit.upsert({
+      where: { date },
+      create: { date, count: 1 },
+      update: { count: { increment: 1 } },
+    });
+  }
 }
