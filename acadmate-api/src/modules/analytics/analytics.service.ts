@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CacheService } from '../../cache/cache.service';
+import { toUTCDay } from '../../common/utils/date.util';
 
 type TrendPoint  = { id: string; score: number; mode: string; date: Date };
 type SubjectPerf = { subjectId: string; name: string; correct: number; total: number; percentage: number };
@@ -131,10 +132,7 @@ export class AnalyticsService {
   }
 
   async recordVisit(): Promise<void> {
-    const now = new Date();
-    // Use local date components pushed into UTC midnight so the stored day
-    // matches the server's local calendar day rather than the UTC day.
-    const date = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+    const date = toUTCDay(new Date());
     try {
       await this.prisma.siteVisit.upsert({
         where: { date },

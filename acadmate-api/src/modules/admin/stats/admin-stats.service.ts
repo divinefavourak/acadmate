@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { toUTCDay } from '../../../common/utils/date.util';
 
 @Injectable()
 export class AdminStatsService {
@@ -17,8 +18,6 @@ export class AdminStatsService {
       return d;
     });
 
-    // UTC-midnight dates built from local components — must match recordVisit's key strategy.
-    const toUTCDay = (d: Date) => new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
     const visitDates = last7Days.map(toUTCDay);
 
     const [
