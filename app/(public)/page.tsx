@@ -476,10 +476,11 @@ export default function Home() {
           </div>
           {/* Right: Copyright */}
           <div className="flex flex-col items-center md:items-end gap-3 text-sm">
-            <nav className="flex gap-6 text-slate-500">
-              <Link href="/login" className=''></Link>
+            <nav className="flex gap-4 text-slate-500 text-xs">
+              <Link href="/privacy" className="hover:text-slate-300 transition-colors">Privacy Policy</Link>
+              <Link href="/terms" className="hover:text-slate-300 transition-colors">Terms of Service</Link>
             </nav>
-             <p>© {new Date().getFullYear()} Acadmate. All rights reserved.</p>
+            <p className="text-slate-500 text-xs">© {new Date().getFullYear()} Acadmate Business Consult. All rights reserved.</p>
           </div>
          
         </div>
