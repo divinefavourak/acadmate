@@ -191,7 +191,11 @@ export class UsersService {
         where: { id: token.id, usedById: null, revokedAt: null },
         data: { usedById: userId, usedAt: new Date() },
       });
-      if (count === 0) throw new BadRequestException('This access code has already been used.');
+      if (count === 0) {
+        const current = await tx.accessToken.findUnique({ where: { id: token.id }, select: { revokedAt: true } });
+        if (current?.revokedAt) throw new BadRequestException('This access code has been revoked. Please contact support.');
+        throw new BadRequestException('This access code has already been used.');
+      }
       await tx.user.update({ where: { id: userId }, data: { plan: 'PREMIUM' } });
     });
 

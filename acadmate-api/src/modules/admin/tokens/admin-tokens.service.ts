@@ -69,9 +69,9 @@ export class AdminTokensService {
       if (!token) throw new NotFoundException('Token not found');
       if (token.revokedAt) throw new BadRequestException('Token is already revoked');
 
-      await tx.accessToken.update({ where: { id: tokenId }, data: { revokedAt: new Date() } });
-      if (token.usedById) {
-        await tx.user.update({ where: { id: token.usedById }, data: { plan: 'FREE' } });
+      const updated = await tx.accessToken.update({ where: { id: tokenId }, data: { revokedAt: new Date() } });
+      if (updated.usedById) {
+        await tx.user.update({ where: { id: updated.usedById }, data: { plan: 'FREE' } });
       }
     });
 
@@ -84,9 +84,9 @@ export class AdminTokensService {
       if (!token) throw new NotFoundException('Token not found');
       if (!token.revokedAt) throw new BadRequestException('Token is not revoked');
 
-      await tx.accessToken.update({ where: { id: tokenId }, data: { revokedAt: null } });
-      if (token.usedById) {
-        await tx.user.update({ where: { id: token.usedById }, data: { plan: 'PREMIUM' } });
+      const updated = await tx.accessToken.update({ where: { id: tokenId }, data: { revokedAt: null } });
+      if (updated.usedById) {
+        await tx.user.update({ where: { id: updated.usedById }, data: { plan: 'PREMIUM' } });
       }
     });
 
