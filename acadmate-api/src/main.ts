@@ -21,10 +21,8 @@ async function bootstrap() {
   // ─── Security ──────────────────────────────────────────────────────────────
   app.use(helmet());
 
-  const allowedOrigins = (process.env.FRONTEND_URL ?? 'http://localhost:3000')
-    .split(',')
-    .map(o => o.trim().replace(/\/$/, ''))
-    .filter(Boolean);
+  const originsEnv = process.env.ALLOWED_ORIGINS ?? process.env.FRONTEND_URL ?? 'http://localhost:3000';
+  const allowedOrigins = originsEnv.split(',').map(o => o.trim().replace(/\/$/, '')).filter(Boolean);
   app.enableCors({
     origin: allowedOrigins.length === 1 ? allowedOrigins[0] : allowedOrigins,
     credentials: true,
