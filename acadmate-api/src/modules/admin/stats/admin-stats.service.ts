@@ -101,10 +101,11 @@ export class AdminStatsService {
       };
     });
 
-    const questionsBySubject = questionsPerSubject.map((s) => ({
-      subject: s.code,
-      questions: s._count.questions,
-    }));
+    const questionsBySubject = questionsPerSubject
+      .map((s) => ({ subject: s.code, questions: s._count.questions }))
+      .filter((s) => s.questions > 0)
+      .sort((a, b) => b.questions - a.questions)
+      .slice(0, 20);
 
     // Score distribution across 5 bands
     const bands = [
