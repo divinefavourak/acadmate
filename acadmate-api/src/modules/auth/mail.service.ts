@@ -32,12 +32,9 @@ function sanitizeHeader(value: string): string {
   return value.replace(/[\r\n]+/g, ' ').trim();
 }
 
-// RFC 2047 encoded-word for non-ASCII subject/header values.
-// Email headers are ASCII-only by spec; non-ASCII must be wrapped as
-// =?UTF-8?B?<base64>?= so clients decode it correctly instead of
-// guessing Latin-1 and producing garbage like "NigeriaÃ¢Â€Â™s".
+// Without RFC 2047 encoding, clients fall back to Latin-1 and garble non-ASCII chars.
 function encodeRfc2047(text: string): string {
-  if (/^[\x20-\x7E]*$/.test(text)) return text; // pure ASCII — no encoding needed
+  if (/^[\x20-\x7E]*$/.test(text)) return text;
   return `=?UTF-8?B?${Buffer.from(text, 'utf8').toString('base64')}?=`;
 }
 
