@@ -43,6 +43,7 @@ model AccessToken {
   generatedById String
   usedById      String?   @unique
   usedAt        DateTime?
+  revokedAt     DateTime?
   createdAt     DateTime  @default(now())
 
   generatedBy User  @relation("GeneratedTokens", fields: [generatedById], references: [id], onDelete: Cascade)

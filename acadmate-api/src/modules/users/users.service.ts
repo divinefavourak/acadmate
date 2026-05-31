@@ -184,6 +184,7 @@ export class UsersService {
     const token = await this.prisma.accessToken.findUnique({ where: { code: code.trim().toUpperCase() } });
     if (!token) throw new BadRequestException('Invalid access code. Please check and try again.');
     if (token.usedById) throw new BadRequestException('This access code has already been used.');
+    if (token.revokedAt) throw new BadRequestException('This access code has been revoked. Please contact support.');
 
     await this.prisma.$transaction([
       this.prisma.accessToken.update({

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 
 function generateCode(): string {
@@ -44,6 +44,7 @@ export class AdminTokensService {
           note: true,
           createdAt: true,
           usedAt: true,
+          revokedAt: true,
           usedBy: { select: { id: true, name: true, email: true } },
           generatedBy: { select: { id: true, name: true } },
         },
@@ -60,5 +61,41 @@ export class AdminTokensService {
     if (token.usedById) throw new ConflictException('Cannot delete a token that has already been redeemed');
     await this.prisma.accessToken.delete({ where: { id: tokenId } });
     return { deleted: true };
+  }
+
+  async revokeToken(tokenId: string) {
+    const token = await this.prisma.accessToken.findUnique({ where: { id: tokenId } });
+    if (!token) throw new NotFoundException('Token not found');
+    if (token.revokedAt) throw new BadRequestException('Token is already revoked');
+
+    await this.prisma.$transaction([
+      this.prisma.accessToken.update({
+        where: { id: tokenId },
+        data: { revokedAt: new Date() },
+      }),
+      ...(token.usedById
+        ? [this.prisma.user.update({ where: { id: token.usedById }, data: { plan: 'FREE' } })]
+        : []),
+    ]);
+
+    return { revoked: true };
+  }
+
+  async reactivateToken(tokenId: string) {
+    const token = await this.prisma.accessToken.findUnique({ where: { id: tokenId } });
+    if (!token) throw new NotFoundException('Token not found');
+    if (!token.revokedAt) throw new BadRequestException('Token is not revoked');
+
+    await this.prisma.$transaction([
+      this.prisma.accessToken.update({
+        where: { id: tokenId },
+        data: { revokedAt: null },
+      }),
+      ...(token.usedById
+        ? [this.prisma.user.update({ where: { id: token.usedById }, data: { plan: 'PREMIUM' } })]
+        : []),
+    ]);
+
+    return { reactivated: true };
   }
 }

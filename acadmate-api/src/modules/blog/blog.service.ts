@@ -122,7 +122,10 @@ export class BlogService {
     };
 
     const cached = await this.cache.get<PostResult>(KEY);
-    if (cached) return cached;
+    if (cached) {
+      void this.prisma.blogPost.update({ where: { slug }, data: { viewCount: { increment: 1 } } }).catch(() => null);
+      return cached;
+    }
 
     const post = await this.prisma.blogPost.findFirst({
       where: { slug, publishedAt: { not: null, lte: new Date() } },

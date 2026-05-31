@@ -17,7 +17,10 @@ export class AdminStatsService {
       return d;
     });
 
-    const visitDates = last7Days.map((d) => d.toISOString().slice(0, 10));
+    const localDateKey = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+    const visitDates = last7Days.map(localDateKey);
 
     const [
       totalStudents,
@@ -93,13 +96,10 @@ export class AdminStatsService {
       return { label, count };
     });
 
-    const dailyVisits = last7Days.map((day) => {
-      const key = day.toISOString().slice(0, 10);
-      return {
-        label: day.toLocaleDateString('en-NG', { weekday: 'short' }),
-        count: siteVisitMap.get(key) ?? 0,
-      };
-    });
+    const dailyVisits = last7Days.map((day) => ({
+      label: day.toLocaleDateString('en-NG', { weekday: 'short' }),
+      count: siteVisitMap.get(localDateKey(day)) ?? 0,
+    }));
 
     const questionsBySubject = questionsPerSubject
       .map((s) => ({ subject: s.code, questions: s._count.questions }))

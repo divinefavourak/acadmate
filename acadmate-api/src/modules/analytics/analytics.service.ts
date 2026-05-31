@@ -131,11 +131,21 @@ export class AnalyticsService {
   }
 
   async recordVisit(): Promise<void> {
-    const date = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
-    await this.prisma.siteVisit.upsert({
-      where: { date },
-      create: { date, count: 1 },
-      update: { count: { increment: 1 } },
-    });
+    const now = new Date();
+    const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    try {
+      await this.prisma.siteVisit.upsert({
+        where: { date },
+        create: { date, count: 1 },
+        update: { count: { increment: 1 } },
+      });
+    } catch (err: unknown) {
+      // P2002 = unique constraint — concurrent first-hit of day; fall back to increment
+      if ((err as { code?: string }).code === 'P2002') {
+        await this.prisma.siteVisit.update({ where: { date }, data: { count: { increment: 1 } } });
+      } else {
+        throw err;
+      }
+    }
   }
 }

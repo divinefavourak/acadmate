@@ -43,4 +43,16 @@ export class AdminTokensController {
   deleteToken(@Param('id') id: string) {
     return this.adminTokensService.deleteToken(id);
   }
+
+  @Post(':id/revoke')
+  @HttpCode(HttpStatus.OK)
+  revokeToken(@Param('id') id: string) {
+    return this.adminTokensService.revokeToken(id);
+  }
+
+  @Post(':id/reactivate')
+  @HttpCode(HttpStatus.OK)
+  reactivateToken(@Param('id') id: string) {
+    return this.adminTokensService.reactivateToken(id);
+  }
 }

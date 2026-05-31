@@ -2,6 +2,7 @@ import { Controller, Get, Post, Query, UseGuards, HttpCode, HttpStatus } from '@
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { IsInt, IsOptional, Min, Max } from 'class-validator';
 import { Type } from 'class-transformer';
+import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser, JwtUser } from '../../common/decorators/current-user.decorator';
 import { AnalyticsService } from './analytics.service';
@@ -26,6 +27,7 @@ export class AnalyticsController {
 
   @Post('visit')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @Throttle({ default: { ttl: 60_000, limit: 5 } })
   @ApiOperation({ summary: 'Record a site visit for today (public, no auth)' })
   recordVisit() {
     return this.analyticsService.recordVisit();

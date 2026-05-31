@@ -10,6 +10,7 @@ interface Token {
   note: string | null;
   createdAt: string;
   usedAt: string | null;
+  revokedAt: string | null;
   usedBy: { id: string; name: string | null; email: string } | null;
   generatedBy: { id: string; name: string | null } | null;
 }
@@ -25,6 +26,7 @@ export default function TokensPage() {
   const [generating, setGenerating] = useState(false);
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
+  const [busyId, setBusyId] = useState<string | null>(null);
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
 
   useEffect(() => {
@@ -53,12 +55,41 @@ export default function TokensPage() {
   }
 
   async function handleDelete(id: string) {
+    setBusyId(id);
     try {
       await apiClient(`/api/admin/tokens/${id}`, { method: "DELETE" });
       setTokens((prev) => prev.filter((t) => t.id !== id));
       setTotal((c) => c - 1);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to delete token.");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function handleRevoke(id: string) {
+    setBusyId(id);
+    setError("");
+    try {
+      await apiClient(`/api/admin/tokens/${id}/revoke`, { method: "POST" });
+      setTokens((prev) => prev.map((t) => t.id === id ? { ...t, revokedAt: new Date().toISOString() } : t));
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to revoke token.");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function handleReactivate(id: string) {
+    setBusyId(id);
+    setError("");
+    try {
+      await apiClient(`/api/admin/tokens/${id}/reactivate`, { method: "POST" });
+      setTokens((prev) => prev.map((t) => t.id === id ? { ...t, revokedAt: null } : t));
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to reactivate token.");
+    } finally {
+      setBusyId(null);
     }
   }
 
@@ -118,8 +149,10 @@ export default function TokensPage() {
               <div
                 key={t.id}
                 className={`flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-xl border transition-colors ${
-                  t.usedAt
-                    ? "border-slate-700/50 bg-slate-900/30 opacity-70"
+                  t.revokedAt
+                    ? "border-red-900/40 bg-red-950/10"
+                    : t.usedAt
+                    ? "border-slate-700/50 bg-slate-900/30"
                     : "border-slate-700 bg-slate-900/50 hover:border-slate-600"
                 }`}
               >
@@ -137,9 +170,18 @@ export default function TokensPage() {
                   )}
                 </div>
 
-                {/* Status */}
-                <div className="flex items-center gap-3 shrink-0">
-                  {t.usedAt ? (
+                {/* Status + actions */}
+                <div className="flex items-center gap-3 shrink-0 flex-wrap">
+                  {t.revokedAt ? (
+                    <div className="text-right">
+                      <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-red-900/40 text-red-400 border border-red-800">
+                        Revoked
+                      </span>
+                      {t.usedBy && (
+                        <p className="text-xs text-slate-500 mt-0.5">{t.usedBy.email}</p>
+                      )}
+                    </div>
+                  ) : t.usedAt ? (
                     <div className="text-right">
                       <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-900/40 text-emerald-400 border border-emerald-800">
                         Redeemed
@@ -153,11 +195,32 @@ export default function TokensPage() {
                       Unused
                     </span>
                   )}
+
                   <span className="text-xs text-slate-500">{formatDate(t.createdAt)}</span>
-                  {!t.usedAt && (
+
+                  {t.revokedAt ? (
+                    <button
+                      onClick={() => handleReactivate(t.id)}
+                      disabled={busyId === t.id}
+                      className="px-2.5 py-1 rounded-lg text-xs font-semibold text-emerald-400 border border-emerald-800 hover:bg-emerald-950/40 disabled:opacity-50 transition-colors"
+                      title="Reactivate — restores Premium access"
+                    >
+                      {busyId === t.id ? "…" : "Reactivate"}
+                    </button>
+                  ) : t.usedAt ? (
+                    <button
+                      onClick={() => handleRevoke(t.id)}
+                      disabled={busyId === t.id}
+                      className="px-2.5 py-1 rounded-lg text-xs font-semibold text-red-400 border border-red-800 hover:bg-red-950/40 disabled:opacity-50 transition-colors"
+                      title="Revoke — removes Premium access immediately"
+                    >
+                      {busyId === t.id ? "…" : "Revoke"}
+                    </button>
+                  ) : (
                     <button
                       onClick={() => handleDelete(t.id)}
-                      className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-950/30 transition-colors"
+                      disabled={busyId === t.id}
+                      className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-950/30 disabled:opacity-50 transition-colors"
                       title="Delete token"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
