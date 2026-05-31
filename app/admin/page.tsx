@@ -13,6 +13,8 @@ interface AdminStats {
   totalExams: number;
   totalImports: number;
   dailyExamActivity: { label: string; count: number }[];
+  dailyRegistrations: { label: string; count: number }[];
+  dailyVisits: { label: string; count: number }[];
   questionsBySubject: { subject: string; questions: number }[];
   scoreDistribution: { label: string; count: number }[];
 }
@@ -133,7 +135,40 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Row 2: Questions per Subject + Score Distribution */}
+      {/* Row 2: Registrations + Site Visits */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="glass-panel border border-slate-200 dark:border-slate-800 p-6 rounded-2xl">
+          <h2 className="text-xl font-bold mb-2">New Registrations (Last 7 Days)</h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">Student sign-ups per day</p>
+          {loading ? (
+            <Loader className="h-64" />
+          ) : (
+            <MiniBarChart
+              data={stats?.dailyRegistrations ?? []}
+              valueKey="count"
+              color="emerald"
+              emptyMessage="No new registrations in the last 7 days"
+            />
+          )}
+        </div>
+
+        <div className="glass-panel border border-slate-200 dark:border-slate-800 p-6 rounded-2xl">
+          <h2 className="text-xl font-bold mb-2">Site Visits (Last 7 Days)</h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">Page loads across the platform</p>
+          {loading ? (
+            <Loader className="h-64" />
+          ) : (
+            <MiniBarChart
+              data={stats?.dailyVisits ?? []}
+              valueKey="count"
+              color="indigo"
+              emptyMessage="No visits recorded yet"
+            />
+          )}
+        </div>
+      </div>
+
+      {/* Row 3: Questions per Subject + Score Distribution */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="glass-panel border border-slate-200 dark:border-slate-800 p-6 rounded-2xl">
           <h2 className="text-xl font-bold mb-2">Questions per Subject</h2>
@@ -146,6 +181,7 @@ export default function AdminDashboard() {
               valueKey="questions"
               labelKey="subject"
               color="emerald"
+              orientation="horizontal"
               emptyMessage="No subjects found"
             />
           )}

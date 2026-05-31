@@ -3,6 +3,7 @@ import { Outfit } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 import { ThemeProvider } from "./components/ThemeProvider";
+import VisitTracker from "./components/VisitTracker";
 
 const outfit = Outfit({
   variable: "--font-outfit",
@@ -47,6 +48,7 @@ export default function RootLayout({
         <Script id="theme-init" strategy="beforeInteractive" src="/theme-init.js" />
       </head>
       <body className="min-h-full flex flex-col">
+        <VisitTracker />
         <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>

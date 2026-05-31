@@ -129,4 +129,23 @@ export class AnalyticsService {
     void this.cache.set(KEY, data, CACHE_TTL);
     return data;
   }
+
+  async recordVisit(): Promise<void> {
+    const now = new Date();
+    const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    try {
+      await this.prisma.siteVisit.upsert({
+        where: { date },
+        create: { date, count: 1 },
+        update: { count: { increment: 1 } },
+      });
+    } catch (err: unknown) {
+      // P2002 = unique constraint — concurrent first-hit of day; fall back to increment
+      if ((err as { code?: string }).code === 'P2002') {
+        await this.prisma.siteVisit.update({ where: { date }, data: { count: { increment: 1 } } });
+      } else {
+        throw err;
+      }
+    }
+  }
 }

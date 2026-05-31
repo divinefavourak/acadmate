@@ -7,6 +7,21 @@ export class AdminStatsService {
 
   // GET /admin/stats — platform stats dashboard (direct port of /api/admin/stats)
   async getPlatformStats() {
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+    sevenDaysAgo.setHours(0, 0, 0, 0);
+
+    const last7Days = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (6 - i));
+      return d;
+    });
+
+    const localDateKey = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+    const visitDates = last7Days.map(localDateKey);
+
     const [
       totalStudents,
       totalQuestions,
@@ -16,6 +31,8 @@ export class AdminStatsService {
       recentExams,
       questionsPerSubject,
       results,
+      recentRegistrations,
+      siteVisits,
     ] = await Promise.all([
       this.prisma.user.count({ where: { role: 'STUDENT' } }),
       this.prisma.question.count(),
@@ -41,13 +58,19 @@ export class AdminStatsService {
         take: 1000,
         orderBy: { createdAt: 'desc' },
       }),
+      this.prisma.user.findMany({
+        where: { role: 'STUDENT', createdAt: { gte: sevenDaysAgo } },
+        select: { createdAt: true },
+      }),
+      this.prisma.siteVisit.findMany({
+        where: { date: { in: visitDates } },
+        select: { date: true, count: true },
+      }),
     ]);
 
-    // Group recent exams by day (last 7 days)
-    const today = new Date();
-    const dailyCounts = Array.from({ length: 7 }, (_, i) => {
-      const day = new Date(today);
-      day.setDate(today.getDate() - (6 - i));
+    const siteVisitMap = new Map(siteVisits.map((v) => [v.date, v.count]));
+
+    const dailyCounts = last7Days.map((day) => {
       const label = day.toLocaleDateString('en-NG', { weekday: 'short' });
       const count = recentExams.filter((e) => {
         const d = new Date(e.createdAt);
@@ -60,10 +83,29 @@ export class AdminStatsService {
       return { label, count };
     });
 
-    const questionsBySubject = questionsPerSubject.map((s) => ({
-      subject: s.code,
-      questions: s._count.questions,
+    const dailyRegistrations = last7Days.map((day) => {
+      const label = day.toLocaleDateString('en-NG', { weekday: 'short' });
+      const count = recentRegistrations.filter((u) => {
+        const d = new Date(u.createdAt);
+        return (
+          d.getDate() === day.getDate() &&
+          d.getMonth() === day.getMonth() &&
+          d.getFullYear() === day.getFullYear()
+        );
+      }).length;
+      return { label, count };
+    });
+
+    const dailyVisits = last7Days.map((day) => ({
+      label: day.toLocaleDateString('en-NG', { weekday: 'short' }),
+      count: siteVisitMap.get(localDateKey(day)) ?? 0,
     }));
+
+    const questionsBySubject = questionsPerSubject
+      .map((s) => ({ subject: s.code, questions: s._count.questions }))
+      .filter((s) => s.questions > 0)
+      .sort((a, b) => b.questions - a.questions)
+      .slice(0, 20);
 
     // Score distribution across 5 bands
     const bands = [
@@ -85,6 +127,8 @@ export class AdminStatsService {
       totalExams,
       totalImports,
       dailyExamActivity: dailyCounts,
+      dailyRegistrations,
+      dailyVisits,
       questionsBySubject,
       scoreDistribution,
     };

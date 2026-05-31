@@ -45,6 +45,7 @@ interface AdminBlogListItem {
   publishedAt: string | null;
   notifiedAt: string | null;
   updatedAt: string;
+  viewCount: number;
   author: { name: string | null } | null;
 }
 
@@ -228,6 +229,7 @@ export default function AdminBlogListPage() {
                 {/* Meta row */}
                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
                   <span><span className="text-slate-400 dark:text-slate-600">Category · </span>{categoryLabel(p.category)}</span>
+                  <span><span className="text-slate-400 dark:text-slate-600">Views · </span>{p.viewCount.toLocaleString()}</span>
                   <span><span className="text-slate-400 dark:text-slate-600">Updated · </span>{formatDate(p.updatedAt)}</span>
                   {p.notifiedAt && (
                     <span><span className="text-slate-400 dark:text-slate-600">Last emailed · </span>{formatDate(p.notifiedAt)}</span>

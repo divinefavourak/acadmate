@@ -43,6 +43,7 @@ model AccessToken {
   generatedById String
   usedById      String?   @unique
   usedAt        DateTime?
+  revokedAt     DateTime?
   createdAt     DateTime  @default(now())
 
   generatedBy User  @relation("GeneratedTokens", fields: [generatedById], references: [id], onDelete: Cascade)
@@ -520,6 +521,13 @@ enum Plan {
   PREMIUM
 }
 
+model SiteVisit {
+  date  String @id // "YYYY-MM-DD"
+  count Int    @default(0)
+
+  @@map("site_visits")
+}
+
 enum BlogCategory {
   UTME
   POST_UTME
@@ -543,6 +551,7 @@ model BlogPost {
   authorId      String
   publishedAt   DateTime?
   notifiedAt    DateTime?
+  viewCount     Int          @default(0)
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
 
