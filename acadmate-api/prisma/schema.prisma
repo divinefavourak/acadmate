@@ -592,8 +592,8 @@ enum BlogCategory {
 }
 
 model SiteVisit {
-  date  String @id // "YYYY-MM-DD"
-  count Int    @default(0)
+  date  DateTime @id @db.Date
+  count Int      @default(0)
 
   @@map("site_visits")
 }

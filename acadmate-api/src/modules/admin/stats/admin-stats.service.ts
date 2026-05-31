@@ -17,10 +17,9 @@ export class AdminStatsService {
       return d;
     });
 
-    const localDateKey = (d: Date) =>
-      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-
-    const visitDates = last7Days.map(localDateKey);
+    // UTC-midnight dates built from local components — must match recordVisit's key strategy.
+    const toUTCDay = (d: Date) => new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    const visitDates = last7Days.map(toUTCDay);
 
     const [
       totalStudents,
@@ -68,7 +67,7 @@ export class AdminStatsService {
       }),
     ]);
 
-    const siteVisitMap = new Map(siteVisits.map((v) => [v.date, v.count]));
+    const siteVisitMap = new Map(siteVisits.map((v) => [v.date.getTime(), v.count]));
 
     const dailyCounts = last7Days.map((day) => {
       const label = day.toLocaleDateString('en-NG', { weekday: 'short' });
@@ -98,7 +97,7 @@ export class AdminStatsService {
 
     const dailyVisits = last7Days.map((day) => ({
       label: day.toLocaleDateString('en-NG', { weekday: 'short' }),
-      count: siteVisitMap.get(localDateKey(day)) ?? 0,
+      count: siteVisitMap.get(toUTCDay(day).getTime()) ?? 0,
     }));
 
     const questionsBySubject = questionsPerSubject

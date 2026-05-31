@@ -132,7 +132,9 @@ export class AnalyticsService {
 
   async recordVisit(): Promise<void> {
     const now = new Date();
-    const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    // Use local date components pushed into UTC midnight so the stored day
+    // matches the server's local calendar day rather than the UTC day.
+    const date = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
     try {
       await this.prisma.siteVisit.upsert({
         where: { date },
