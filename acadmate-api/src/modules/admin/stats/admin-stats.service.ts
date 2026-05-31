@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { toUTCDay } from '../../../common/utils/date.util';
 
 @Injectable()
 export class AdminStatsService {
@@ -17,10 +18,7 @@ export class AdminStatsService {
       return d;
     });
 
-    const localDateKey = (d: Date) =>
-      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-
-    const visitDates = last7Days.map(localDateKey);
+    const visitDates = last7Days.map(toUTCDay);
 
     const [
       totalStudents,
@@ -68,7 +66,7 @@ export class AdminStatsService {
       }),
     ]);
 
-    const siteVisitMap = new Map(siteVisits.map((v) => [v.date, v.count]));
+    const siteVisitMap = new Map(siteVisits.map((v) => [v.date.getTime(), v.count]));
 
     const dailyCounts = last7Days.map((day) => {
       const label = day.toLocaleDateString('en-NG', { weekday: 'short' });
@@ -98,7 +96,7 @@ export class AdminStatsService {
 
     const dailyVisits = last7Days.map((day) => ({
       label: day.toLocaleDateString('en-NG', { weekday: 'short' }),
-      count: siteVisitMap.get(localDateKey(day)) ?? 0,
+      count: siteVisitMap.get(toUTCDay(day).getTime()) ?? 0,
     }));
 
     const questionsBySubject = questionsPerSubject
