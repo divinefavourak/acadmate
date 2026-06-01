@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { apiClient } from "@/lib/api/client";
 import { BLOG_CATEGORIES, categoryLabel, type BlogCategory } from "../categories";
@@ -145,12 +145,15 @@ export default function BlogList({
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-
-  // Only fetch when user changes category or pagination (skip initial server data)
-  const isInitialLoad = page === 0 && activeCategory === "";
+  const mounted = useRef(false);
 
   useEffect(() => {
-    if (isInitialLoad) return; // use server-provided initial data
+    if (!mounted.current) { mounted.current = true; return; }
+    if (page === 0 && activeCategory === "") {
+      setPosts(initialPosts);
+      setTotal(initialTotal);
+      return;
+    }
     setLoading(true);
     setError("");
     const qs = new URLSearchParams({
@@ -165,7 +168,7 @@ export default function BlogList({
       })
       .catch(() => setError("Could not load posts. Please refresh."))
       .finally(() => setLoading(false));
-  }, [activeCategory, page, isInitialLoad]);
+  }, [activeCategory, page, initialPosts, initialTotal]);
 
   const totalPages = Math.max(1, Math.ceil(total / LIMIT));
   const featured = useMemo(

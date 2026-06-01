@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { listThreads, createThread } from "@/features/forum/api";
 import type { ForumThread, ForumCategory } from "@/features/forum/types";
@@ -39,7 +39,7 @@ function ThreadItem({ thread }: { thread: ForumThread }) {
       className="group flex items-start gap-4 p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.03] hover:border-indigo-500/40 hover:bg-slate-50 dark:hover:bg-white/[0.05] transition-all"
     >
       <div className="flex-shrink-0 w-9 h-9 rounded-full bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold text-sm">
-        {(thread.author.name ?? "?")[0].toUpperCase()}
+        {(thread.author.name?.trim() || "?")[0].toUpperCase()}
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-2">
@@ -84,6 +84,34 @@ function CreateThreadModal({
   const [category, setCategory] = useState<ForumCategory>("GENERAL");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    document.getElementById("thread-title")?.focus();
+
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") { onClose(); return; }
+      if (e.key === "Tab" && dialogRef.current) {
+        const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
+          'button, input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey) {
+          if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+        } else {
+          if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+        }
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      previouslyFocused?.focus();
+    };
+  }, [onClose]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -100,10 +128,16 @@ function CreateThreadModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+    <div
+      ref={dialogRef}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="thread-dialog-title"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+    >
       <div className="w-full max-w-lg bg-white dark:bg-slate-950 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800">
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800">
-          <h2 className="font-bold text-lg">New thread</h2>
+          <h2 id="thread-dialog-title" className="font-bold text-lg">New thread</h2>
           <button onClick={onClose} aria-label="Close" className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
           </button>
@@ -187,11 +221,15 @@ export default function ForumListContent({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showCreate, setShowCreate] = useState(false);
-
-  const isInitialLoad = page === 0 && category === "";
+  const mounted = useRef(false);
 
   useEffect(() => {
-    if (isInitialLoad) return;
+    if (!mounted.current) { mounted.current = true; return; }
+    if (page === 0 && category === "") {
+      setThreads(initialThreads);
+      setTotal(initialTotal);
+      return;
+    }
     setLoading(true);
     setError("");
     listThreads({ category: category || undefined, limit: LIMIT, offset: page * LIMIT })
@@ -201,7 +239,7 @@ export default function ForumListContent({
       })
       .catch(() => setError("Could not load threads. Please refresh."))
       .finally(() => setLoading(false));
-  }, [category, page, isInitialLoad]);
+  }, [category, page, initialThreads, initialTotal]);
 
   const totalPages = Math.max(1, Math.ceil(total / LIMIT));
 

@@ -8,13 +8,13 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 interface BlogPostSummary {
   slug: string;
   publishedAt: string;
-  updatedAt: string;
+  updatedAt?: string;
 }
 
 interface ForumThreadSummary {
   id: string;
   createdAt: string;
-  updatedAt: string;
+  updatedAt?: string;
 }
 
 async function fetchPublishedBlogPosts(): Promise<BlogPostSummary[]> {

@@ -18,7 +18,7 @@ function timeAgo(iso: string): string {
 function Avatar({ name }: { name: string | null }) {
   return (
     <div className="flex-shrink-0 w-9 h-9 rounded-full bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold text-sm">
-      {(name ?? "?")[0].toUpperCase()}
+      {(name?.trim() || "?")[0].toUpperCase()}
     </div>
   );
 }
