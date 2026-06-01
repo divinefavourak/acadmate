@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { apiClient } from "@/lib/api/client";
 import { BLOG_CATEGORIES, categoryLabel, type BlogCategory } from "../categories";
@@ -139,21 +139,19 @@ export default function BlogList({
   initialPosts: BlogListItem[];
   initialTotal: number;
 }) {
-  const [posts, setPosts] = useState<BlogListItem[]>(initialPosts);
-  const [total, setTotal] = useState(initialTotal);
+  const [fetchedPosts, setFetchedPosts] = useState<BlogListItem[]>([]);
+  const [fetchedTotal, setFetchedTotal] = useState(0);
   const [activeCategory, setActiveCategory] = useState<BlogCategory | "">("");
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const mounted = useRef(false);
+
+  const isFiltered = page !== 0 || activeCategory !== "";
+  const posts = isFiltered ? fetchedPosts : initialPosts;
+  const total = isFiltered ? fetchedTotal : initialTotal;
 
   useEffect(() => {
-    if (!mounted.current) { mounted.current = true; return; }
-    if (page === 0 && activeCategory === "") {
-      setPosts(initialPosts);
-      setTotal(initialTotal);
-      return;
-    }
+    if (!isFiltered) return;
     setLoading(true);
     setError("");
     const qs = new URLSearchParams({
@@ -163,12 +161,12 @@ export default function BlogList({
     if (activeCategory) qs.set("category", activeCategory);
     apiClient<BlogListResponse>(`/api/blog?${qs.toString()}`, { skipAuth: true })
       .then((data) => {
-        setPosts(data.posts);
-        setTotal(data.total);
+        setFetchedPosts(data.posts);
+        setFetchedTotal(data.total);
       })
       .catch(() => setError("Could not load posts. Please refresh."))
       .finally(() => setLoading(false));
-  }, [activeCategory, page, initialPosts, initialTotal]);
+  }, [activeCategory, page, isFiltered]);
 
   const totalPages = Math.max(1, Math.ceil(total / LIMIT));
   const featured = useMemo(

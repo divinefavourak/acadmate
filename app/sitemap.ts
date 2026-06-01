@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/seo";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
+const PAGE_SIZE = 500;
 
 // ─── Fetch helpers ───────────────────────────────────────────────────────────
 
@@ -17,32 +18,39 @@ interface ForumThreadSummary {
   updatedAt?: string;
 }
 
+async function paginate<T>(
+  buildUrl: (offset: number) => string,
+  extract: (body: unknown) => T[] | undefined,
+): Promise<T[]> {
+  const results: T[] = [];
+  let offset = 0;
+  try {
+    while (true) {
+      const res = await fetch(buildUrl(offset), { next: { revalidate: 3600 } });
+      if (!res.ok) break;
+      const page = extract(await res.json()) ?? [];
+      results.push(...page);
+      if (page.length < PAGE_SIZE) break;
+      offset += PAGE_SIZE;
+    }
+  } catch {}
+  return results;
+}
+
 async function fetchPublishedBlogPosts(): Promise<BlogPostSummary[]> {
   if (!API_URL) return [];
-  try {
-    const res = await fetch(`${API_URL}/api/blog?limit=500&offset=0`, {
-      next: { revalidate: 3600 },
-    });
-    if (!res.ok) return [];
-    const data = (await res.json()) as { posts?: BlogPostSummary[] };
-    return data.posts ?? [];
-  } catch {
-    return [];
-  }
+  return paginate(
+    (offset) => `${API_URL}/api/blog?limit=${PAGE_SIZE}&offset=${offset}`,
+    (d) => (d as { posts?: BlogPostSummary[] }).posts,
+  );
 }
 
 async function fetchPublicForumThreads(): Promise<ForumThreadSummary[]> {
   if (!API_URL) return [];
-  try {
-    const res = await fetch(`${API_URL}/api/forum?limit=500&offset=0`, {
-      next: { revalidate: 3600 },
-    });
-    if (!res.ok) return [];
-    const data = (await res.json()) as { threads?: ForumThreadSummary[] };
-    return data.threads ?? [];
-  } catch {
-    return [];
-  }
+  return paginate(
+    (offset) => `${API_URL}/api/forum?limit=${PAGE_SIZE}&offset=${offset}`,
+    (d) => (d as { threads?: ForumThreadSummary[] }).threads,
+  );
 }
 
 // ─── Sitemap ─────────────────────────────────────────────────────────────────
