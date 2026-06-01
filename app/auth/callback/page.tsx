@@ -34,7 +34,13 @@ function CallbackHandler() {
         }
 
         const me = await apiClient<{ onboardedAt: string | null }>("/api/users/me");
-        window.location.href = me.onboardedAt ? "/dashboard" : "/onboarding";
+        if (me.onboardedAt) {
+          window.location.href = "/dashboard";
+        } else {
+          // Soft-nav preserves the in-memory token — onboarding layout has no
+          // UserProvider to restore it from the cookie on a full-page reload.
+          router.replace("/onboarding");
+        }
       } catch (err) {
         const param = err instanceof RelayError ? "relay_failed" : "oauth_failed";
         router.replace(`/login?error=${param}`);
