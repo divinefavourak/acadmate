@@ -1,4 +1,9 @@
+import type { Metadata } from "next";
 import Sidebar, { navItems } from "../dashboard/components/Sidebar";
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 import DashboardHeader from "../components/layout/DashboardHeader";
 import { UserProvider } from "../context/UserContext";
 

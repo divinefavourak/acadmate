@@ -1,6 +1,11 @@
+import type { Metadata } from "next";
 import Sidebar, { navItems } from "../dashboard/components/Sidebar";
 import DashboardHeader from "../components/layout/DashboardHeader";
 import { UserProvider } from "../context/UserContext";
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 export default function AnalyticsLayout({ children }: { children: React.ReactNode }) {
   return (

@@ -98,7 +98,7 @@ export function BlogPostContent({ post }: { post: BlogPostDetail }) {
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={post.coverImageUrl}
-          alt=""
+          alt={`Cover image for: ${post.title}`}
           className="w-full rounded-2xl border border-black/5 dark:border-white/10 mb-10"
         />
       )}

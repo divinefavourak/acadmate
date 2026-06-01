@@ -1,14 +1,24 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { ThemeToggle } from "@/app/components/ThemeToggle";
+import { SITE_NAME } from "@/lib/seo";
+
+export const metadata: Metadata = {
+  title: {
+    default: `Blog | ${SITE_NAME}`,
+    template: `%s | ${SITE_NAME} Blog`,
+  },
+  openGraph: { type: "article" },
+};
 
 export default function BlogLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex flex-col min-h-screen bg-white dark:bg-[#09090b] text-slate-900 dark:text-white relative overflow-hidden">
       {/* Background ambient */}
       <div className="pointer-events-none fixed inset-0 z-0">
-        <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-indigo-600/10 rounded-full blur-[120px]" />
-        <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-purple-600/10 rounded-full blur-[100px]" />
+        <div className="absolute top-0 left-1/4 w-150 h-150 bg-indigo-600/10 rounded-full blur-[120px]" />
+        <div className="absolute bottom-0 right-1/4 w-100 h-100 bg-purple-600/10 rounded-full blur-[100px]" />
       </div>
 
       <header className="sticky top-0 z-50 border-b border-black/5 dark:border-white/5 bg-white/80 dark:bg-[#09090b]/80 backdrop-blur-xl">

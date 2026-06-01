@@ -1,21 +1,36 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { BlogPostContent, type BlogPostDetail } from "./BlogPostContent";
+import {
+  buildMetadata,
+  articleSchema,
+  breadcrumbSchema,
+  SITE_URL,
+} from "@/lib/seo";
+
+// ─── ISR ─────────────────────────────────────────────────────────────────────
+
+export const revalidate = 60;
+
+// ─── Data fetching ────────────────────────────────────────────────────────────
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://acadmate.ng";
 
 async function getPost(slug: string): Promise<BlogPostDetail | null> {
+  if (!API_URL) return null;
   try {
-    const res = await fetch(`${API_URL}/api/blog/${encodeURIComponent(slug)}`, {
-      next: { revalidate: 60 },
-    });
+    const res = await fetch(
+      `${API_URL}/api/blog/${encodeURIComponent(slug)}`,
+      { next: { revalidate: 60 } },
+    );
     if (!res.ok) return null;
     return res.json();
   } catch {
     return null;
   }
 }
+
+// ─── Metadata ────────────────────────────────────────────────────────────────
 
 export async function generateMetadata({
   params,
@@ -24,30 +39,25 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const post = await getPost(slug);
-  if (!post) return { title: "Acadmate Blog" };
-
-  const images = post.coverImageUrl
-    ? [{ url: post.coverImageUrl, width: 1200, height: 630, alt: post.title }]
-    : [];
+  if (!post) return { title: "Post Not Found | Acadmate Blog" };
 
   return {
-    title: `${post.title} | Acadmate`,
-    description: post.excerpt,
-    openGraph: {
+    ...buildMetadata({
       title: post.title,
       description: post.excerpt,
-      url: `${SITE_URL}/blog/${post.slug}`,
+      path: `/blog/${post.slug}`,
+      ogImage: post.coverImageUrl ?? undefined,
       type: "article",
-      images,
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: post.title,
-      description: post.excerpt,
-      images: post.coverImageUrl ? [post.coverImageUrl] : [],
-    },
+      article: {
+        publishedTime: post.publishedAt,
+        authors: [post.author?.name ?? "Acadmate Team"],
+        tags: [post.category],
+      },
+    }),
   };
 }
+
+// ─── Page ────────────────────────────────────────────────────────────────────
 
 export default async function BlogDetailPage({
   params,
@@ -57,5 +67,31 @@ export default async function BlogDetailPage({
   const { slug } = await params;
   const post = await getPost(slug);
   if (!post) notFound();
-  return <BlogPostContent post={post} />;
+
+  const jsonLd = [
+    articleSchema({
+      title: post.title,
+      excerpt: post.excerpt,
+      slug: post.slug,
+      publishedAt: post.publishedAt,
+      author: post.author,
+      coverImageUrl: post.coverImageUrl,
+      category: post.category,
+    }),
+    breadcrumbSchema([
+      { name: "Home", url: SITE_URL },
+      { name: "Blog", url: `${SITE_URL}/blog` },
+      { name: post.title, url: `${SITE_URL}/blog/${post.slug}` },
+    ]),
+  ];
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <BlogPostContent post={post} />
+    </>
+  );
 }
