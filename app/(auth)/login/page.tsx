@@ -42,10 +42,9 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const rawCallback = searchParams.get("callbackUrl") ?? "/dashboard";
-  const callbackUrl =
-    rawCallback.startsWith("/") && !rawCallback.startsWith("//")
-      ? rawCallback
-      : "/dashboard";
+  // Allow only same-origin paths: must start with / and have no second / or \
+  // (blocks //evil.com and /\evil.com browser-normalisation bypasses).
+  const callbackUrl = /^\/(?:[^/\\]|$)/.test(rawCallback) ? rawCallback : "/dashboard";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
