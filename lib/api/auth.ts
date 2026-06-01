@@ -19,12 +19,27 @@ export function removeToken(): void {
 
 // Mirrors the JWT as an HttpOnly cookie on the frontend (Vercel) domain.
 // Must be called after every login/OAuth event so middleware can see the token.
+export class RelayError extends Error {
+  constructor(status: number) {
+    super(`Session cookie could not be set (${status}). Ensure JWT_SECRET matches between frontend and backend.`);
+    this.name = 'RelayError';
+  }
+}
+
+// Mirrors the JWT as an HttpOnly cookie on the frontend (Vercel) domain.
+// Must be called after every login/OAuth event so middleware can see the token.
 export async function relayTokenToFrontend(token: string): Promise<void> {
-  await fetch('/api/auth/set-cookie', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ token }),
-  });
+  try {
+    const res = await fetch('/api/auth/set-cookie', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token }),
+    });
+    if (!res.ok) throw new RelayError(res.status);
+  } catch (err) {
+    if (err instanceof RelayError) throw err;
+    throw new RelayError(0); // network / fetch failure
+  }
 }
 
 // Clears the frontend-domain cookie. Call alongside removeToken() on logout.

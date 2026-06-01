@@ -3,7 +3,7 @@
 import { useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { apiClient } from "@/lib/api/client";
-import { setToken, relayTokenToFrontend } from "@/lib/api/auth";
+import { setToken, relayTokenToFrontend, RelayError } from "@/lib/api/auth";
 
 function CallbackHandler() {
   const router = useRouter();
@@ -29,14 +29,21 @@ function CallbackHandler() {
         await relayTokenToFrontend(accessToken);
 
         if (role === "ADMIN") {
-          router.replace("/admin");
+          window.location.href = "/admin";
           return;
         }
 
         const me = await apiClient<{ onboardedAt: string | null }>("/api/users/me");
-        router.replace(me.onboardedAt ? "/dashboard" : "/onboarding");
-      } catch {
-        router.replace("/login?error=oauth_failed");
+        if (me.onboardedAt) {
+          window.location.href = "/dashboard";
+        } else {
+          // Soft-nav preserves the in-memory token — onboarding layout has no
+          // UserProvider to restore it from the cookie on a full-page reload.
+          router.replace("/onboarding");
+        }
+      } catch (err) {
+        const param = err instanceof RelayError ? "relay_failed" : "oauth_failed";
+        router.replace(`/login?error=${param}`);
       }
     })();
   }, [router, searchParams]);

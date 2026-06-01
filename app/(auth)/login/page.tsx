@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { apiClient, ApiError } from "@/lib/api/client";
-import { setToken, relayTokenToFrontend } from "@/lib/api/auth";
+import { setToken, relayTokenToFrontend, RelayError } from "@/lib/api/auth";
 import { scaleIn, stagger, fadeUp } from "@/lib/motion";
 import Loader from "@/app/components/Loader";
 
@@ -41,7 +41,10 @@ function Divider() {
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") ?? "/dashboard";
+  const rawCallback = searchParams.get("callbackUrl") ?? "/dashboard";
+  // Allow only same-origin paths: must start with / and have no second / or \
+  // (blocks //evil.com and /\evil.com browser-normalisation bypasses).
+  const callbackUrl = /^\/(?:[^/\\]|$)/.test(rawCallback) ? rawCallback : "/dashboard";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -61,11 +64,14 @@ function LoginForm() {
 
       setToken(data.accessToken);
       await relayTokenToFrontend(data.accessToken);
-      router.push(data.user.role === "ADMIN" ? "/admin" : callbackUrl);
-      router.refresh();
+      window.location.href = data.user.role === "ADMIN" ? "/admin" : callbackUrl;
     } catch (err) {
       setLoading(false);
-      setError(err instanceof ApiError ? err.message : "Invalid email or password.");
+      if (err instanceof RelayError) {
+        setError("Sign-in failed due to a server configuration issue. Please try again later.");
+      } else {
+        setError(err instanceof ApiError ? err.message : "Invalid email or password.");
+      }
     }
   }
 
