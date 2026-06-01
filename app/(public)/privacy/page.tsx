@@ -1,14 +1,28 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { buildMetadata, webPageSchema } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Privacy Policy — Acadmate",
+export const metadata: Metadata = buildMetadata({
+  title: "Privacy Policy",
+  description:
+    "How Acadmate collects, uses, and protects your personal data. Read our full privacy policy for the Acadmate CBT practice platform.",
+  path: "/privacy",
+  noindex: false,
+});
+
+const jsonLd = webPageSchema({
+  title: "Privacy Policy | Acadmate",
   description: "How Acadmate collects, uses, and protects your personal data.",
-};
+  path: "/privacy",
+});
 
 export default function PrivacyPage() {
   return (
     <div className="min-h-screen bg-white dark:bg-zinc-950 text-slate-800 dark:text-slate-200">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <div className="max-w-3xl mx-auto px-6 py-16">
         <Link
           href="/"

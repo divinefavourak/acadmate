@@ -1,14 +1,27 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { buildMetadata, webPageSchema } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Terms of Service — Acadmate",
+export const metadata: Metadata = buildMetadata({
+  title: "Terms of Service",
+  description:
+    "Terms and conditions for using the Acadmate CBT practice platform. Read about your rights and responsibilities as an Acadmate user.",
+  path: "/terms",
+});
+
+const jsonLd = webPageSchema({
+  title: "Terms of Service | Acadmate",
   description: "Terms and conditions for using the Acadmate platform.",
-};
+  path: "/terms",
+});
 
 export default function TermsPage() {
   return (
     <div className="min-h-screen bg-white dark:bg-zinc-950 text-slate-800 dark:text-slate-200">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <div className="max-w-3xl mx-auto px-6 py-16">
         <Link
           href="/"
