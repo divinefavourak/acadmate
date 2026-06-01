@@ -3,6 +3,7 @@ import { SITE_URL } from "@/lib/seo";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 const PAGE_SIZE = 500;
+const MAX_PAGES = 100; // 100 × 500 = 50 000 — the sitemap protocol's per-file URL limit
 
 // ─── Fetch helpers ───────────────────────────────────────────────────────────
 
@@ -25,7 +26,7 @@ async function paginate<T>(
   const results: T[] = [];
   let offset = 0;
   try {
-    while (true) {
+    for (let i = 0; i < MAX_PAGES; i++) {
       const res = await fetch(buildUrl(offset), { next: { revalidate: 3600 } });
       if (!res.ok) break;
       const page = extract(await res.json()) ?? [];

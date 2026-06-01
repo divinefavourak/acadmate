@@ -151,7 +151,11 @@ export default function BlogList({
   const total = isFiltered ? fetchedTotal : initialTotal;
 
   useEffect(() => {
-    if (!isFiltered) return;
+    if (!isFiltered) {
+      setError("");
+      return;
+    }
+    let cancelled = false;
     setLoading(true);
     setError("");
     const qs = new URLSearchParams({
@@ -161,11 +165,11 @@ export default function BlogList({
     if (activeCategory) qs.set("category", activeCategory);
     apiClient<BlogListResponse>(`/api/blog?${qs.toString()}`, { skipAuth: true })
       .then((data) => {
-        setFetchedPosts(data.posts);
-        setFetchedTotal(data.total);
+        if (!cancelled) { setFetchedPosts(data.posts); setFetchedTotal(data.total); }
       })
-      .catch(() => setError("Could not load posts. Please refresh."))
-      .finally(() => setLoading(false));
+      .catch(() => { if (!cancelled) setError("Could not load posts. Please refresh."); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, [activeCategory, page, isFiltered]);
 
   const totalPages = Math.max(1, Math.ceil(total / LIMIT));
