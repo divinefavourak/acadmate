@@ -35,6 +35,11 @@ class BulkPublishDto {
   @IsBoolean() isPublished: boolean;
 }
 
+class BulkIdsDto {
+  @IsArray() @ArrayNotEmpty() @ArrayMaxSize(500) @IsString({ each: true })
+  ids: string[];
+}
+
 @ApiTags('admin')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -67,6 +72,19 @@ export class AdminQuestionsController {
   @ApiOperation({ summary: 'Bulk publish / unpublish questions by ID list' })
   bulkPublish(@CurrentUser() user: JwtUser, @Body() dto: BulkPublishDto) {
     return this.adminQuestionsService.bulkPublish(user.id, dto.ids, dto.isPublished);
+  }
+
+  @Delete('bulk')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Bulk delete questions by ID list' })
+  bulkDelete(@CurrentUser() user: JwtUser, @Body() dto: BulkIdsDto) {
+    return this.adminQuestionsService.bulkDelete(user.id, dto.ids);
+  }
+
+  @Patch('bulk/unflag')
+  @ApiOperation({ summary: 'Bulk clear flags on questions by ID list' })
+  bulkUnflag(@CurrentUser() user: JwtUser, @Body() dto: BulkIdsDto) {
+    return this.adminQuestionsService.bulkUnflag(user.id, dto.ids);
   }
 
   @Patch(':id')

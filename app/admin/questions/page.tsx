@@ -134,6 +134,9 @@ function QuestionsPage() {
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkPublishing, setBulkPublishing] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [bulkUnflagging, setBulkUnflagging] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [bulkError, setBulkError] = useState("");
   const [fetchError, setFetchError] = useState<string | null>(null);
 
@@ -215,6 +218,7 @@ function QuestionsPage() {
   // Load questions
   useEffect(() => {
     setSelectedIds(new Set());
+    setConfirmDelete(false);
 
     // Direct subject view (from ?subjectId= URL param)
     if (subjectIdParam) {
@@ -356,6 +360,44 @@ function QuestionsPage() {
     setSelectedIds((prev) =>
       prev.size === questions.length ? new Set() : new Set(questions.map((q) => q.id))
     );
+  }
+
+  async function handleBulkDelete() {
+    if (selectedIds.size === 0) return;
+    setBulkDeleting(true);
+    try {
+      await apiClient("/api/admin/questions/bulk", {
+        method: "DELETE",
+        body: JSON.stringify({ ids: [...selectedIds] }),
+      });
+      setQuestions((prev) => prev.filter((q) => !selectedIds.has(q.id)));
+      setTotal((prev) => prev - selectedIds.size);
+      setSelectedIds(new Set());
+      setConfirmDelete(false);
+    } catch (err) {
+      console.error("Bulk delete failed", err);
+    } finally {
+      setBulkDeleting(false);
+    }
+  }
+
+  async function handleBulkUnflag() {
+    if (selectedIds.size === 0) return;
+    setBulkUnflagging(true);
+    try {
+      await apiClient("/api/admin/questions/bulk/unflag", {
+        method: "PATCH",
+        body: JSON.stringify({ ids: [...selectedIds] }),
+      });
+      setQuestions((prev) => prev.map((q) =>
+        selectedIds.has(q.id) ? { ...q, isFlagged: false, flagCount: 0 } : q
+      ));
+      setSelectedIds(new Set());
+    } catch (err) {
+      console.error("Bulk unflag failed", err);
+    } finally {
+      setBulkUnflagging(false);
+    }
   }
 
   async function handlePreview(id: string) {
@@ -756,25 +798,72 @@ function QuestionsPage() {
             <p className="text-red-400 text-sm mb-4 bg-red-900/20 border border-red-800 rounded-lg px-4 py-2">{fetchError}</p>
           )}
           {selectedIds.size > 0 && (
-            <div className="flex flex-wrap items-center gap-3 mb-4 px-3 py-2.5 rounded-xl bg-indigo-950/60 border border-indigo-700/50">
-              <span className="text-sm text-indigo-300 font-medium flex-1">{selectedIds.size} selected</span>
-              {bulkError && <span className="text-xs text-red-400 w-full">{bulkError}</span>}
+            <div className="flex flex-wrap items-center gap-2 mb-4 px-4 py-3 rounded-xl bg-indigo-950/60 border border-indigo-700/50">
+              <span className="text-sm text-indigo-300 font-semibold mr-1">{selectedIds.size} selected</span>
+              <div className="w-px h-4 bg-indigo-800 mx-1" />
+
+              {/* Publish */}
               <button
                 onClick={() => handleBulkPublish(true)}
-                disabled={bulkPublishing}
+                disabled={bulkPublishing || bulkDeleting || bulkUnflagging}
                 className="px-3 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-semibold disabled:opacity-50 transition-colors"
               >
-                Publish All
+                {bulkPublishing ? "Publishing…" : "Publish"}
               </button>
+
+              {/* Unpublish */}
               <button
                 onClick={() => handleBulkPublish(false)}
-                disabled={bulkPublishing}
+                disabled={bulkPublishing || bulkDeleting || bulkUnflagging}
                 className="px-3 py-1.5 rounded-lg bg-slate-600 hover:bg-slate-500 text-white text-xs font-semibold disabled:opacity-50 transition-colors"
               >
-                Unpublish All
+                Unpublish
               </button>
-              <button onClick={() => { setSelectedIds(new Set()); setBulkError(""); }} className="text-slate-400 hover:text-slate-200 text-xs">
-                Clear
+
+              {/* Clear flags */}
+              <button
+                onClick={handleBulkUnflag}
+                disabled={bulkPublishing || bulkDeleting || bulkUnflagging}
+                className="px-3 py-1.5 rounded-lg bg-amber-700/70 hover:bg-amber-700 text-white text-xs font-semibold disabled:opacity-50 transition-colors"
+              >
+                {bulkUnflagging ? "Unflagging…" : "Clear Flags"}
+              </button>
+
+              <div className="w-px h-4 bg-indigo-800 mx-1" />
+
+              {/* Delete — two-step confirm */}
+              {confirmDelete ? (
+                <>
+                  <span className="text-xs text-red-400 font-medium">Delete {selectedIds.size} questions?</span>
+                  <button
+                    onClick={handleBulkDelete}
+                    disabled={bulkDeleting}
+                    className="px-3 py-1.5 rounded-lg bg-red-700 hover:bg-red-600 text-white text-xs font-bold disabled:opacity-50 transition-colors"
+                  >
+                    {bulkDeleting ? "Deleting…" : "Yes, Delete"}
+                  </button>
+                  <button
+                    onClick={() => setConfirmDelete(false)}
+                    className="px-3 py-1.5 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-700 text-xs font-medium transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => setConfirmDelete(true)}
+                  disabled={bulkPublishing || bulkDeleting || bulkUnflagging}
+                  className="px-3 py-1.5 rounded-lg bg-red-900/50 hover:bg-red-800/70 text-red-400 hover:text-red-300 text-xs font-semibold disabled:opacity-50 transition-colors"
+                >
+                  Delete
+                </button>
+              )}
+
+              <button
+                onClick={() => { setSelectedIds(new Set()); setConfirmDelete(false); }}
+                className="ml-auto text-slate-400 hover:text-slate-200 text-xs"
+              >
+                Clear selection
               </button>
             </div>
           )}

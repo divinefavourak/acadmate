@@ -230,6 +230,30 @@ export class AdminQuestionsService {
     return { updated: result.count };
   }
 
+  // DELETE /admin/questions/bulk
+  async bulkDelete(adminId: string, ids: string[]) {
+    const result = await this.prisma.question.deleteMany({ where: { id: { in: ids } } });
+    await this.prisma.adminActivityLog.create({
+      data: { adminId, action: 'BULK_DELETE', details: { count: result.count } },
+    }).catch(() => {});
+    return { deleted: result.count };
+  }
+
+  // PATCH /admin/questions/bulk/unflag
+  async bulkUnflag(adminId: string, ids: string[]) {
+    await this.prisma.$transaction([
+      this.prisma.question.updateMany({ where: { id: { in: ids } }, data: { isFlagged: false, flagCount: 0 } }),
+      this.prisma.questionFlag.updateMany({
+        where: { questionId: { in: ids }, resolved: false },
+        data: { resolved: true, resolvedAt: new Date() },
+      }),
+    ]);
+    await this.prisma.adminActivityLog.create({
+      data: { adminId, action: 'BULK_UNFLAG', details: { count: ids.length } },
+    }).catch(() => {});
+    return { unflagged: ids.length };
+  }
+
   // PATCH /admin/questions/:id/publish
   async togglePublish(adminId: string, id: string, isPublished: boolean) {
     const question = await this.prisma.question.update({
