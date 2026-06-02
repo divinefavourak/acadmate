@@ -75,7 +75,12 @@ export class AuthController {
   @UseGuards(AuthGuard('google'))
   @ApiOperation({ summary: 'Google OAuth callback — issues JWT and redirects to frontend' })
   async googleCallback(@Req() req: Request, @Res() res: Response) {
-    const profile = req.user as { email: string; name: string; googleId: string };
+    const profile = req.user as {
+      email: string;
+      name: string;
+      googleId: string;
+      image?: string;
+    };
     const result = await this.authService.googleLogin(profile);
 
     const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:3000';

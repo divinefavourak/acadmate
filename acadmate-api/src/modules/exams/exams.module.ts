@@ -10,6 +10,6 @@ import { AnalyticsModule } from '../analytics/analytics.module';
   imports: [AnalyticsModule],
   controllers: [ExamsController],
   providers: [ExamsService, ExamFactoryService, ExamExpiryService, ScoringService],
-  exports: [ExamExpiryService, ScoringService],
+  exports: [ExamExpiryService, ScoringService, ExamFactoryService],
 })
 export class ExamsModule {}

@@ -28,6 +28,9 @@ const ROUTE_POLICY = {
     "/api/blog",
     "/forum",
     "/api/forum",
+    // Student live-session landing — viewable without auth; the Join action
+    // itself prompts login when needed.
+    "/live",
   ],
 
   // Public routes where a logged-in user should be redirected to their home.
