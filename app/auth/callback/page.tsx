@@ -3,7 +3,7 @@
 import { useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { apiClient } from "@/lib/api/client";
-import { getToken, setToken, relayTokenToFrontend, RelayError } from "@/lib/api/auth";
+import { getToken, setToken, removeToken, relayTokenToFrontend, RelayError } from "@/lib/api/auth";
 
 function CallbackHandler() {
   const router = useRouter();
@@ -48,6 +48,9 @@ function CallbackHandler() {
           router.replace("/onboarding");
         }
       } catch (err) {
+        // Roll back the eagerly-cached token so a failed sign-in leaves no
+        // stale, unvalidated auth state in this tab after the redirect.
+        removeToken();
         const param = err instanceof RelayError ? "relay_failed" : "oauth_failed";
         router.replace(`/login?error=${param}`);
       }
