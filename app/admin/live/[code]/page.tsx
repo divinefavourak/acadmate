@@ -167,9 +167,9 @@ export default function LiveDashboardPage({
 
   const { session, stats, participants } = data;
 
-  // Submitted first (ranked by score desc), then everyone still working.
+  // Completed papers ranked by score; ABANDONED attempts are excluded entirely.
   const submitted = participants
-    .filter((p) => p.status !== "IN_PROGRESS")
+    .filter((p) => p.status === "SUBMITTED" || p.status === "TIMED_OUT")
     .sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
   const inProgress = participants.filter((p) => p.status === "IN_PROGRESS");
 
@@ -180,6 +180,13 @@ export default function LiveDashboardPage({
   return (
     <div className="space-y-6">
       <BackLink />
+
+      {/* Non-blocking error — surfaced even while the last good payload stays on screen */}
+      {error && (
+        <div className="rounded-xl border border-red-300 dark:border-red-900/50 bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 text-sm px-4 py-2.5">
+          {error}
+        </div>
+      )}
 
       {/* Header */}
       <div className="glass-panel rounded-2xl p-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

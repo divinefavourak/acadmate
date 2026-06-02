@@ -6,7 +6,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { LiveSessionStatus } from '@prisma/client';
+import { LiveSessionStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
   ExamFactoryError,
@@ -108,10 +108,25 @@ export class LiveSessionsService {
   ) {
     const session = await this.prisma.liveSession.findUnique({
       where: { code },
-      select: { id: true, createdById: true, durationMinutes: true },
+      select: { id: true, createdById: true, durationMinutes: true, status: true },
     });
     if (!session) throw new NotFoundException('Live session not found');
     if (session.createdById !== adminId) throw new ForbiddenException();
+
+    // Defence-in-depth: the DTO already restricts this, but never let an
+    // unexpected value through to the DB.
+    if (status !== 'ACTIVE' && status !== 'ENDED') {
+      throw new BadRequestException('A live session can only be set to ACTIVE or ENDED.');
+    }
+
+    // Idempotent: re-sending the current status (retry / double-click) must not
+    // recompute endsAt and shift an already-set window.
+    if (session.status === status) {
+      const current = await this.prisma.liveSession.findUniqueOrThrow({
+        where: { id: session.id },
+      });
+      return { session: current };
+    }
 
     const updated = await this.prisma.liveSession.update({
       where: { id: session.id },
@@ -122,9 +137,7 @@ export class LiveSessionsService {
         endsAt:
           status === 'ENDED'
             ? new Date()
-            : status === 'ACTIVE'
-              ? new Date(Date.now() + session.durationMinutes * 60_000)
-              : null,
+            : new Date(Date.now() + session.durationMinutes * 60_000),
       },
     });
 
@@ -192,10 +205,12 @@ export class LiveSessionsService {
       );
     }
 
-    // Idempotent: a student who refreshes or re-clicks the link resumes their
-    // existing paper instead of forking a second one.
+    // One attempt per student per session, regardless of status: a student who
+    // refreshes resumes their in-progress paper, and one who already submitted
+    // is sent back to that paper (the exam page forwards finished papers to the
+    // results screen) — they can't fork a second attempt or retake.
     const existing = await this.prisma.examSession.findFirst({
-      where: { liveSessionId: session.id, userId, status: 'IN_PROGRESS' },
+      where: { liveSessionId: session.id, userId },
       select: { id: true },
     });
     if (existing) return { examSessionId: existing.id, resumed: true };
@@ -226,6 +241,18 @@ export class LiveSessionsService {
 
       return { examSessionId: examSession.id, resumed: false };
     } catch (err) {
+      // Lost a concurrent race — the @@unique([liveSessionId, userId]) index
+      // rejected the duplicate. Return whichever attempt won.
+      if (
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === 'P2002'
+      ) {
+        const winner = await this.prisma.examSession.findFirst({
+          where: { liveSessionId: session.id, userId },
+          select: { id: true },
+        });
+        if (winner) return { examSessionId: winner.id, resumed: true };
+      }
       if (err instanceof ExamFactoryError) {
         throw new HttpException(err.message, err.statusHint);
       }
@@ -308,8 +335,15 @@ export class LiveSessionsService {
       expiresAt: e.expiresAt,
     }));
 
-    const submitted = participants.filter((p) => p.status !== 'IN_PROGRESS');
-    const scores = submitted
+    // Only truly completed papers count as "submitted" — ABANDONED attempts are
+    // neither in-progress nor a real result, so they're excluded from both.
+    const completed = participants.filter(
+      (p) => p.status === 'SUBMITTED' || p.status === 'TIMED_OUT',
+    );
+    const inProgressCount = participants.filter(
+      (p) => p.status === 'IN_PROGRESS',
+    ).length;
+    const scores = completed
       .map((p) => p.score)
       .filter((s): s is number => s !== null);
     const averageScore = scores.length
@@ -333,8 +367,8 @@ export class LiveSessionsService {
       },
       stats: {
         joined: participants.length,
-        inProgress: participants.length - submitted.length,
-        submitted: submitted.length,
+        inProgress: inProgressCount,
+        submitted: completed.length,
         averageScore,
       },
       participants,

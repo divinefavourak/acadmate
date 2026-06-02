@@ -137,10 +137,13 @@ export default function AdminLivePage() {
 
   function copyJoinLink(code: string) {
     const url = `${window.location.origin}/live/${code}`;
-    navigator.clipboard.writeText(url).then(() => {
-      setCopied(code);
-      setTimeout(() => setCopied(null), 2000);
-    });
+    navigator.clipboard
+      .writeText(url)
+      .then(() => {
+        setCopied(code);
+        setTimeout(() => setCopied(null), 2000);
+      })
+      .catch(() => setError("Couldn't copy the link — copy it manually instead."));
   }
 
   const activeSubjects = useMemo(

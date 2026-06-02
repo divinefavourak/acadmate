@@ -3,7 +3,7 @@
 import { useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { apiClient } from "@/lib/api/client";
-import { setToken, relayTokenToFrontend, RelayError } from "@/lib/api/auth";
+import { getToken, setToken, relayTokenToFrontend, RelayError } from "@/lib/api/auth";
 
 function CallbackHandler() {
   const router = useRouter();
@@ -16,16 +16,22 @@ function CallbackHandler() {
     const accessToken = params.get("token");
 
     if (!accessToken) {
-      router.replace("/login?error=oauth_failed");
+      // No token in the hash. Under React StrictMode the effect runs twice in
+      // dev, and the first run already consumed + stripped the hash — so a
+      // missing token here is only a real failure when nothing was captured.
+      if (!getToken()) router.replace("/login?error=oauth_failed");
       return;
     }
+
+    // Store the token before stripping the hash so a StrictMode re-invocation
+    // sees it in memory (above) instead of flashing an oauth_failed redirect.
+    setToken(accessToken);
 
     // Clear the token from the URL immediately so it doesn't linger in history.
     window.history.replaceState(null, "", window.location.pathname + window.location.search);
 
     (async () => {
       try {
-        setToken(accessToken);
         await relayTokenToFrontend(accessToken);
 
         if (role === "ADMIN") {

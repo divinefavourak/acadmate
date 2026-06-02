@@ -6,7 +6,9 @@
 export function normalizePhone(input: string): string {
   let d = input.replace(/[^\d+]/g, '').replace(/^\+/, '');
 
-  if (d.startsWith('0') && d.length === 11) {
+  if (d.startsWith('2340') && d.length === 14) {
+    d = '234' + d.slice(4); // +2340XXXXXXXXXX (country code + local 0) → drop the 0
+  } else if (d.startsWith('0') && d.length === 11) {
     d = '234' + d.slice(1); // local 0-prefixed → country code
   } else if (d.length === 10) {
     d = '234' + d; // bare 10-digit subscriber number

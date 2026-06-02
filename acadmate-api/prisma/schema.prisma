@@ -337,9 +337,9 @@ model ExamSession {
   userAnswers   UserAnswer[]
   result        Result?
 
+  @@unique([liveSessionId, userId])
   @@index([userId])
   @@index([userId, status])
-  @@index([liveSessionId])
   @@map("exam_sessions")
 }
 

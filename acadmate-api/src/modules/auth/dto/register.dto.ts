@@ -19,10 +19,14 @@ export class RegisterDto {
   @IsEmail()
   email: string;
 
+  // Enforce 10–15 actual digits (ignoring spacing/punctuation) so a registered
+  // phone always satisfies the login-identifier check (see looksLikePhone).
   @ApiProperty({ example: '08012345678', required: false })
   @IsOptional()
   @IsString()
-  @Matches(/^\+?[\d\s()-]{10,20}$/, { message: 'Enter a valid phone number' })
+  @Matches(/^(?=(?:\D*\d){10,15}\D*$)\+?[\d\s()-]+$/, {
+    message: 'Enter a valid phone number',
+  })
   phone?: string;
 
   @ApiProperty({ example: 'strongpassword123', minLength: 8 })
