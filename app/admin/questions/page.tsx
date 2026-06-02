@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, Suspense } from "react";
+import { useEffect, useState, useRef, Suspense, Fragment } from "react";
 import { useSearchParams } from "next/navigation";
 import MathText from "@/app/components/MathText";
 import MiniBarChart from "@/app/admin/components/MiniBarChart";
@@ -956,7 +956,8 @@ function QuestionsPage() {
                   </thead>
                   <tbody>
                     {questions.map((q, i) => (
-                      <tr key={q.id}
+                      <Fragment key={q.id}>
+                      <tr
                         className={`${i < questions.length - 1 ? "border-b border-slate-800" : ""} ${q.isFlagged ? "bg-red-950/20" : ""} ${selectedIds.has(q.id) ? "bg-indigo-950/20" : ""} hover:bg-slate-800/50 transition-colors`}>
                         <td className="py-3 pr-3">
                           <input
@@ -1046,6 +1047,7 @@ function QuestionsPage() {
                           </td>
                         </tr>
                       )}
+                      </Fragment>
                     ))}
                   </tbody>
                 </table>
