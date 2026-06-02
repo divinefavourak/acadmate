@@ -112,31 +112,32 @@ async function extractFromImage(gemini, imagePath, year) {
   const { base64, mime } = imageToBase64(imagePath);
   const filename = path.basename(imagePath);
 
-  const prompt = `You are an expert exam question digitiser. Extract every question from this image exactly as written.
+  const prompt = `You are an expert exam question digitiser for Nigerian post-UTME and JAMB booklets. Extract ONLY genuine exam questions from this image.
 
 Return a JSON array where each element has exactly these fields:
 {
   "subject": string,       // e.g. "Mathematics", "Use of English", "Biology" — infer from content
   "topic": string,         // e.g. "ALGEBRA", "COMPREHENSION", "GENETICS" — infer from content
-  "text": string,          // full question text; for comprehension include the passage prefixed with "PASSAGE: "
+  "text": string,          // the question stem ONLY — what a student is asked; must end with "?" or clearly be a question/instruction
   "optionA": string|null,
   "optionB": string|null,
   "optionC": string|null,
   "optionD": string|null,
-  "correctOption": "A"|"B"|"C"|"D"|null,  // null only if answer key not visible
-  "year": number,   // read the exam year from the booklet header/footer/cover. If session shown like "2022/2023" use the first year (2022). Fallback: ${year}
+  "correctOption": "A"|"B"|"C"|"D"|null,
+  "year": number,   // read from booklet header/footer. If session "2022/2023" use 2022. Fallback: ${year}
   "difficulty": "EASY"|"MEDIUM"|"HARD",
-  "explanation": string,   // brief explanation of why the correct answer is right
+  "explanation": string,   // YOUR OWN brief explanation of why the correct answer is right (1-2 sentences). Do NOT copy text from the image into this field.
   "imageUrl": null
 }
 
-Rules:
-- CRITICAL: You MUST transcribe ALL 4 option texts (A, B, C, D) from the image. If you cannot clearly read even ONE option text, set ALL four option fields to null AND set correctOption to null. Partial option sets (e.g. only the correct answer filled) are strictly forbidden.
-- NEVER use LaTeX or backslash notation — write maths in plain text (e.g. "x^2", "2/3", "log base 2 of 8")
-- If the question references a diagram not shown, append "[diagram required]" to the text field
-- If no answer key is visible, set correctOption to null
-- Do NOT include the question number in the text field
-- Return ONLY the JSON array, no markdown fences, no prose`;
+STRICT RULES — violating any rule means the entry is wrong:
+1. QUESTIONS ONLY: The "text" field must be a genuine exam question or instruction (e.g. "Find the value of x", "Which of the following..."). NEVER put answer explanations, solution workings, footnotes, page headers, or answer keys in the "text" field. If text is partially illegible, use your subject knowledge to reconstruct the most likely question.
+2. OPTIONS: Transcribe ALL 4 option texts (A, B, C, D). If an option is partially legible, use your subject knowledge to complete it sensibly — a plausible option is better than null. Only set options to null if the text is completely illegible or absent.
+3. NO LATEX: Write maths in plain text only — "x^2" not "$x^2$", "sqrt(3)" not "\\sqrt{3}", "pi" not "\\pi".
+4. BOLD/ITALICS: Represent bold as *word* and italics as _word_ in plain text.
+5. SKIP non-questions: Instructions pages, answer keys, passages (unless they are followed by comprehension questions), worked examples, and explanatory text are NOT questions — omit them entirely.
+6. Do NOT include the question number in the text field.
+7. Return ONLY the JSON array, no markdown fences, no prose.`;
 
   const response = await callWithRetry((modelName) =>
     gemini.getGenerativeModel({ model: modelName }).generateContent({

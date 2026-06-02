@@ -126,6 +126,12 @@ function QuestionsPage() {
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState("");
 
+  // Inline quick-edit (just text + correct answer, no modal needed)
+  const [quickEditId, setQuickEditId] = useState<string | null>(null);
+  const [quickEditText, setQuickEditText] = useState("");
+  const [quickEditCorrect, setQuickEditCorrect] = useState("");
+  const [quickEditSaving, setQuickEditSaving] = useState(false);
+
   const [activeTab, setActiveTab] = useState<"questions" | "flagged" | "analytics">("questions");
   const [flaggedQuestions, setFlaggedQuestions] = useState<QuestionEntry[]>([]);
   const [loadingFlagged, setLoadingFlagged] = useState(false);
@@ -397,6 +403,28 @@ function QuestionsPage() {
       console.error("Bulk unflag failed", err);
     } finally {
       setBulkUnflagging(false);
+    }
+  }
+
+  function openQuickEdit(q: QuestionEntry) {
+    setQuickEditId(q.id);
+    setQuickEditText(q.text);
+    setQuickEditCorrect("");
+  }
+
+  async function saveQuickEdit(id: string) {
+    if (!quickEditText.trim()) return;
+    setQuickEditSaving(true);
+    try {
+      const body: Record<string, unknown> = { text: quickEditText.trim() };
+      if (quickEditCorrect) body.correctOption = quickEditCorrect;
+      await apiClient(`/api/admin/questions/${id}`, { method: "PATCH", body: JSON.stringify(body) });
+      setQuestions((prev) => prev.map((q) => q.id === id ? { ...q, text: quickEditText.trim() } : q));
+      setQuickEditId(null);
+    } catch (err) {
+      console.error("Quick edit failed", err);
+    } finally {
+      setQuickEditSaving(false);
     }
   }
 
@@ -953,6 +981,16 @@ function QuestionsPage() {
                         </td>
                         <td className="py-3 text-right">
                           <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              onClick={() => quickEditId === q.id ? setQuickEditId(null) : openQuickEdit(q)}
+                              className={`inline-flex items-center px-2.5 py-1 rounded text-xs font-medium transition-colors ${
+                                quickEditId === q.id
+                                  ? "bg-amber-900/40 text-amber-400"
+                                  : "bg-amber-900/20 text-amber-500 hover:bg-amber-900/40"
+                              }`}
+                            >
+                              Quick Fix
+                            </button>
                             <button onClick={() => handleOpenEdit(q.id)} disabled={loadingEdit === q.id}
                               className="inline-flex items-center px-2.5 py-1 rounded bg-indigo-900/30 text-indigo-400 hover:bg-indigo-900/50 text-xs font-medium transition-colors disabled:opacity-50">
                               {loadingEdit === q.id ? "…" : "Edit"}
@@ -970,6 +1008,44 @@ function QuestionsPage() {
                           </div>
                         </td>
                       </tr>
+                      {quickEditId === q.id && (
+                        <tr key={`${q.id}-qe`} className="border-b border-slate-800 bg-amber-950/10">
+                          <td colSpan={8} className="px-2 py-3">
+                            <div className="flex flex-col gap-2">
+                              <textarea
+                                value={quickEditText}
+                                onChange={(e) => setQuickEditText(e.target.value)}
+                                rows={3}
+                                className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-amber-700/40 text-slate-200 text-sm resize-y focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+                                placeholder="Question text…"
+                                autoFocus
+                              />
+                              <div className="flex items-center gap-3">
+                                <span className="text-xs text-slate-400">Correct answer:</span>
+                                {["A","B","C","D"].map((l) => (
+                                  <button key={l} onClick={() => setQuickEditCorrect(l)}
+                                    className={`w-7 h-7 rounded-full text-xs font-bold transition-colors ${
+                                      quickEditCorrect === l
+                                        ? "bg-emerald-600 text-white"
+                                        : "bg-slate-700 text-slate-300 hover:bg-slate-600"
+                                    }`}>{l}</button>
+                                ))}
+                                <span className="text-xs text-slate-500 ml-1">(leave blank to keep current)</span>
+                                <div className="flex gap-2 ml-auto">
+                                  <button onClick={() => saveQuickEdit(q.id)} disabled={quickEditSaving}
+                                    className="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold disabled:opacity-50 transition-colors">
+                                    {quickEditSaving ? "Saving…" : "Save"}
+                                  </button>
+                                  <button onClick={() => setQuickEditId(null)}
+                                    className="px-3 py-1.5 rounded-lg border border-slate-700 text-slate-400 hover:bg-slate-800 text-xs transition-colors">
+                                    Cancel
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
                     ))}
                   </tbody>
                 </table>
