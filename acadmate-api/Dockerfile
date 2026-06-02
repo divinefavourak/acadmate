@@ -38,4 +38,7 @@ EXPOSE 3000
 ENV NODE_ENV=production
 ENV PORT=3000
 
-CMD ["sh", "-c", "node_modules/.bin/prisma db push --skip-generate && node dist/main"]
+# db push runs non-interactively at boot, so --accept-data-loss is required for
+# changes Prisma gates behind a confirmation prompt (e.g. adding unique
+# constraints). These are additive here; no data is actually dropped.
+CMD ["sh", "-c", "node_modules/.bin/prisma db push --skip-generate --accept-data-loss && node dist/main"]
