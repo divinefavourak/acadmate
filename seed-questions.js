@@ -46,41 +46,64 @@ async function main() {
   console.log(`\nLoaded   : ${questions.length} questions`);
   console.log(`School   : ${school}  |  ExamType : ${examType}\n`);
 
-  // ── Step 1: resolve all subjects & topics sequentially (fills cache, no races)
+  // ── Step 1: resolve all subjects & topics with bulk queries (avoids N round-trips)
   const subjectCache = new Map(); // name.lower → id
   const topicCache   = new Map(); // subjectId:name.lower → id
 
-  async function getSubjectId(name) {
-    const key = name.trim().toLowerCase();
-    if (subjectCache.has(key)) return subjectCache.get(key);
-    const norm    = name.trim();
-    let subject   = await prisma.subject.findFirst({ where: { name: { equals: norm, mode: 'insensitive' } }, select: { id: true } });
-    if (!subject) {
-      const code  = norm.toUpperCase().replace(/[^A-Z0-9]/g, '_').slice(0, 8) + '_' + Date.now().toString(36);
-      subject     = await prisma.subject.create({ data: { name: norm, code, isActive: true }, select: { id: true } });
-      console.log(`  [new subject] ${norm}`);
-    }
-    subjectCache.set(key, subject.id);
-    return subject.id;
-  }
+  process.stdout.write('Resolving subjects… ');
 
-  async function getTopicId(subjectId, name) {
-    const norm  = name.trim();
-    if (!norm) return null;
-    const key  = `${subjectId}:${norm.toLowerCase()}`;
-    if (topicCache.has(key)) return topicCache.get(key);
-    let topic   = await prisma.topic.findFirst({ where: { subjectId, name: { equals: norm, mode: 'insensitive' } }, select: { id: true } });
-    if (!topic) {
-      topic = await prisma.topic.create({ data: { subjectId, name: norm, isActive: true }, select: { id: true } });
-    }
-    topicCache.set(key, topic.id);
-    return topic.id;
-  }
+  // Collect unique subject names
+  const uniqueSubjectNames = [...new Set(
+    questions.map(q => (q.subject || 'General Knowledge').trim())
+  )];
 
-  process.stdout.write('Resolving subjects & topics… ');
+  // Fetch existing subjects in one query
+  const existingSubjects = await prisma.subject.findMany({
+    where: { name: { in: uniqueSubjectNames, mode: 'insensitive' } },
+    select: { id: true, name: true },
+  });
+  for (const s of existingSubjects) subjectCache.set(s.name.toLowerCase(), s.id);
+
+  // Create any missing subjects
+  const missingSubjects = uniqueSubjectNames.filter(n => !subjectCache.has(n.toLowerCase()));
+  for (const norm of missingSubjects) {
+    const code    = norm.toUpperCase().replace(/[^A-Z0-9]/g, '_').slice(0, 8) + '_' + Date.now().toString(36);
+    const created = await prisma.subject.create({ data: { name: norm, code, isActive: true }, select: { id: true, name: true } });
+    subjectCache.set(norm.toLowerCase(), created.id);
+    console.log(`\n  [new subject] ${norm}`);
+  }
+  process.stdout.write('done\n');
+
+  process.stdout.write('Resolving topics… ');
+
+  // Collect unique (subjectId, topicName) pairs
+  const topicPairs = [];
   for (const q of questions) {
-    const subjectId = await getSubjectId(q.subject || 'General Knowledge');
-    if (q.topic?.trim()) await getTopicId(subjectId, q.topic);
+    if (!q.topic?.trim()) continue;
+    const subjectId = subjectCache.get((q.subject || 'General Knowledge').trim().toLowerCase());
+    const topicNorm = q.topic.trim();
+    const key       = `${subjectId}:${topicNorm.toLowerCase()}`;
+    if (!topicCache.has(key)) topicPairs.push({ subjectId, name: topicNorm, key });
+  }
+  const uniqueTopicPairs = [...new Map(topicPairs.map(p => [p.key, p])).values()];
+
+  // Fetch all existing topics in one query per unique subjectId group
+  const subjectIds = [...new Set(uniqueTopicPairs.map(p => p.subjectId))];
+  if (subjectIds.length > 0) {
+    const existingTopics = await prisma.topic.findMany({
+      where: { subjectId: { in: subjectIds } },
+      select: { id: true, name: true, subjectId: true },
+    });
+    for (const t of existingTopics) {
+      topicCache.set(`${t.subjectId}:${t.name.toLowerCase()}`, t.id);
+    }
+  }
+
+  // Create missing topics
+  const missingTopics = uniqueTopicPairs.filter(p => !topicCache.has(p.key));
+  for (const { subjectId, name, key } of missingTopics) {
+    const created = await prisma.topic.create({ data: { subjectId, name, isActive: true }, select: { id: true } });
+    topicCache.set(key, created.id);
   }
   console.log('done\n');
 
