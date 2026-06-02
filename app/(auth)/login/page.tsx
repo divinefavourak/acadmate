@@ -46,7 +46,7 @@ function LoginForm() {
   // (blocks //evil.com and /\evil.com browser-normalisation bypasses).
   const callbackUrl = /^\/(?:[^/\\]|$)/.test(rawCallback) ? rawCallback : "/dashboard";
 
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -59,7 +59,7 @@ function LoginForm() {
     try {
       const data = await apiClient<{ accessToken: string; user: { role: string } }>(
         "/api/auth/login",
-        { method: "POST", body: JSON.stringify({ email, password }), skipAuth: true },
+        { method: "POST", body: JSON.stringify({ identifier, password }), skipAuth: true },
       );
 
       setToken(data.accessToken);
@@ -70,7 +70,7 @@ function LoginForm() {
       if (err instanceof RelayError) {
         setError("Sign-in failed due to a server configuration issue. Please try again later.");
       } else {
-        setError(err instanceof ApiError ? err.message : "Invalid email or password.");
+        setError(err instanceof ApiError ? err.message : "Invalid credentials.");
       }
     }
   }
@@ -98,12 +98,13 @@ function LoginForm() {
         )}
 
         <div className="space-y-1">
-          <label className="text-sm font-medium ml-1">Email Address</label>
+          <label className="text-sm font-medium ml-1">Email or Phone Number</label>
           <input
-            type="email"
-            placeholder="jambite@example.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            type="text"
+            autoComplete="username"
+            placeholder="jambite@example.com or 08012345678"
+            value={identifier}
+            onChange={(e) => setIdentifier(e.target.value)}
             required
             className="w-full px-4 py-3 rounded-xl bg-white/50 dark:bg-black/50 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
           />

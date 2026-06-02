@@ -56,6 +56,14 @@ export const navItems = [
     ),
   },
   {
+    href: "/admin/live",
+    label: "Live Sessions",
+    exact: false,
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h-.5a2.5 2.5 0 0 1 0-5H5"/><path d="M19 12h.5a2.5 2.5 0 0 0 0-5H19"/><circle cx="12" cy="12" r="3"/><path d="M12 19v3"/><path d="M8.5 8.5a5 5 0 0 0 0 7"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg>
+    ),
+  },
+  {
     href: "/admin/tokens",
     label: "Access Tokens",
     exact: false,

@@ -12,6 +12,7 @@ model User {
   id                     String              @id @default(cuid())
   name                   String?
   email                  String              @unique
+  phone                  String?             @unique
   emailVerified          DateTime?
   image                  String?
   passwordHash           String?
@@ -31,8 +32,10 @@ model User {
   generatedTokens        AccessToken[]       @relation("GeneratedTokens")
   redeemedToken          AccessToken?        @relation("RedeemedToken")
   authoredBlogPosts      BlogPost[]          @relation("AuthoredBlogPosts")
+  liveSessions           LiveSession[]       @relation("CreatedLiveSessions")
 
   @@index([email])
+  @@index([phone])
   @@map("users")
 }
 
@@ -283,6 +286,7 @@ model ExamSession {
   id              String                @id @default(cuid())
   userId          String
   examTemplateId  String?
+  liveSessionId   String?
   mode            ExamMode              @default(MOCK)
   subjectId       String?
   topicId         String?
@@ -298,13 +302,41 @@ model ExamSession {
   school          String?
   questions       ExamSessionQuestion[]
   examTemplate    ExamTemplate?         @relation(fields: [examTemplateId], references: [id])
+  liveSession     LiveSession?          @relation(fields: [liveSessionId], references: [id], onDelete: SetNull)
   user            User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   result          Result?
   userAnswers     UserAnswer[]
 
+  @@unique([liveSessionId, userId])
   @@index([userId])
   @@index([userId, status])
   @@map("exam_sessions")
+}
+
+// ─── Live Sessions ───────────────────────────────────────────────────────────
+// A teacher-created, timed mock practice that students join via a short code.
+// It is a *configuration envelope*: each joining student forks a normal
+// ExamSession (tagged with liveSessionId), so all existing exam logic runs unchanged.
+model LiveSession {
+  id              String            @id @default(cuid())
+  code            String            @unique
+  title           String?
+  status          LiveSessionStatus @default(SCHEDULED)
+  mode            ExamMode          @default(MOCK)
+  subjectIds      String[]
+  durationMinutes Int               @default(60)
+  questionCount   Int               @default(40)
+  createdById     String
+  endsAt          DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  createdBy    User          @relation("CreatedLiveSessions", fields: [createdById], references: [id], onDelete: Cascade)
+  examSessions ExamSession[]
+
+  @@index([createdById])
+  @@index([status])
+  @@map("live_sessions")
 }
 
 model ExamSessionQuestion {
@@ -496,6 +528,12 @@ enum ExamStatus {
   SUBMITTED
   TIMED_OUT
   ABANDONED
+}
+
+enum LiveSessionStatus {
+  SCHEDULED
+  ACTIVE
+  ENDED
 }
 
 enum ImportFormat {

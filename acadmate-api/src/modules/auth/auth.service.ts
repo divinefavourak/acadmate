@@ -11,6 +11,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { MailService } from './mail.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { normalizePhone, looksLikePhone } from '../../common/utils/phone.util';
 
 @Injectable()
 export class AuthService {
@@ -25,11 +26,21 @@ export class AuthService {
     const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
     if (existing) throw new ConflictException('Email already registered');
 
+    // Optional phone — normalised to E.164 and uniqueness-checked so it can be
+    // used as an alternate login identifier.
+    let phone: string | null = null;
+    if (dto.phone?.trim()) {
+      phone = normalizePhone(dto.phone);
+      const phoneTaken = await this.prisma.user.findUnique({ where: { phone } });
+      if (phoneTaken) throw new ConflictException('Phone number already registered');
+    }
+
     const passwordHash = await bcrypt.hash(dto.password, 12);
     return this.prisma.user.create({
       data: {
         name: dto.name,
         email: dto.email,
+        phone,
         passwordHash,
         role: 'STUDENT',
         studentProfile: { create: {} },
@@ -38,36 +49,76 @@ export class AuthService {
     });
   }
 
-  // ─── Login ────────────────────────────────────────────────────────────────
+  // ─── Login (by email or phone) ─────────────────────────────────────────────
   async login(dto: LoginDto) {
+    const identifier = dto.identifier.trim();
+    const where = looksLikePhone(identifier)
+      ? { phone: normalizePhone(identifier) }
+      : { email: identifier };
+
     const user = await this.prisma.user.findUnique({
-      where: { email: dto.email },
+      where,
       select: { id: true, name: true, email: true, role: true, passwordHash: true },
     });
 
     if (!user || !user.passwordHash) {
-      throw new UnauthorizedException('Invalid email or password');
+      throw new UnauthorizedException('Invalid credentials');
     }
 
     const valid = await bcrypt.compare(dto.password, user.passwordHash);
-    if (!valid) throw new UnauthorizedException('Invalid email or password');
+    if (!valid) throw new UnauthorizedException('Invalid credentials');
 
     return this.issueToken(user);
   }
 
   // ─── Google OAuth ─────────────────────────────────────────────────────────
-  async googleLogin(profile: { email: string; name: string; googleId: string }) {
-    let user = await this.prisma.user.findUnique({ where: { email: profile.email } });
+  async googleLogin(profile: {
+    email: string;
+    name: string;
+    googleId: string;
+    image?: string;
+  }) {
+    const image = profile.image ?? null;
+    let user = await this.prisma.user.findUnique({
+      where: { email: profile.email },
+      include: {
+        studentProfile: { select: { avatarUrl: true, avatarConfig: true } },
+      },
+    });
 
     if (!user) {
+      // First sign-in: seed both the auth-level image and the profile avatar from
+      // the Google account picture.
       user = await this.prisma.user.create({
         data: {
           name: profile.name,
           email: profile.email,
+          image,
           role: 'STUDENT',
-          studentProfile: { create: {} },
+          studentProfile: { create: { avatarUrl: image } },
+        },
+        include: {
+          studentProfile: { select: { avatarUrl: true, avatarConfig: true } },
         },
       });
+    } else if (image) {
+      // Returning user: only adopt the Google picture if they haven't chosen
+      // their own avatar yet, so we never clobber a custom one.
+      const hasCustomAvatar =
+        !!user.studentProfile?.avatarUrl || !!user.studentProfile?.avatarConfig;
+      if (!hasCustomAvatar) {
+        await this.prisma.studentProfile.upsert({
+          where: { userId: user.id },
+          create: { userId: user.id, avatarUrl: image },
+          update: { avatarUrl: image },
+        });
+      }
+      if (!user.image) {
+        await this.prisma.user.update({
+          where: { id: user.id },
+          data: { image },
+        });
+      }
     }
 
     return this.issueToken(user);

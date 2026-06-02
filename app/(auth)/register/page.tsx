@@ -32,6 +32,7 @@ export default function RegisterPage() {
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -44,13 +45,13 @@ export default function RegisterPage() {
     try {
       await apiClient("/api/auth/register", {
         method: "POST",
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ name, email, phone: phone.trim() || undefined, password }),
         skipAuth: true,
       });
 
       const data = await apiClient<{ accessToken: string }>(
         "/api/auth/login",
-        { method: "POST", body: JSON.stringify({ email, password }), skipAuth: true },
+        { method: "POST", body: JSON.stringify({ identifier: email, password }), skipAuth: true },
       );
 
       setToken(data.accessToken);
@@ -110,6 +111,20 @@ export default function RegisterPage() {
             required
             className="w-full px-4 py-3 rounded-xl bg-white/50 dark:bg-black/50 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
           />
+        </div>
+        <div className="space-y-1">
+          <label className="text-sm font-medium ml-1">
+            Phone Number <span className="text-slate-400 font-normal">(optional)</span>
+          </label>
+          <input
+            type="tel"
+            autoComplete="tel"
+            placeholder="08012345678"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            className="w-full px-4 py-3 rounded-xl bg-white/50 dark:bg-black/50 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+          />
+          <p className="text-xs text-slate-400 ml-1">You can use this to sign in instead of your email.</p>
         </div>
         <div className="space-y-1">
           <label className="text-sm font-medium ml-1">Password</label>

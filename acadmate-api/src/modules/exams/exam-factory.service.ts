@@ -46,11 +46,21 @@ export type PostUtmeExamInput = {
   utmeSubjectIds: string[];
 };
 
+// Live sessions compose a custom paper: N questions spread evenly across the
+// chosen subjects (or across the whole published bank when none are chosen).
+// The duration is dictated by the live session config, not the factory.
+export type LiveExamInput = {
+  mode: 'LIVE';
+  subjectIds: string[];
+  questionCount: number;
+};
+
 export type ExamFactoryInput =
   | MockExamInput
   | PracticeExamInput
   | TopicExamInput
-  | PostUtmeExamInput;
+  | PostUtmeExamInput
+  | LiveExamInput;
 
 export type ExamFactoryResult = {
   questionIds: string[];
@@ -82,7 +92,81 @@ export class ExamFactoryService {
         return this.buildTopic(input);
       case 'POST_UTME':
         return this.buildPostUtme(input);
+      case 'LIVE':
+        return this.buildLive(input);
     }
+  }
+
+  // ─── Live session paper ──────────────────────────────────────────────────
+  // Evenly distributes questionCount across the chosen subjects. When no
+  // subjects are chosen, draws from the entire published bank.
+  private async buildLive(input: LiveExamInput): Promise<ExamFactoryResult> {
+    const desiredCount = Math.max(1, input.questionCount);
+
+    if (input.subjectIds.length === 0) {
+      const rows = await this.prisma.$queryRaw<{ id: string }[]>`
+        SELECT q.id FROM questions q
+        WHERE q."isPublished" = true
+          AND q."isFlagged" = false
+          AND EXISTS (
+            SELECT 1 FROM question_options qo
+            WHERE qo."questionId" = q.id AND qo."isCorrect" = true
+          )
+        ORDER BY RANDOM()
+        LIMIT ${desiredCount}
+      `;
+      const questionIds = fisherYates(rows.map((r) => r.id));
+      if (questionIds.length === 0) {
+        throw new ExamFactoryError(
+          'No published questions are available for this live session yet.',
+          422,
+        );
+      }
+      return { questionIds, durationMinutes: 0 };
+    }
+
+    const buckets = allocateBucketLimits(
+      input.subjectIds.map((subjectId) => ({ subjectId, weight: 1 })),
+      desiredCount,
+    );
+
+    const batches = await Promise.all(
+      buckets.map(({ subjectId }) =>
+        this.prisma.$queryRaw<{ id: string }[]>`
+          SELECT q.id FROM questions q
+          WHERE q."subjectId" = ${subjectId}
+            AND q."isPublished" = true
+            AND q."isFlagged" = false
+            AND EXISTS (
+              SELECT 1 FROM question_options qo
+              WHERE qo."questionId" = q.id AND qo."isCorrect" = true
+            )
+          ORDER BY RANDOM()
+          LIMIT ${desiredCount}
+        `,
+      ),
+    );
+
+    // Take each bucket's quota first, then top up from any surplus so a sparse
+    // subject doesn't shrink the whole paper below the requested count.
+    const selected: string[] = [];
+    const surplus: string[] = [];
+    batches.forEach((batch, index) => {
+      const shuffled = fisherYates(batch.map((r) => r.id));
+      selected.push(...shuffled.slice(0, buckets[index].limit));
+      surplus.push(...shuffled.slice(buckets[index].limit));
+    });
+
+    const collected = [...selected, ...fisherYates(surplus)].slice(0, desiredCount);
+
+    if (collected.length === 0) {
+      throw new ExamFactoryError(
+        'No published questions are available for the selected subjects.',
+        422,
+      );
+    }
+
+    return { questionIds: fisherYates(collected), durationMinutes: 0 };
   }
 
   private async buildMock(input: MockExamInput): Promise<ExamFactoryResult> {
