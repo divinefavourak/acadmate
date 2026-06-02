@@ -131,6 +131,7 @@ Return a JSON array where each element has exactly these fields:
 }
 
 Rules:
+- CRITICAL: You MUST transcribe ALL 4 option texts (A, B, C, D) from the image. If you cannot clearly read even ONE option text, set ALL four option fields to null AND set correctOption to null. Partial option sets (e.g. only the correct answer filled) are strictly forbidden.
 - NEVER use LaTeX or backslash notation — write maths in plain text (e.g. "x^2", "2/3", "log base 2 of 8")
 - If the question references a diagram not shown, append "[diagram required]" to the text field
 - If no answer key is visible, set correctOption to null
