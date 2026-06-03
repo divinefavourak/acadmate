@@ -1,6 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 
+// Post-UTME questions are institution past papers (examType = POST_UTME, tagged
+// with a school) and share subjects/topics with the general bank. Every UTME-side
+// and Live draw therefore excludes them with `examType IS DISTINCT FROM 'POST_UTME'`
+// (IS DISTINCT FROM so NULL/JAMB/WAEC questions still qualify); only buildPostUtme
+// pulls them in deliberately.
+
 // ─── UTME constants (preserved exactly) ──────────────────────────────────────
 const UTME_ENGLISH_QUESTIONS = 30;
 const UTME_PROSE_QUESTIONS = 10;
@@ -108,6 +114,7 @@ export class ExamFactoryService {
         SELECT q.id FROM questions q
         WHERE q."isPublished" = true
           AND q."isFlagged" = false
+          AND q."examType" IS DISTINCT FROM 'POST_UTME'::"ExamType"
           AND EXISTS (
             SELECT 1 FROM question_options qo
             WHERE qo."questionId" = q.id AND qo."isCorrect" = true
@@ -137,6 +144,7 @@ export class ExamFactoryService {
           WHERE q."subjectId" = ${subjectId}
             AND q."isPublished" = true
             AND q."isFlagged" = false
+            AND q."examType" IS DISTINCT FROM 'POST_UTME'::"ExamType"
             AND EXISTS (
               SELECT 1 FROM question_options qo
               WHERE qo."questionId" = q.id AND qo."isCorrect" = true
@@ -204,6 +212,7 @@ export class ExamFactoryService {
         WHERE q."subjectId" = ${english.id}
           AND q."isPublished" = true
           AND q."isFlagged" = false
+          AND q."examType" IS DISTINCT FROM 'POST_UTME'::"ExamType"
           AND q."proseTextId" IS NULL
           AND EXISTS (
             SELECT 1 FROM question_options qo
@@ -218,6 +227,7 @@ export class ExamFactoryService {
             WHERE q."proseTextId" = ${proseId}
               AND q."isPublished" = true
               AND q."isFlagged" = false
+              AND q."examType" IS DISTINCT FROM 'POST_UTME'::"ExamType"
               AND EXISTS (
                 SELECT 1 FROM question_options qo
                 WHERE qo."questionId" = q.id AND qo."isCorrect" = true
@@ -235,6 +245,7 @@ export class ExamFactoryService {
           WHERE q."subjectId" = ${sid}
             AND q."isPublished" = true
             AND q."isFlagged" = false
+            AND q."examType" IS DISTINCT FROM 'POST_UTME'::"ExamType"
             AND EXISTS (
               SELECT 1 FROM question_options qo
               WHERE qo."questionId" = q.id AND qo."isCorrect" = true
@@ -269,6 +280,7 @@ export class ExamFactoryService {
       WHERE q."subjectId" = ${input.subjectId}
         AND q."isPublished" = true
         AND q."isFlagged" = false
+        AND q."examType" IS DISTINCT FROM 'POST_UTME'::"ExamType"
         AND EXISTS (
           SELECT 1 FROM question_options qo
           WHERE qo."questionId" = q.id AND qo."isCorrect" = true
@@ -295,6 +307,7 @@ export class ExamFactoryService {
       WHERE q."topicId" = ${input.topicId}
         AND q."isPublished" = true
         AND q."isFlagged" = false
+        AND q."examType" IS DISTINCT FROM 'POST_UTME'::"ExamType"
         AND EXISTS (
           SELECT 1 FROM question_options qo
           WHERE qo."questionId" = q.id AND qo."isCorrect" = true
