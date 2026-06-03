@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CacheService } from '../../cache/cache.service';
@@ -23,6 +23,7 @@ export class SettingsService {
   // while still sparing the DB on the hot exam-creation path.
   private readonly cacheKey = 'settings:exam_availability';
   private readonly cacheTtlSeconds = 60;
+  private readonly logger = new Logger(SettingsService.name);
 
   constructor(
     private readonly prisma: PrismaService,
@@ -33,10 +34,22 @@ export class SettingsService {
     const cached = await this.cache.get<ExamAvailability>(this.cacheKey);
     if (cached) return cached;
 
-    const row = await this.prisma.appSetting.findUnique({
-      where: { key: EXAM_AVAILABILITY_KEY },
-    });
-    const value = this.normalize(row?.value);
+    // Fail open: this read gates every exam start, so a missing app_settings
+    // table (e.g. db push hasn't run yet) or a transient DB blip must not block
+    // students. Fall back to all-groups-open rather than throwing.
+    let value: ExamAvailability;
+    try {
+      const row = await this.prisma.appSetting.findUnique({
+        where: { key: EXAM_AVAILABILITY_KEY },
+      });
+      value = this.normalize(row?.value);
+    } catch (err) {
+      this.logger.warn(
+        `Exam-availability lookup failed, defaulting to all-open: ${(err as Error).message}`,
+      );
+      return { ...DEFAULT_EXAM_AVAILABILITY };
+    }
+
     await this.cache.set(this.cacheKey, value, this.cacheTtlSeconds);
     return value;
   }
