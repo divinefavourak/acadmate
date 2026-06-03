@@ -7,6 +7,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { ExamsModule } from './modules/exams/exams.module';
+import { SettingsModule } from './modules/settings/settings.module';
 import { LiveSessionsModule } from './modules/live-sessions/live-sessions.module';
 import { ResultsModule } from './modules/results/results.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
@@ -41,6 +42,7 @@ import { CacheModule } from './cache/cache.module';
     AuthModule,
     UsersModule,
     ExamsModule,
+    SettingsModule,
     LiveSessionsModule,
     ResultsModule,
     AnalyticsModule,

@@ -41,6 +41,17 @@ interface MeForExam {
 
 type Mode = "MOCK" | "PRACTICE" | "TOPIC" | "POST_UTME";
 
+interface ExamAvailability {
+  utme: boolean;
+  postUtme: boolean;
+}
+
+// MOCK/PRACTICE/TOPIC are "UTME" exams; POST_UTME is its own group.
+function modeAvailable(mode: Mode, availability: ExamAvailability | null): boolean {
+  if (!availability) return true; // assume open until we know otherwise
+  return mode === "POST_UTME" ? availability.postUtme : availability.utme;
+}
+
 export default function NewExamPage() {
   const router = useRouter();
   const [subjects, setSubjects] = useState<Subject[]>([]);
@@ -63,13 +74,15 @@ export default function NewExamPage() {
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState("");
   const [utmeComboCount, setUtmeComboCount] = useState<number | null>(null);
+  const [availability, setAvailability] = useState<ExamAvailability | null>(null);
 
   useEffect(() => {
     Promise.allSettled([
       apiClient<{ subjects: Subject[] }>("/api/subjects"),
       apiClient<{ texts: ProseText[] }>("/api/prose"),
       apiClient<MeForExam>("/api/users/me"),
-    ]).then(([sResult, pResult, meResult]) => {
+      apiClient<ExamAvailability>("/api/settings/exam-availability"),
+    ]).then(([sResult, pResult, meResult, availResult]) => {
       const subjList = sResult.status === "fulfilled" ? (sResult.value.subjects ?? []) : [];
       const proseList = pResult.status === "fulfilled" ? (pResult.value.texts ?? []) : [];
       setSubjects(subjList);
@@ -79,6 +92,13 @@ export default function NewExamPage() {
         setUtmeComboCount(
           meResult.value.studentProfile?.courseSubjectCombinations.length ?? 0,
         );
+      }
+      // Default to the first available exam group so a student never lands on a
+      // disabled type (e.g. UTME closed during Post-UTME season).
+      if (availResult.status === "fulfilled") {
+        const avail = availResult.value;
+        setAvailability(avail);
+        if (!avail.utme && avail.postUtme) setMode("POST_UTME");
       }
     }).finally(() => setLoadingData(false));
   }, []);
@@ -112,6 +132,15 @@ export default function NewExamPage() {
 
   async function handleStart() {
     setError("");
+
+    if (!modeAvailable(mode, availability)) {
+      setError(
+        mode === "POST_UTME"
+          ? "Post-UTME exams are currently turned off. Please check back soon."
+          : "UTME practice exams are currently turned off. Please check back soon.",
+      );
+      return;
+    }
 
     if (mode === "POST_UTME") {
       if (utmeComboMissing) {
@@ -177,6 +206,7 @@ export default function NewExamPage() {
 
   const startDisabled =
     starting ||
+    !modeAvailable(mode, availability) ||
     (mode === "MOCK"
       ? selectedSubjectIds.length !== 3
       : mode === "TOPIC"
@@ -200,25 +230,37 @@ export default function NewExamPage() {
           <div className="glass-panel p-6 rounded-2xl space-y-4">
             <h2 className="font-semibold text-lg">Exam Type</h2>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {modeCards.map(({ id, title, description, premium }) => (
-                <button
-                  key={id}
-                  onClick={() => setMode(id)}
-                  className={`p-4 rounded-xl border-2 text-left transition-all relative ${
-                    mode === id
-                      ? "border-indigo-500 bg-indigo-50/50 dark:bg-indigo-900/20"
-                      : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
-                  }`}
-                >
-                  {premium && (
-                    <span className="absolute top-2 right-2 text-xs font-semibold px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30">
-                      Premium
-                    </span>
-                  )}
-                  <div className="font-semibold mb-1 text-sm pr-14">{title}</div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400">{description}</div>
-                </button>
-              ))}
+              {modeCards.map(({ id, title, description, premium }) => {
+                const available = modeAvailable(id, availability);
+                return (
+                  <button
+                    key={id}
+                    onClick={() => available && setMode(id)}
+                    disabled={!available}
+                    aria-disabled={!available}
+                    className={`p-4 rounded-xl border-2 text-left transition-all relative disabled:cursor-not-allowed ${
+                      !available
+                        ? "border-slate-200 dark:border-slate-800 opacity-50"
+                        : mode === id
+                        ? "border-indigo-500 bg-indigo-50/50 dark:bg-indigo-900/20"
+                        : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
+                    }`}
+                  >
+                    {premium && available && (
+                      <span className="absolute top-2 right-2 text-xs font-semibold px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30">
+                        Premium
+                      </span>
+                    )}
+                    {!available && (
+                      <span className="absolute top-2 right-2 text-xs font-semibold px-1.5 py-0.5 rounded-full bg-slate-500/15 text-slate-400 border border-slate-500/30">
+                        Unavailable
+                      </span>
+                    )}
+                    <div className="font-semibold mb-1 text-sm pr-14">{title}</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400">{description}</div>
+                  </button>
+                );
+              })}
             </div>
           </div>
 

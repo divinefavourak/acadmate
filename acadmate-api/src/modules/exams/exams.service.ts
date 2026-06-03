@@ -18,6 +18,7 @@ import { ExamExpiryService } from './exam-expiry.service';
 import { ScoringService } from './scoring.service';
 import { AnalyticsService } from '../analytics/analytics.service';
 import { CacheService } from '../../cache/cache.service';
+import { SettingsService } from '../settings/settings.service';
 import { SaveAnswersDto } from './dto/save-answers.dto';
 import { MarkReviewDto } from './dto/mark-review.dto';
 
@@ -36,10 +37,25 @@ export class ExamsService {
     private readonly scoring: ScoringService,
     private readonly analyticsService: AnalyticsService,
     private readonly cache: CacheService,
+    private readonly settings: SettingsService,
   ) {}
 
   // ─── POST /exams ──────────────────────────────────────────────────────────
   async createSession(userId: string, input: CreateExamInput) {
+    // Seasonal gate: admins can close a whole exam group (e.g. switch off UTME
+    // practice during Post-UTME season). Checked before any DB work so a closed
+    // group fails fast with a clear, student-facing message.
+    const availability = await this.settings.getExamAvailability();
+    const isPostUtme = input.mode === 'POST_UTME';
+    const groupOpen = isPostUtme ? availability.postUtme : availability.utme;
+    if (!groupOpen) {
+      throw new ForbiddenException(
+        isPostUtme
+          ? 'Post-UTME exams are currently turned off. Please check back soon.'
+          : 'UTME practice exams are currently turned off. Please check back soon.',
+      );
+    }
+
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: { plan: true },

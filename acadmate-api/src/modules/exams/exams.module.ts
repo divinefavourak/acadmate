@@ -5,9 +5,10 @@ import { ExamFactoryService } from './exam-factory.service';
 import { ExamExpiryService } from './exam-expiry.service';
 import { ScoringService } from './scoring.service';
 import { AnalyticsModule } from '../analytics/analytics.module';
+import { SettingsModule } from '../settings/settings.module';
 
 @Module({
-  imports: [AnalyticsModule],
+  imports: [AnalyticsModule, SettingsModule],
   controllers: [ExamsController],
   providers: [ExamsService, ExamFactoryService, ExamExpiryService, ScoringService],
   exports: [ExamExpiryService, ScoringService, ExamFactoryService],
