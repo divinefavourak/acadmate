@@ -637,6 +637,17 @@ model SiteVisit {
   @@map("site_visits")
 }
 
+// Global key-value store for admin-controlled platform settings (e.g. which
+// exam groups are currently open for students). One row per setting key; the
+// value is JSON so a single table serves many small toggles without migrations.
+model AppSetting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+
+  @@map("app_settings")
+}
+
 model BlogPost {
   id            String       @id @default(cuid())
   slug          String       @unique

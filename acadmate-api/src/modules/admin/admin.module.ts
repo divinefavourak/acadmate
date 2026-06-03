@@ -16,10 +16,12 @@ import { AdminStatsService } from './stats/admin-stats.service';
 import { AdminTokensController } from './tokens/admin-tokens.controller';
 import { AdminTokensService } from './tokens/admin-tokens.service';
 import { AdminBlogController } from './blog/admin-blog.controller';
+import { AdminSettingsController } from './settings/admin-settings.controller';
 import { BlogModule } from '../blog/blog.module';
+import { SettingsModule } from '../settings/settings.module';
 
 @Module({
-  imports: [BlogModule],
+  imports: [BlogModule, SettingsModule],
   controllers: [
     AdminQuestionsController,
     AdminImportsController,
@@ -30,6 +32,7 @@ import { BlogModule } from '../blog/blog.module';
     AdminStatsController,
     AdminTokensController,
     AdminBlogController,
+    AdminSettingsController,
   ],
   providers: [
     AdminQuestionsService,
