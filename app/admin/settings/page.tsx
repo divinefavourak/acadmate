@@ -47,7 +47,10 @@ export default function ExamSettingsPage() {
   }, []);
 
   async function toggle(key: GroupKey) {
-    if (!availability) return;
+    // Both groups share one app_settings row that the backend read-merge-writes
+    // against a cache, so a second toggle mid-save could clobber the first.
+    // Ignore concurrent clicks until the in-flight PATCH settles.
+    if (!availability || savingKey !== null) return;
     const next = !availability[key];
     // Optimistic flip — reverted if the request fails.
     setAvailability({ ...availability, [key]: next });
@@ -89,7 +92,7 @@ export default function ExamSettingsPage() {
         <div className="space-y-4">
           {GROUPS.map(({ key, title, covers, description }) => {
             const on = availability[key];
-            const saving = savingKey === key;
+            const busy = savingKey !== null;
             return (
               <div
                 key={key}
@@ -116,7 +119,7 @@ export default function ExamSettingsPage() {
                   role="switch"
                   aria-checked={on}
                   aria-label={`Toggle ${title}`}
-                  disabled={saving}
+                  disabled={busy}
                   onClick={() => toggle(key)}
                   className={`relative shrink-0 mt-1 h-7 w-12 rounded-full transition-colors disabled:opacity-60 ${
                     on ? "bg-indigo-600" : "bg-slate-300 dark:bg-slate-700"
