@@ -1,135 +1,157 @@
 # Acadmate
 
-Nigeria's student success platform — JAMB & Post-UTME CBT practice, school news, scholarship alerts, career guides, and a literature companion, all in one place.
+Nigeria's student success platform: JAMB and Post-UTME CBT practice, live classes, a question bank with AI explanations, school news, scholarship alerts, a discussion forum, and a literature companion.
+
+The repo holds two apps that share one Neon PostgreSQL database:
+
+- `acadmate/` — the Next.js 16 frontend (this directory).
+- `acadmate-api/` — the NestJS backend that serves everything under `/api`.
 
 ## Tech Stack
 
 | Layer | Technology |
 |---|---|
-| Frontend | Next.js 15 (App Router), Tailwind CSS, Framer Motion |
-| Backend | NestJS, Passport JWT, Prisma ORM |
-| Database | Neon PostgreSQL (pooled via PgBouncer) |
-| Auth | Custom JWT — HttpOnly cookies + in-memory token; Google OAuth |
+| Frontend | Next.js 16 (App Router), React 19.2, Tailwind CSS v4, Framer Motion |
+| Backend | NestJS 10, Prisma 6, Passport (JWT + Google OAuth) |
+| Database | Neon PostgreSQL (pooled `DATABASE_URL` for runtime, `DIRECT_URL` for migrations) |
+| Auth | Custom JWT in HttpOnly cookies, shared secret; Google OAuth |
+| Caching | Redis via ioredis |
 | Storage | Cloudinary (images) |
-| Email | Nodemailer (SMTP — Brevo / Gmail App Password) |
-| Rendering | react-katex + remark-math + rehype-katex (LaTeX) |
+| Email | Gmail API (OAuth refresh token) |
+| Math rendering | react-katex + remark-math + rehype-katex |
+| AI tooling | Anthropic, OpenAI, Groq, and Gemini SDKs (content pipeline) |
+| Hardening | Helmet, rate limiting (@nestjs/throttler), request-ID tracing |
+| Scheduling | @nestjs/schedule (cron jobs) |
 | Analytics | Vercel Analytics |
-| Deployment | Vercel (frontend) + Render (backend) |
+| Deployment | Vercel (frontend) + Render Docker (backend) |
 
-## Project Structure
+## Features
 
-```
-acadmate/               ← Next.js 15 frontend
-acadmate-api/           ← NestJS backend
-```
+- **CBT Engine:** timed JAMB mock exams and Post-UTME sessions built from real past questions, with per-question flagging.
+- **Question Bank:** subjects, topics, options, and AI-written explanations, plus a user flag-and-review loop for bad questions.
+- **Post-UTME Prep:** school-specific practice packs for UNILAG, UI, OAU, UNIBEN, ABU, and UNN.
+- **Live Classes:** admins open a live session and students join with a code at `/live/{code}`.
+- **Blog & News:** school news, scholarship alerts, study tips, and career guides, with a publish workflow that emails Premium users once per post.
+- **Forum:** threaded student discussion.
+- **Literature Guide:** summaries, character analysis, and predicted questions for UTME prose texts.
+- **Analytics:** score trends, subject and topic breakdowns, weak-topic detection, and site-visit tracking.
+- **Leaderboards:** separate UTME and Post-UTME rankings.
+- **Paywall & Access Tokens:** a free tier plus a Premium plan that admins grant by issuing redeemable tokens.
+- **Seasonal Availability:** admins toggle UTME and Post-UTME exam groups on or off from settings.
+- **Admin Panel:** CSV/JSON question import, question and subject management, blog publishing, token and student management, notifications, and leaderboards.
+- **Math Rendering:** full KaTeX support in exams and blog posts.
+
+## Architecture
+
+Both apps run their own Prisma client against the same Neon database. The frontend uses it for route-guard checks and seeding (`lib/db/prisma.ts`); the backend owns the schema and migrations. Next.js middleware verifies the JWT cookie on protected routes using a `JWT_SECRET` it shares with the backend, so keep that value identical in both environments.
+
+The backend groups its domains into NestJS modules: `auth`, `users`, `exams`, `questions`, `subjects`, `results`, `analytics`, `leaderboard`, `live-sessions`, `blog`, `forum`, `prose`, `flags`, `upload`, `settings`, `scheduler`, and `admin`. A `ThrottlerGuard` rate-limits every route (100/min by default, tighter on auth and submit), Helmet sets security headers, and a request-ID middleware tags each request for tracing. In development it serves Swagger docs at `/api/docs`.
 
 ## Getting Started
 
-### 1. Install frontend dependencies
+### 1. Install dependencies
 
 ```bash
-npm install
+npm install                       # frontend
+cd acadmate-api && npm install    # backend
 ```
 
-### 2. Install backend dependencies
+### 2. Configure the frontend
 
-```bash
-cd acadmate-api && npm install
-```
-
-### 3. Set up environment variables
-
-**Frontend** — copy `.env.example` to `.env.local`:
+Create `.env.local` in the repo root:
 
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:3001   # NestJS backend URL
-JWT_SECRET=                                 # must match backend JWT_SECRET
+JWT_SECRET=                                 # must match the backend's JWT_SECRET
+DATABASE_URL=                               # Neon pooled connection (frontend Prisma client)
+DIRECT_URL=                                 # Neon direct connection (needed by the db:* scripts)
 ```
 
-**Backend** — copy `acadmate-api/.env.example` to `acadmate-api/.env`:
+### 3. Configure the backend
+
+Copy `acadmate-api/.env.example` to `acadmate-api/.env` and fill it in:
 
 ```env
 DATABASE_URL=           # Neon pooled connection string
 DIRECT_URL=             # Neon direct connection string (for migrations)
-JWT_SECRET=             # long random secret
+
+JWT_SECRET=             # long random secret, identical to the frontend
 JWT_EXPIRES_IN=7d
 
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 API_URL=http://localhost:3001
-FRONTEND_URL=http://localhost:3000
+FRONTEND_URL=http://localhost:3000   # or ALLOWED_ORIGINS for multiple, comma-separated
 
 CLOUDINARY_CLOUD_NAME=
 CLOUDINARY_API_KEY=
 CLOUDINARY_API_SECRET=
 
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_SECURE=false
-SMTP_USER=              # Gmail address
-SMTP_PASS=              # Gmail App Password (16 chars, not your login password)
+GMAIL_USER=                  # Gmail address that sends mail
+GMAIL_REFRESH_TOKEN=         # OAuth refresh token with the gmail.send scope
 SMTP_FROM=Acadmate <noreply@yourdomain.com>
+
+PORT=3001
+NODE_ENV=development
 ```
 
-### 4. Run the database migrations
+Generate `GMAIL_REFRESH_TOKEN` from the [OAuth Playground](https://developers.google.com/oauthplayground) using your own Google OAuth credentials and the `https://www.googleapis.com/auth/gmail.send` scope.
+
+### 4. Run the migrations
 
 ```bash
-cd acadmate-api && npx prisma migrate dev
+cd acadmate-api && npm run db:migrate
 ```
 
-### 5. Start development servers
+### 5. Start both servers
 
 ```bash
-# Terminal 1 — Next.js frontend (port 3000)
+# Terminal 1 — frontend on port 3000
 npm run dev
 
-# Terminal 2 — NestJS backend (port 3001)
+# Terminal 2 — backend on port 3001
 cd acadmate-api && npm run start:dev
 ```
 
-## Key Scripts
+## Scripts
 
 ### Frontend
 
-| Script | Description |
+| Script | What it does |
 |---|---|
-| `npm run dev` | Start dev server |
-| `npm run build` | Build for production |
+| `npm run dev` | Start the dev server (binds `0.0.0.0`) |
+| `npm run build` | Generate the Prisma client, then build for production |
+| `npm run db:migrate` | Run migrations |
+| `npm run db:seed` | Seed base data |
+| `npm run db:seed:jamb` | Seed JAMB questions (uses `GROQ_API_KEY`) |
+| `npm run db:studio` | Open Prisma Studio |
+| `npm run db:backfill` | Backfill result breakdowns (`:dry`, `:verify` variants) |
 
 ### Backend
 
-| Script | Description |
+| Script | What it does |
 |---|---|
-| `npm run start:dev` | Start with hot-reload |
-| `npm run build` | Compile TypeScript |
-| `npx prisma migrate dev` | Run migrations |
-| `npx prisma studio` | Open Prisma Studio |
+| `npm run start:dev` | Start with hot reload |
+| `npm run build` | Compile with the Nest CLI |
+| `npm run test` | Run the Jest suite (`:watch`, `:cov`, `:e2e` variants) |
+| `npm run db:migrate` | Run migrations |
+| `npm run db:studio` | Open Prisma Studio |
 
-## Features
+## Content tooling
 
-- **CBT Engine** — timed 2-hour JAMB mock exams and Post-UTME 30-minute sessions with real past questions
-- **8,600+ Past Questions** — 11 subjects from 1978–2024, all with verified answers and AI explanations
-- **Post-UTME Prep** — practice papers for UNILAG, UI, OAU, UNIBEN, ABU and UNN
-- **Blog & News** — school news, scholarship alerts, study tips and career guides with email notifications for Premium users
-- **LaTeX Rendering** — full KaTeX support for mathematical questions in exams and blog posts
-- **Analytics** — score trends, subject accuracy, weak-topic detection, and national leaderboard
-- **Literature Guide** — summaries, character analysis and predicted exam questions for UTME prose texts
-- **Paywall & Access Tokens** — free tier + Premium plan with token-based admin upgrade flow
-- **Google OAuth** — one-click sign-in; no password required
-- **PWA** — installable on mobile with offline-ready manifest
-- **Admin Panel** — question import (CSV/JSON), blog publish workflow, user and token management
+Standalone scripts at the repo root digitise question booklets and seed content with AI help. They read provider keys from the environment and run outside the app:
+
+- `extract-questions.js` — turn booklet photos into import-ready JSON (`ANTHROPIC_API_KEY` or `GEMINI_API_KEY`).
+- `repair-options.js`, `fix_questions.mjs` — clean up extracted questions.
 
 ## Deployment
 
-The frontend deploys to **Vercel** and the backend deploys to **Render** (Docker).
+Deploy the frontend to **Vercel** and the backend to **Render** as a Docker service (see [`render.yaml`](render.yaml)).
 
-### Critical env vars to set
+**Vercel (frontend)** — set `NEXT_PUBLIC_API_URL` to the Render backend URL, and set `JWT_SECRET`, `DATABASE_URL`, and `DIRECT_URL` to the same values the backend uses.
 
-**Vercel (frontend):**
-- `NEXT_PUBLIC_API_URL` — your Render backend URL (e.g. `https://acadmate-api.onrender.com`)
-- `JWT_SECRET` — same value as the backend (used by Next.js middleware to verify route access)
+**Render (backend)** — set every var marked `sync: false` in `render.yaml`. The service exposes `/health` for health checks.
 
-**Render (backend):** set all vars from `acadmate-api/.env.example` that are marked `sync: false` in `render.yaml`.
+> **Gmail API:** the backend sends mail through the Gmail API, not SMTP. Set `GMAIL_USER` and `GMAIL_REFRESH_TOKEN`; the legacy `SMTP_*` keys in `render.yaml` are unused.
 
-> **Gmail SMTP:** `SMTP_PASS` must be a 16-character **App Password**, not your Gmail login password. Generate one at myaccount.google.com → Security → App Passwords.
 ![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/divinefavourak/acadmate?utm_source=oss&utm_medium=github&utm_campaign=divinefavourak%2Facadmate&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)
