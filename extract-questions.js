@@ -133,7 +133,7 @@ Return a JSON array where each element has exactly these fields:
 STRICT RULES — violating any rule means the entry is wrong:
 1. QUESTIONS ONLY: The "text" field must be a genuine exam question or instruction (e.g. "Find the value of x", "Which of the following..."). NEVER put answer explanations, solution workings, footnotes, page headers, or answer keys in the "text" field. If text is partially illegible, use your subject knowledge to reconstruct the most likely question.
 2. OPTIONS: Transcribe ALL 4 option texts (A, B, C, D). If an option is partially legible, use your subject knowledge to complete it sensibly — a plausible option is better than null. Only set options to null if the text is completely illegible or absent.
-3. NO LATEX: Write maths in plain text only — "x^2" not "$x^2$", "sqrt(3)" not "\\sqrt{3}", "pi" not "\\pi".
+3. USE LATEX: Write maths in plain text and latex in where it's befitted  — "x^2" or "$x^2$", "sqrt(3)" or "\\sqrt{3}", "pi" or "\\pi".
 4. BOLD/ITALICS: Represent bold as *word* and italics as _word_ in plain text.
 5. SKIP non-questions: Instructions pages, answer keys, passages (unless they are followed by comprehension questions), worked examples, and explanatory text are NOT questions — omit them entirely.
 6. Do NOT include the question number in the text field.
