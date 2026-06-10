@@ -128,7 +128,7 @@ export default function Sidebar() {
         {!collapsed && (
           <Link href="/dashboard" className="flex items-center gap-2 group min-w-0">
             <Image src="/images/logo.jpg" alt="Acadmate Logo" width={32} height={32} className="rounded-lg shadow-md object-cover shrink-0" />
-            <span className="text-xl font-bold tracking-tight truncate">Acadmate Busines Consult</span>
+            <span className="text-xl font-bold tracking-tight truncate">Acadmate Business Consult</span>
           </Link>
         )}
         <button
