@@ -104,13 +104,13 @@ export default function TokensPage() {
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold tracking-tight mb-2">Access Tokens</h1>
-        <p className="text-slate-400">Generate and manage premium access codes for students.</p>
+        <p className="text-slate-500 dark:text-slate-400">Generate and manage premium access codes for students.</p>
       </div>
 
       {/* Generate panel */}
-      <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 space-y-4">
+      <div className="bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 space-y-4">
         <h2 className="font-semibold text-lg">Generate New Token</h2>
-        <p className="text-sm text-slate-400">
+        <p className="text-sm text-slate-500 dark:text-slate-400">
           Each token can only be redeemed once. Share the code with the student after payment.
         </p>
         <div className="flex gap-3 flex-wrap">
@@ -119,7 +119,7 @@ export default function TokensPage() {
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder="Note (optional — e.g. John Doe, March 2026)"
-            className="flex-1 min-w-64 bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+            className="flex-1 min-w-64 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-indigo-500"
           />
           <button
             onClick={handleGenerate}
@@ -129,20 +129,20 @@ export default function TokensPage() {
             {generating ? "Generating…" : "Generate Token"}
           </button>
         </div>
-        {error && <p className="text-sm text-red-400">{error}</p>}
+        {error && <p className="text-sm text-red-500 dark:text-red-400">{error}</p>}
       </div>
 
       {/* Token list */}
-      <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6">
+      <div className="bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-semibold text-lg">All Tokens</h2>
-          <span className="text-sm text-slate-400">{total} total</span>
+          <span className="text-sm text-slate-500 dark:text-slate-400">{total} total</span>
         </div>
 
         {loading ? (
           <Loader className="py-8" />
         ) : tokens.length === 0 ? (
-          <p className="text-slate-400 text-sm text-center py-8">No tokens yet. Generate one above.</p>
+          <p className="text-slate-500 dark:text-slate-400 text-sm text-center py-8">No tokens yet. Generate one above.</p>
         ) : (
           <div className="space-y-3">
             {tokens.map((t) => (
@@ -150,23 +150,23 @@ export default function TokensPage() {
                 key={t.id}
                 className={`flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-xl border transition-colors ${
                   t.revokedAt
-                    ? "border-red-900/40 bg-red-950/10"
+                    ? "border-red-200 bg-red-50 dark:border-red-900/40 dark:bg-red-950/10"
                     : t.usedAt
-                    ? "border-slate-700/50 bg-slate-900/30"
-                    : "border-slate-700 bg-slate-900/50 hover:border-slate-600"
+                    ? "border-slate-200 bg-slate-50 dark:border-slate-700/50 dark:bg-slate-900/30"
+                    : "border-slate-200 bg-slate-50 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-900/50 dark:hover:border-slate-600"
                 }`}
               >
                 {/* Code */}
                 <div className="flex items-center gap-3 min-w-0 flex-1">
                   <button
                     onClick={() => copyCode(t.code)}
-                    className="font-mono text-sm font-bold text-indigo-400 hover:text-indigo-300 transition-colors shrink-0"
+                    className="font-mono text-sm font-bold text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors shrink-0"
                     title="Click to copy"
                   >
                     {copyFeedback === t.code ? "Copied!" : t.code}
                   </button>
                   {t.note && (
-                    <span className="text-xs text-slate-400 truncate">{t.note}</span>
+                    <span className="text-xs text-slate-500 dark:text-slate-400 truncate">{t.note}</span>
                   )}
                 </div>
 
@@ -174,7 +174,7 @@ export default function TokensPage() {
                 <div className="flex items-center gap-3 shrink-0 flex-wrap">
                   {t.revokedAt ? (
                     <div className="text-right">
-                      <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-red-900/40 text-red-400 border border-red-800">
+                      <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700 border border-red-200 dark:bg-red-900/40 dark:text-red-400 dark:border-red-800">
                         Revoked
                       </span>
                       {t.usedBy && (
@@ -183,7 +183,7 @@ export default function TokensPage() {
                     </div>
                   ) : t.usedAt ? (
                     <div className="text-right">
-                      <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-900/40 text-emerald-400 border border-emerald-800">
+                      <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700 border border-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-400 dark:border-emerald-800">
                         Redeemed
                       </span>
                       {t.usedBy && (
@@ -191,7 +191,7 @@ export default function TokensPage() {
                       )}
                     </div>
                   ) : (
-                    <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-amber-900/40 text-amber-400 border border-amber-800">
+                    <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700 border border-amber-200 dark:bg-amber-900/40 dark:text-amber-400 dark:border-amber-800">
                       Unused
                     </span>
                   )}
@@ -202,7 +202,7 @@ export default function TokensPage() {
                     <button
                       onClick={() => handleReactivate(t.id)}
                       disabled={busyId === t.id}
-                      className="px-2.5 py-1 rounded-lg text-xs font-semibold text-emerald-400 border border-emerald-800 hover:bg-emerald-950/40 disabled:opacity-50 transition-colors"
+                      className="px-2.5 py-1 rounded-lg text-xs font-semibold text-emerald-600 border border-emerald-300 hover:bg-emerald-50 dark:text-emerald-400 dark:border-emerald-800 dark:hover:bg-emerald-950/40 disabled:opacity-50 transition-colors"
                       title="Reactivate — restores Premium access"
                     >
                       {busyId === t.id ? "…" : "Reactivate"}
@@ -211,7 +211,7 @@ export default function TokensPage() {
                     <button
                       onClick={() => handleRevoke(t.id)}
                       disabled={busyId === t.id}
-                      className="px-2.5 py-1 rounded-lg text-xs font-semibold text-red-400 border border-red-800 hover:bg-red-950/40 disabled:opacity-50 transition-colors"
+                      className="px-2.5 py-1 rounded-lg text-xs font-semibold text-red-600 border border-red-300 hover:bg-red-50 dark:text-red-400 dark:border-red-800 dark:hover:bg-red-950/40 disabled:opacity-50 transition-colors"
                       title="Revoke — removes Premium access immediately"
                     >
                       {busyId === t.id ? "…" : "Revoke"}
@@ -220,7 +220,7 @@ export default function TokensPage() {
                     <button
                       onClick={() => handleDelete(t.id)}
                       disabled={busyId === t.id}
-                      className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-950/30 disabled:opacity-50 transition-colors"
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:text-slate-500 dark:hover:text-red-400 dark:hover:bg-red-950/30 disabled:opacity-50 transition-colors"
                       title="Delete token"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>

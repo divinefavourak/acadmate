@@ -118,7 +118,7 @@ export default function AdminSidebar() {
         </Link>
       </div>
 
-      <nav className="flex-1 px-4 space-y-2">
+      <nav className="flex-1 min-h-0 overflow-y-auto px-4 space-y-2 [scrollbar-width:thin] [scrollbar-color:var(--color-slate-300)_transparent] dark:[scrollbar-color:var(--color-slate-700)_transparent]">
         {navItems.map(({ href, label, icon, exact }) => {
           const active = exact ? pathname === href : pathname === href || pathname.startsWith(href + "/");
           return (

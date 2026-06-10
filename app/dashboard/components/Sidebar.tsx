@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
@@ -102,17 +102,46 @@ export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [signOutError, setSignOutError] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+
+  // Restore the collapsed preference on mount (kept out of the initial render to
+  // avoid an SSR/client hydration mismatch — the width transition smooths the catch-up).
+  useEffect(() => {
+    setCollapsed(localStorage.getItem("sidebarCollapsed") === "true");
+  }, []);
+
+  const toggleCollapsed = () => {
+    setCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem("sidebarCollapsed", String(next));
+      return next;
+    });
+  };
 
   return (
-    <aside className="w-64 border-r border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-black/50 backdrop-blur-md flex-col hidden md:flex">
-      <div className="p-6">
-        <Link href="/dashboard" className="flex items-center gap-2 mb-8 group">
-          <Image src="/images/logo.jpg" alt="Acadmate Logo" width={32} height={32} className="rounded-lg shadow-md object-cover" />
-          <span className="text-xl font-bold tracking-tight">Acadmate</span>
-        </Link>
+    <aside
+      className={`${
+        collapsed ? "w-20" : "w-64"
+      } shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-black/50 backdrop-blur-md flex-col hidden md:flex transition-[width] duration-300 ease-in-out`}
+    >
+      <div className={`flex items-center p-4 ${collapsed ? "justify-center" : "justify-between"}`}>
+        {!collapsed && (
+          <Link href="/dashboard" className="flex items-center gap-2 group min-w-0">
+            <Image src="/images/logo.jpg" alt="Acadmate Logo" width={32} height={32} className="rounded-lg shadow-md object-cover shrink-0" />
+            <span className="text-xl font-bold tracking-tight truncate">Acadmate Busines Consult</span>
+          </Link>
+        )}
+        <button
+          onClick={toggleCollapsed}
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          className="p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform duration-300 ${collapsed ? "rotate-180" : ""}`}><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg>
+        </button>
       </div>
 
-      <nav className="flex-1 px-4 space-y-2">
+      <nav className="flex-1 min-h-0 overflow-y-auto px-4 space-y-2 [scrollbar-width:thin] [scrollbar-color:var(--color-slate-300)_transparent] dark:[scrollbar-color:var(--color-slate-700)_transparent]">
         {navItems.map(({ href, label, icon, exact }) => {
           const active = exact
             ? pathname === href
@@ -121,22 +150,29 @@ export default function Sidebar() {
             <Link
               key={href}
               href={href}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${
+              title={collapsed ? label : undefined}
+              className={`flex items-center ${collapsed ? "justify-center" : "gap-3"} px-4 py-3 rounded-xl font-medium transition-colors ${
                 active
                   ? "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400"
                   : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50"
               }`}
             >
               {icon}
-              {label}
+              {!collapsed && label}
             </Link>
           );
         })}
       </nav>
 
       <div className="p-3 mt-auto border-t border-slate-200 dark:border-slate-800 space-y-1">
-        <UserMenu />
-        {signOutError && (
+        {collapsed ? (
+          <div className="flex justify-center py-1">
+            <UserMenu compact />
+          </div>
+        ) : (
+          <UserMenu />
+        )}
+        {signOutError && !collapsed && (
           <p className="text-xs text-red-500 px-4 py-1">Sign-out failed. Please try again.</p>
         )}
         <button
@@ -149,10 +185,11 @@ export default function Sidebar() {
               setSignOutError(true);
             }
           }}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-red-500 dark:hover:text-red-400 font-medium transition-colors"
+          title={collapsed ? "Sign Out" : undefined}
+          className={`w-full flex items-center ${collapsed ? "justify-center" : "gap-3"} px-4 py-3 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-red-500 dark:hover:text-red-400 font-medium transition-colors`}
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
-          Sign Out
+          {!collapsed && "Sign Out"}
         </button>
       </div>
     </aside>
