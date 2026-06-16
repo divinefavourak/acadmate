@@ -21,6 +21,7 @@ import { AdminModule } from './modules/admin/admin.module';
 import { LeaderboardModule } from './modules/leaderboard/leaderboard.module';
 import { BlogModule } from './modules/blog/blog.module';
 import { ForumModule } from './modules/forum/forum.module';
+import { MockExamModule } from './modules/mock-exam/mock-exam.module';
 import { HealthController } from './health.controller';
 import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
 import { CacheModule } from './cache/cache.module';
@@ -56,6 +57,7 @@ import { CacheModule } from './cache/cache.module';
     LeaderboardModule,
     BlogModule,
     ForumModule,
+    MockExamModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

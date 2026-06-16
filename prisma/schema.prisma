@@ -610,3 +610,124 @@ model BlogPost {
   @@index([category, publishedAt])
   @@map("blog_posts")
 }
+
+// ─── Mock Exam (standalone, no FK into users) ─────────────────────────────────
+
+model MockExam {
+  id              String   @id @default(cuid())
+  title           String
+  description     String?  @db.Text
+  startsAt        DateTime
+  endsAt          DateTime
+  durationMinutes Int      @default(60)
+  isActive        Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  questions    MockExamQuestion[]
+  participants MockExamParticipant[]
+  sessions     MockExamSession[]
+  panicReports MockPanicReport[]
+
+  @@map("mock_exams")
+}
+
+model MockExamQuestion {
+  id          String   @id @default(cuid())
+  mockExamId  String
+  text        String   @db.Text
+  imageUrl    String?  @db.Text
+  options     Json
+  subject     String
+  explanation String?  @db.Text
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  mockExam MockExam         @relation(fields: [mockExamId], references: [id], onDelete: Cascade)
+  answers  MockExamAnswer[]
+
+  @@index([mockExamId])
+  @@map("mock_exam_questions")
+}
+
+model MockExamParticipant {
+  id         String   @id @default(cuid())
+  mockExamId String
+  phone      String
+  name       String?
+  pinHash    String?
+  isApproved Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  mockExam     MockExam          @relation(fields: [mockExamId], references: [id], onDelete: Cascade)
+  sessions     MockExamSession[]
+  panicReports MockPanicReport[]
+
+  @@unique([mockExamId, phone])
+  @@index([mockExamId])
+  @@map("mock_exam_participants")
+}
+
+model MockExamSession {
+  id            String            @id @default(cuid())
+  mockExamId    String
+  participantId String
+  attemptNumber Int               @default(1)
+  status        MockSessionStatus @default(IN_PROGRESS)
+  startedAt     DateTime          @default(now())
+  submittedAt   DateTime?
+  score         Float?
+  correct       Int?
+  total         Int?
+
+  mockExam     MockExam            @relation(fields: [mockExamId], references: [id], onDelete: Cascade)
+  participant  MockExamParticipant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  answers      MockExamAnswer[]
+  panicReports MockPanicReport[]
+
+  @@unique([participantId, attemptNumber])
+  @@index([mockExamId])
+  @@index([participantId])
+  @@map("mock_exam_sessions")
+}
+
+model MockExamAnswer {
+  id         String   @id @default(cuid())
+  sessionId  String
+  questionId String
+  selected   String?
+  isCorrect  Boolean?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  session  MockExamSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  question MockExamQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, questionId])
+  @@index([sessionId])
+  @@map("mock_exam_answers")
+}
+
+model MockPanicReport {
+  id            String   @id @default(cuid())
+  mockExamId    String
+  participantId String
+  sessionId     String?
+  message       String   @db.Text
+  isResolved    Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  mockExam    MockExam            @relation(fields: [mockExamId], references: [id], onDelete: Cascade)
+  participant MockExamParticipant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  session     MockExamSession?    @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+
+  @@index([mockExamId, isResolved])
+  @@index([participantId])
+  @@map("mock_panic_reports")
+}
+
+enum MockSessionStatus {
+  IN_PROGRESS
+  SUBMITTED
+  TIMED_OUT
+}

@@ -1,0 +1,67 @@
+import { IsString, IsDateString, IsInt, IsOptional, IsBoolean, Min, Max, IsArray, ValidateNested, IsIn } from 'class-validator';
+import { Type } from 'class-transformer';
+
+export class CreateMockExamDto {
+  @IsString() title: string;
+  @IsOptional() @IsString() description?: string;
+  @IsDateString() startsAt: string;
+  @IsDateString() endsAt: string;
+  @IsInt() @Min(10) @Max(300) durationMinutes: number;
+}
+
+export class UpdateMockExamDto {
+  @IsOptional() @IsString() title?: string;
+  @IsOptional() @IsString() description?: string;
+  @IsOptional() @IsDateString() startsAt?: string;
+  @IsOptional() @IsDateString() endsAt?: string;
+  @IsOptional() @IsInt() @Min(10) @Max(300) durationMinutes?: number;
+  @IsOptional() @IsBoolean() isActive?: boolean;
+}
+
+export class AddParticipantDto {
+  @IsString() phone: string;
+  @IsOptional() @IsString() name?: string;
+}
+
+export class RegisterParticipantDto {
+  @IsString() phone: string;
+  @IsString() name: string;
+  @IsString() pin: string; // 4-digit, validated in service
+}
+
+export class LoginParticipantDto {
+  @IsString() phone: string;
+  @IsString() pin: string;
+}
+
+class QuestionOptionDto {
+  @IsString() label: string; // A B C D
+  @IsString() text: string;
+  @IsBoolean() isCorrect: boolean;
+}
+
+class UploadQuestionItemDto {
+  @IsString() text: string;
+  @IsOptional() @IsString() imageUrl?: string;
+  @IsArray() @ValidateNested({ each: true }) @Type(() => QuestionOptionDto) options: QuestionOptionDto[];
+  @IsString() subject: string;
+  @IsOptional() @IsString() explanation?: string;
+}
+
+export class UploadQuestionsDto {
+  @IsArray() @ValidateNested({ each: true }) @Type(() => UploadQuestionItemDto) questions: UploadQuestionItemDto[];
+}
+
+export class SaveAnswerDto {
+  @IsString() questionId: string;
+  @IsOptional() @IsString() @IsIn(['A', 'B', 'C', 'D']) selected?: string;
+}
+
+export class PanicReportDto {
+  @IsString() message: string;
+  @IsOptional() @IsString() sessionId?: string;
+}
+
+export class ResolvePanicDto {
+  @IsBoolean() isResolved: boolean;
+}
