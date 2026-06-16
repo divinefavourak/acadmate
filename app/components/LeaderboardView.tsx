@@ -170,7 +170,7 @@ function RankRow({
 
         <p
           className="font-bold tabular-nums text-sm shrink-0"
-          style={{ color: accent }}
+          style={{ color: isSolidRow ? "#fff" : accent }}
         >
           {entry.points.toLocaleString()} pts
         </p>
@@ -230,12 +230,11 @@ export default function LeaderboardView({
           {/* ── Podium ────────────────────────────────────────────────────── */}
           {top3.length > 0 && (
             <div className="px-6 pt-10 pb-8">
-              <div className="flex items-end justify-center gap-6">
+              <div className="flex items-center justify-center gap-6">
                 {podiumEntries.map((entry, pi) => {
                   const isFirst = entry.rank === 1;
                   const cfg = RANK_CFG[entry.rank as 1 | 2 | 3];
                   const avatarSize = isFirst ? 76 : 58;
-                  const podiumH = isFirst ? 100 : entry.rank === 2 ? 72 : 56;
                   // 2nd animates first, 3rd next, 1st last (the reveal)
                   const delay = pi === 0 ? 0.1 : pi === 2 ? 0.38 : 0.58;
 
@@ -270,19 +269,7 @@ export default function LeaderboardView({
                         </p>
                       </div>
 
-                      {/* Podium block */}
-                      <div
-                        className="w-full rounded-t-2xl flex items-center justify-center font-black"
-                        style={{
-                          height: podiumH,
-                          background: cfg.subtleBg,
-                          border: `1px solid ${cfg.accent}35`,
-                          color: cfg.accent,
-                          fontSize: isFirst ? 22 : 16,
-                        }}
-                      >
-                        #{entry.rank}
-                      </div>
+
                     </motion.div>
                   );
                 })}
