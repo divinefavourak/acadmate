@@ -1,0 +1,68 @@
+services:
+  db:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: jesutobi
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: acadmate
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+    ports:
+      - "5433:5432"   # host:container — matches the existing standalone container mapping
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jesutobi -d acadmate"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - acadmate_net
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --save 60 100 --loglevel warning
+    volumes:
+      - redis_data:/data
+    networks:
+      - acadmate_net
+
+  api:
+    build:
+      context: ./acadmate-api
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    # Deployment vars override anything in env_file
+    environment:
+      NODE_ENV: production
+      PORT: "3001"
+      DATABASE_URL: postgresql://jesutobi:${POSTGRES_PASSWORD}@db:5432/acadmate
+      DIRECT_URL: postgresql://jesutobi:${POSTGRES_PASSWORD}@db:5432/acadmate
+      REDIS_URL: redis://redis:6379
+    # App secrets (JWT, Cloudinary, SMTP, Google OAuth…) — copy from .env.production.example
+    env_file:
+      - ./acadmate-api/.env.production
+    ports:
+      - "3001:3001"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - acadmate_net
+
+networks:
+  acadmate_net:
+    driver: bridge
+
+volumes:
+  # Adopt the existing volume created by the standalone Postgres container.
+  # Do NOT remove pgdata — it holds your production data.
+  pgdata:
+    external: true
+  redis_data:
