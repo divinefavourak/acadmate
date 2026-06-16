@@ -74,7 +74,7 @@ export default function LeaderboardView({
     function load() {
       apiClient<LeaderboardEntry[]>(`/api/leaderboard?type=${type}`)
         .then((data) => { if (!cancelled) setEntries(data); })
-        .catch(() => { if (!cancelled) setEntries([]); })
+        .catch(() => {})
         .finally(() => { if (!cancelled) setLoading(false); });
     }
     load();
@@ -110,8 +110,8 @@ export default function LeaderboardView({
                   const cfg = RANK_CFG[entry.rank as 1 | 2 | 3];
                   const avatarSize = isFirst ? 72 : 56;
                   const podiumH = isFirst ? 96 : entry.rank === 2 ? 68 : 52;
-                  // 1st enters last with the biggest spring so it feels like the reveal
-                  const delay = pi === 1 ? 0.1 : pi === 0 ? 0.38 : 0.56;
+                  // podium order is [2nd, 1st, 3rd] → pi 0=2nd, 1=1st, 2=3rd; 1st enters last
+                  const delay = pi === 0 ? 0.1 : pi === 2 ? 0.38 : 0.56;
 
                   return (
                     <motion.div
