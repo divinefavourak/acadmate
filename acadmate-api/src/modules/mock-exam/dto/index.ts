@@ -23,6 +23,12 @@ export class AddParticipantDto {
   @IsOptional() @IsString() name?: string;
 }
 
+export class BulkAddParticipantsDto {
+  @IsArray() @IsString({ each: true }) phones: string[];
+}
+
+
+
 export class RegisterParticipantDto {
   @IsString() phone: string;
   @IsString() name: string;

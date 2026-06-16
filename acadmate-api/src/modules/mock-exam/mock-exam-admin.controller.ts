@@ -6,7 +6,7 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { MockExamService } from './mock-exam.service';
 import {
-  CreateMockExamDto, UpdateMockExamDto, AddParticipantDto,
+  CreateMockExamDto, UpdateMockExamDto, AddParticipantDto, BulkAddParticipantsDto,
   UploadQuestionsDto, ResolvePanicDto,
 } from './dto';
 
@@ -41,6 +41,11 @@ export class MockExamAdminController {
   @Post(':id/participants')
   addParticipant(@Param('id') id: string, @Body() dto: AddParticipantDto) {
     return this.service.addParticipant(id, dto);
+  }
+
+  @Post(':id/participants/bulk')
+  addParticipants(@Param('id') id: string, @Body() dto: BulkAddParticipantsDto) {
+    return this.service.addParticipants(id, dto);
   }
 
   @Patch(':id/participants/:participantId/approve')

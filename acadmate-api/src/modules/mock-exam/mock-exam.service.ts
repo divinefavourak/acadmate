@@ -7,7 +7,7 @@ import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
-  CreateMockExamDto, UpdateMockExamDto, AddParticipantDto,
+  CreateMockExamDto, UpdateMockExamDto, AddParticipantDto, BulkAddParticipantsDto,
   RegisterParticipantDto, LoginParticipantDto, UploadQuestionsDto,
   SaveAnswerDto, PanicReportDto,
 } from './dto';
@@ -79,13 +79,12 @@ export class MockExamService {
 
   async listParticipants(mockExamId: string) {
     await this.getMockExam(mockExamId);
-    return this.prisma.mockExamParticipant.findMany({
+    const rows = await this.prisma.mockExamParticipant.findMany({
       where: { mockExamId },
       orderBy: { createdAt: 'desc' },
-      include: {
-        sessions: { select: { id: true, attemptNumber: true, status: true, score: true, submittedAt: true } },
-      },
+      include: { _count: { select: { sessions: true } } },
     });
+    return rows.map((p) => ({ ...p, isRegistered: p.pinHash !== null }));
   }
 
   async addParticipant(mockExamId: string, dto: AddParticipantDto) {
@@ -98,6 +97,24 @@ export class MockExamService {
     return this.prisma.mockExamParticipant.create({
       data: { mockExamId, phone, name: dto.name, isApproved: true },
     });
+  }
+
+  async addParticipants(mockExamId: string, dto: BulkAddParticipantsDto) {
+    await this.getMockExam(mockExamId);
+    let added = 0, skipped = 0;
+    for (const rawPhone of dto.phones) {
+      const phone = rawPhone.trim();
+      if (!phone) continue;
+      const exists = await this.prisma.mockExamParticipant.findUnique({
+        where: { mockExamId_phone: { mockExamId, phone } },
+      });
+      if (exists) { skipped++; continue; }
+      await this.prisma.mockExamParticipant.create({
+        data: { mockExamId, phone, isApproved: true },
+      });
+      added++;
+    }
+    return { added, skipped };
   }
 
   async setParticipantApproval(participantId: string, isApproved: boolean) {
@@ -127,6 +144,7 @@ export class MockExamService {
 
   async uploadQuestions(mockExamId: string, dto: UploadQuestionsDto) {
     await this.getMockExam(mockExamId);
+    await this.prisma.mockExamQuestion.deleteMany({ where: { mockExamId } });
     const created = await this.prisma.mockExamQuestion.createMany({
       data: dto.questions.map((q, i) => ({
         mockExamId,
@@ -151,13 +169,17 @@ export class MockExamService {
 
   async listResults(mockExamId: string) {
     await this.getMockExam(mockExamId);
-    return this.prisma.mockExamSession.findMany({
-      where: { mockExamId, status: { in: ['SUBMITTED', 'TIMED_OUT'] } },
-      include: {
-        participant: { select: { id: true, phone: true, name: true } },
-      },
+    const sessions = await this.prisma.mockExamSession.findMany({
+      where: { mockExamId },
+      include: { participant: { select: { id: true, phone: true, name: true } } },
       orderBy: [{ score: 'desc' }, { submittedAt: 'asc' }],
     });
+    return sessions.map((s) => ({
+      ...s,
+      durationSeconds: s.submittedAt
+        ? Math.floor((s.submittedAt.getTime() - s.startedAt.getTime()) / 1000)
+        : null,
+    }));
   }
 
   async listPanics(mockExamId: string) {
@@ -190,7 +212,19 @@ export class MockExamService {
       include: { _count: { select: { questions: true } } },
     });
     if (!exam) throw new NotFoundException('No active mock exam');
-    // Never expose questions here — just metadata
+    return this.publicExamShape(exam);
+  }
+
+  async getPublicMockExam(id: string) {
+    const exam = await this.prisma.mockExam.findUnique({
+      where: { id, isActive: true },
+      include: { _count: { select: { questions: true } } },
+    });
+    if (!exam) throw new NotFoundException('Exam not found or not active');
+    return this.publicExamShape(exam);
+  }
+
+  private publicExamShape(exam: { id: string; title: string; description: string | null; startsAt: Date; endsAt: Date; durationMinutes: number; _count: { questions: number } }) {
     return {
       id: exam.id,
       title: exam.title,

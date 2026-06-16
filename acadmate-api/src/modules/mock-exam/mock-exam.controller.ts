@@ -21,6 +21,12 @@ export class MockExamController {
     return this.service.getActiveMockExam();
   }
 
+  /** Public exam info by ID */
+  @Get(':mockExamId/info')
+  getExamInfo(@Param('mockExamId') mockExamId: string) {
+    return this.service.getPublicMockExam(mockExamId);
+  }
+
   /** Register — phone must already be on the approved list */
   @Post(':mockExamId/register')
   register(@Param('mockExamId') mockExamId: string, @Body() dto: RegisterParticipantDto) {
