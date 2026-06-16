@@ -25,11 +25,13 @@ WORKDIR /app
 
 COPY package*.json ./
 
-RUN npm ci --omit=dev --ignore-scripts
+# Copy node_modules from builder then prune dev deps — avoids platform-specific
+# lock file mismatches that break npm ci on Linux when lock was generated on Windows.
+COPY --from=builder /app/node_modules ./node_modules
+RUN npm prune --omit=dev --ignore-scripts
 
-# Prisma schema (needed for db push at startup) + generated client from builder
+# Prisma schema (needed for db push at startup) + generated client already in node_modules
 COPY prisma ./prisma/
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 
 # Compiled NestJS output
 COPY --from=builder /app/dist ./dist
