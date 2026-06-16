@@ -379,7 +379,7 @@ model ExamSessionQuestion {
   createdAt     DateTime @default(now())
 
   examSession ExamSession @relation(fields: [examSessionId], references: [id], onDelete: Cascade)
-  question    Question    @relation(fields: [questionId], references: [id])
+  question    Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
   @@unique([examSessionId, questionId])
   @@index([examSessionId])
@@ -396,7 +396,7 @@ model UserAnswer {
   updatedAt     DateTime @updatedAt
 
   examSession ExamSession    @relation(fields: [examSessionId], references: [id], onDelete: Cascade)
-  question    Question       @relation(fields: [questionId], references: [id])
+  question    Question        @relation(fields: [questionId], references: [id], onDelete: Cascade)
   option      QuestionOption? @relation(fields: [optionId], references: [id])
 
   @@unique([examSessionId, questionId])
