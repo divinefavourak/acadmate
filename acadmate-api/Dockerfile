@@ -10,7 +10,7 @@ COPY tsconfig.json ./
 COPY src ./src/
 COPY nest-cli.json ./
 
-RUN npm ci --ignore-scripts
+RUN npm install --ignore-scripts
 
 RUN npx prisma generate
 
