@@ -6,11 +6,19 @@
  * Usage: node export-flagged.mjs
  */
 
-import { PrismaClient } from './acadmate-api/node_modules/@prisma/client/index.js';
+// Supports running from project root (local) or inside the Docker container (/app)
+import { createRequire } from 'module';
 import { writeFileSync } from 'fs';
+import { existsSync } from 'fs';
 import { config } from 'dotenv';
 
-config({ path: './acadmate-api/.env' });
+const inContainer = existsSync('/app/node_modules/@prisma/client');
+const require = createRequire(import.meta.url);
+const { PrismaClient } = inContainer
+  ? require('/app/node_modules/@prisma/client')
+  : require('./acadmate-api/node_modules/@prisma/client');
+
+if (!inContainer) config({ path: './acadmate-api/.env' });
 
 const prisma = new PrismaClient();
 
