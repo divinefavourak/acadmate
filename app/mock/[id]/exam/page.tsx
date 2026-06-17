@@ -7,6 +7,7 @@ import { mockFetch } from "@/lib/api/mockClient";
 import { useExamGuard } from "@/app/exam/hooks/useExamGuard";
 import type { StrikeWarning } from "@/app/exam/hooks/useExamGuard";
 import Calculator from "@/app/exam/components/Calculator";
+import Image from "next/image";
 
 interface Option { label: string; text: string }
 interface Question { id: string; text: string; subject: string | null; imageUrl?: string | null; options: Option[] }
@@ -226,9 +227,12 @@ export default function MockExamPage() {
       {/* Header */}
       <div className="sticky top-0 z-10 bg-[#0f172a]/95 backdrop-blur border-b border-white/10 px-4 py-3">
         <div className="max-w-2xl mx-auto flex items-center justify-between gap-4">
-          <div className="min-w-0">
-            <p className="text-xs text-slate-500 uppercase tracking-wider">Attempt {session.attemptNumber}</p>
-            <p className="font-semibold truncate text-sm">{session.examTitle}</p>
+          <div className="flex items-center gap-2.5 min-w-0">
+            <Image src="/images/logo.jpg" alt="Acadmate" width={30} height={30} className="rounded-lg shadow-md object-cover shrink-0" />
+            <div className="min-w-0">
+              <p className="text-xs text-slate-500 uppercase tracking-wider">Attempt {session.attemptNumber}</p>
+              <p className="font-semibold truncate text-sm">{session.examTitle}</p>
+            </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             {requireFullscreen && !isFullscreen && (

@@ -33,12 +33,32 @@ export default function MockRegisterPage() {
   }
 
   function handleAvatarFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
+    const input = e.target;
+    const file = input.files?.[0];
+    // Always clear the input so re-selecting the same file fires onChange again.
+    input.value = "";
     if (!file) return;
     if (file.size > MAX_AVATAR_BYTES) { setError("Image too large — please pick one under 2 MB."); return; }
     setError("");
     const reader = new FileReader();
-    reader.onload = () => setAvatarUrl(reader.result as string);
+    reader.onload = () => {
+      // Downscale + square-crop to a small thumbnail so we never store/serve a
+      // multi-MB data URL (keeps leaderboard polling light).
+      const img = new window.Image();
+      img.onload = () => {
+        const size = 128;
+        const canvas = document.createElement("canvas");
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) { setAvatarUrl(reader.result as string); return; }
+        const min = Math.min(img.width, img.height);
+        ctx.drawImage(img, (img.width - min) / 2, (img.height - min) / 2, min, min, 0, 0, size, size);
+        setAvatarUrl(canvas.toDataURL("image/jpeg", 0.82));
+      };
+      img.onerror = () => setError("Could not read that image. Please try another.");
+      img.src = reader.result as string;
+    };
     reader.readAsDataURL(file);
   }
 

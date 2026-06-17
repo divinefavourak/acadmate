@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { motion, useReducedMotion } from "framer-motion";
 import { apiClient } from "@/lib/api/client";
 import UserAvatar from "@/app/components/UserAvatar";
@@ -133,6 +134,11 @@ export default function MockLeaderboardPage() {
   return (
     <div className="min-h-screen text-white py-10 px-4" style={{ background: "#0f172a" }}>
       <div className="max-w-2xl mx-auto space-y-6">
+        <div className="flex items-center justify-center gap-2">
+          <Image src="/images/logo.jpg" alt="Acadmate" width={28} height={28} className="rounded-lg shadow-md object-cover" />
+          <span className="font-bold tracking-tight text-lg">Acadmate</span>
+        </div>
+
         <div className="text-center space-y-2">
           <div className="text-5xl">🏆</div>
           <h1 className="text-3xl font-black">Mock Exam Leaderboard</h1>
