@@ -107,6 +107,9 @@ export async function apiClient<T = unknown>(
 
   // Guard against non-JSON responses (CDN/proxy HTML error pages).
   const text = await res.text();
+  // An empty 200 body (e.g. a NestJS handler that returned null/undefined) is a
+  // valid "no data" response, not a parse error — surface it as undefined.
+  if (text === '') return undefined as never;
   try {
     return JSON.parse(text) as T;
   } catch {
