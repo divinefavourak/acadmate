@@ -35,6 +35,16 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * Typed fetch wrapper around the NestJS API.
+ *
+ * Resolves to the parsed JSON body as `T`. No-content responses (HTTP 204 or an
+ * empty 200 body, e.g. a handler that returned `null`) resolve to `undefined`;
+ * the `as never` casts intentionally keep the default contract as `Promise<T>`
+ * so the common case (an endpoint that always returns data) needs no null-check.
+ * Callers of endpoints that can legitimately be empty should opt into that by
+ * widening the type argument, e.g. `apiClient<Session | null>(...)`.
+ */
 export async function apiClient<T = unknown>(
   path: string,
   options: FetchOptions = {},
@@ -107,6 +117,9 @@ export async function apiClient<T = unknown>(
 
   // Guard against non-JSON responses (CDN/proxy HTML error pages).
   const text = await res.text();
+  // An empty 200 body (e.g. a NestJS handler that returned null/undefined) is a
+  // valid "no data" response, not a parse error — surface it as undefined.
+  if (text === '') return undefined as never;
   try {
     return JSON.parse(text) as T;
   } catch {
