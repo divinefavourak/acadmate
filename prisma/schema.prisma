@@ -651,13 +651,15 @@ model MockExamQuestion {
 }
 
 model MockExamParticipant {
-  id         String   @id @default(cuid())
-  mockExamId String
-  phone      String
-  name       String?
-  pinHash    String?
-  isApproved Boolean  @default(false)
-  createdAt  DateTime @default(now())
+  id           String   @id @default(cuid())
+  mockExamId   String
+  phone        String
+  name         String?
+  pinHash      String?
+  avatarConfig Json?
+  avatarUrl    String?  @db.Text
+  isApproved   Boolean  @default(false)
+  createdAt    DateTime @default(now())
 
   mockExam     MockExam          @relation(fields: [mockExamId], references: [id], onDelete: Cascade)
   sessions     MockExamSession[]

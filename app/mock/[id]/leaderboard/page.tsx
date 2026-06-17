@@ -3,13 +3,17 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { motion, useReducedMotion } from "framer-motion";
 import { apiClient } from "@/lib/api/client";
+import UserAvatar from "@/app/components/UserAvatar";
 
 interface LeaderboardEntry {
   rank: number;
   participantId: string;
   name: string;
+  avatarConfig: Record<string, unknown> | null;
+  avatarUrl: string | null;
   score: number | null;
   attemptNumber: number;
 }
@@ -22,10 +26,6 @@ const RANK_CFG = {
 } as const;
 
 const PODIUM_IDX = [1, 0, 2]; // left = 2nd, centre = 1st, right = 3rd
-
-function initial(name: string) {
-  return (name?.trim()?.[0] ?? "?").toUpperCase();
-}
 
 function fmtScore(score: number | null) {
   return `${(score?.toFixed(1) ?? "0")}%`;
@@ -51,14 +51,10 @@ function PodiumAvatar({ entry, size, accent }: { entry: LeaderboardEntry; size: 
   return (
     <div className="relative shrink-0" style={{ width: size, height: size }}>
       <div
-        className="rounded-full flex items-center justify-center w-full h-full font-black text-white"
-        style={{
-          fontSize: size * 0.4,
-          background: `radial-gradient(circle, ${accent}66, ${accent}33)`,
-          boxShadow: `0 0 0 3px ${accent}, 0 0 16px ${accent}55`,
-        }}
+        className="rounded-full overflow-hidden w-full h-full"
+        style={{ boxShadow: `0 0 0 3px ${accent}, 0 0 16px ${accent}55` }}
       >
-        {initial(entry.name)}
+        <UserAvatar avatarConfig={entry.avatarConfig} avatarUrl={entry.avatarUrl} name={entry.name} size={size} />
       </div>
       <div
         className="absolute -bottom-1 -left-1 rounded-full flex items-center justify-center font-black text-white"
@@ -97,10 +93,10 @@ function RankRow({ entry, delay }: { entry: LeaderboardEntry; delay: number }) {
           {entry.rank}
         </span>
         <div
-          className="rounded-full flex items-center justify-center shrink-0 font-bold text-sm text-white"
-          style={{ width: 36, height: 36, background: `${ringColor}55`, boxShadow: `0 0 0 2px ${ringColor}` }}
+          className="rounded-full overflow-hidden shrink-0"
+          style={{ width: 36, height: 36, boxShadow: `0 0 0 2px ${ringColor}` }}
         >
-          {initial(entry.name)}
+          <UserAvatar avatarConfig={entry.avatarConfig} avatarUrl={entry.avatarUrl} name={entry.name} size={36} />
         </div>
         <p className="flex-1 font-semibold text-sm truncate" style={{ color: textColor }}>
           {entry.name}
@@ -138,6 +134,11 @@ export default function MockLeaderboardPage() {
   return (
     <div className="min-h-screen text-white py-10 px-4" style={{ background: "#0f172a" }}>
       <div className="max-w-2xl mx-auto space-y-6">
+        <div className="flex items-center justify-center gap-2">
+          <Image src="/images/logo.jpg" alt="Acadmate" width={28} height={28} className="rounded-lg shadow-md object-cover" />
+          <span className="font-bold tracking-tight text-lg">Acadmate</span>
+        </div>
+
         <div className="text-center space-y-2">
           <div className="text-5xl">🏆</div>
           <h1 className="text-3xl font-black">Mock Exam Leaderboard</h1>

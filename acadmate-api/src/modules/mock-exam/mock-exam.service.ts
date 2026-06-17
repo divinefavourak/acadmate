@@ -277,11 +277,38 @@ export class MockExamService {
     if (participant.pinHash) throw new ConflictException('Already registered — please log in');
 
     const pinHash = await bcrypt.hash(dto.pin, 10);
+    const avatar = this.resolveAvatar(dto.avatarConfig, dto.avatarUrl);
     return this.prisma.mockExamParticipant.update({
       where: { id: participant.id },
-      data: { name: dto.name, pinHash },
+      data: { name: dto.name, pinHash, ...avatar },
       select: { id: true, phone: true, name: true },
     });
+  }
+
+  // Validate and normalise participant avatar input. An uploaded photo wins over
+  // a generated config (one-of), images are capped/type-checked, and generated
+  // configs are size-bounded — clients are untrusted.
+  private resolveAvatar(
+    avatarConfig: Record<string, unknown> | undefined,
+    avatarUrl: string | undefined,
+  ): { avatarConfig: Prisma.InputJsonValue | typeof Prisma.JsonNull; avatarUrl: string | null } {
+    if (avatarUrl) {
+      if (!/^data:image\/(png|jpe?g|webp);base64,/.test(avatarUrl)) {
+        throw new BadRequestException('Invalid avatar image format.');
+      }
+      // ~500 KB decoded — uploads are downscaled to a small thumbnail client-side.
+      if (avatarUrl.length > 700_000) {
+        throw new BadRequestException('Avatar image is too large.');
+      }
+      return { avatarConfig: Prisma.JsonNull, avatarUrl };
+    }
+    if (avatarConfig) {
+      if (JSON.stringify(avatarConfig).length > 4_000) {
+        throw new BadRequestException('Invalid avatar configuration.');
+      }
+      return { avatarConfig: avatarConfig as Prisma.InputJsonValue, avatarUrl: null };
+    }
+    return { avatarConfig: Prisma.JsonNull, avatarUrl: null };
   }
 
   async loginParticipant(mockExamId: string, dto: LoginParticipantDto) {
@@ -650,7 +677,7 @@ export class MockExamService {
   async getLeaderboard(mockExamId: string) {
     const sessions = await this.prisma.mockExamSession.findMany({
       where: { mockExamId, status: { in: ['SUBMITTED', 'TIMED_OUT'] } },
-      include: { participant: { select: { id: true, name: true, phone: true } } },
+      include: { participant: { select: { id: true, name: true, phone: true, avatarConfig: true, avatarUrl: true } } },
     });
 
     // Best score per participant; tiebreak by fastest time
@@ -681,6 +708,8 @@ export class MockExamService {
       rank: i + 1,
       participantId: s.participantId,
       name: s.participant.name ?? s.participant.phone,
+      avatarConfig: s.participant.avatarConfig,
+      avatarUrl: s.participant.avatarUrl,
       score: s.score,
       correct: s.correct,
       total: s.total,

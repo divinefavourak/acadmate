@@ -81,7 +81,10 @@ export default function MockSubjectsPage() {
     setStarting(true);
     setError("");
     try {
-      await document.documentElement.requestFullscreen().catch(() => {});
+      // Fullscreen is desktop-only — it's unreliable on touch devices and can
+      // force rotation, so we skip it there (tab-switch detection still applies).
+      const isDesktop = !window.matchMedia("(pointer: coarse)").matches;
+      if (isDesktop) await document.documentElement.requestFullscreen().catch(() => {});
       await mockFetch("/api/mock/sessions", id, {
         method: "POST",
         body: JSON.stringify({ subjects: selected }),

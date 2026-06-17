@@ -12,7 +12,15 @@ export interface StrikeWarning {
   isFinal: boolean;
 }
 
-export function useExamGuard(enabled: boolean, onAutoSubmit: () => void) {
+export function useExamGuard(
+  enabled: boolean,
+  onAutoSubmit: () => void,
+  options?: { requireFullscreen?: boolean },
+) {
+  // Fullscreen enforcement is unreliable on mobile (the API drops fullscreen on
+  // scroll/keyboard and can force rotation), so callers disable it on touch
+  // devices and rely on tab-switch detection alone. Defaults to true for desktop.
+  const requireFullscreen = options?.requireFullscreen ?? true;
   const [strikes, setStrikes] = useState(0);
   const [warning, setWarning] = useState<StrikeWarning | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -52,7 +60,7 @@ export function useExamGuard(enabled: boolean, onAutoSubmit: () => void) {
   // On enable: if already in fullscreen (entered via briefing button), mark it;
   // otherwise request it now.
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled || !requireFullscreen) return;
     const alreadyFs = !!(document.fullscreenElement ?? (document as any).webkitFullscreenElement);
     if (alreadyFs) {
       fullscreenEverRef.current = true;
@@ -60,11 +68,11 @@ export function useExamGuard(enabled: boolean, onAutoSubmit: () => void) {
     } else {
       requestFullscreen();
     }
-  }, [enabled, requestFullscreen]);
+  }, [enabled, requestFullscreen, requireFullscreen]);
 
   // Track fullscreen state
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled || !requireFullscreen) return;
     const onChange = () => {
       const fs = !!(document.fullscreenElement ?? (document as any).webkitFullscreenElement);
       setIsFullscreen(fs);
@@ -80,7 +88,7 @@ export function useExamGuard(enabled: boolean, onAutoSubmit: () => void) {
       document.removeEventListener("fullscreenchange", onChange);
       document.removeEventListener("webkitfullscreenchange", onChange);
     };
-  }, [enabled, issueStrike]);
+  }, [enabled, issueStrike, requireFullscreen]);
 
   // Track tab visibility
   useEffect(() => {
@@ -92,8 +100,8 @@ export function useExamGuard(enabled: boolean, onAutoSubmit: () => void) {
 
   const dismissWarning = useCallback(() => {
     setWarning(null);
-    requestFullscreen();
-  }, [requestFullscreen]);
+    if (requireFullscreen) requestFullscreen();
+  }, [requestFullscreen, requireFullscreen]);
 
   return { strikes, warning, isFullscreen, dismissWarning, requestFullscreen };
 }
