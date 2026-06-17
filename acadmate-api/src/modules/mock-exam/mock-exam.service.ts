@@ -5,6 +5,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
   CreateMockExamDto, UpdateMockExamDto, AddParticipantDto, BulkAddParticipantsDto,
@@ -409,15 +410,29 @@ export class MockExamService {
       throw new BadRequestException('No questions available for the selected subjects.');
     }
 
-    const session = await this.prisma.mockExamSession.create({
-      data: {
-        mockExamId,
-        participantId,
-        attemptNumber,
-        total: questions.length,
-        subjects: sessionSubjects,
-      },
-    });
+    let session;
+    try {
+      session = await this.prisma.mockExamSession.create({
+        data: {
+          mockExamId,
+          participantId,
+          attemptNumber,
+          total: questions.length,
+          subjects: sessionSubjects,
+        },
+      });
+    } catch (e) {
+      // A concurrent request (e.g. double-clicked "Begin") may have created the
+      // session first, tripping @@unique([participantId, attemptNumber]). Return
+      // that in-progress session instead of surfacing the constraint error.
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+        const existing = await this.prisma.mockExamSession.findFirst({
+          where: { participantId, status: 'IN_PROGRESS' },
+        });
+        if (existing) return this.getSessionWithQuestions(existing.id);
+      }
+      throw e;
+    }
 
     // Pre-create answer slots only for the questions in this attempt's subjects.
     await this.prisma.mockExamAnswer.createMany({

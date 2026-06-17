@@ -2,26 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { apiClient, ApiError } from "@/lib/api/client";
+import { ApiError } from "@/lib/api/client";
+import { mockFetch } from "@/lib/api/mockClient";
 
 interface SubjectOptions {
   compulsory: string[];
   electives: string[];
   minElectives: number;
   maxElectives: number;
-}
-
-function mockFetch<T>(path: string, examId: string, init?: RequestInit) {
-  const token = typeof window !== "undefined" ? localStorage.getItem(`mock_token_${examId}`) : null;
-  return apiClient<T>(path, {
-    ...(init ?? {}),
-    skipAuth: true,
-    on401: "throw",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-  });
 }
 
 const RULES = [

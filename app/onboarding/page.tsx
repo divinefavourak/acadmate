@@ -65,6 +65,13 @@ export default function OnboardingPage() {
       apiClient<{ subjects: Subject[] }>("/api/subjects"),
     ])
       .then(([meR, sR]) => {
+        const subjectList = sR.status === "fulfilled" ? (sR.value.subjects ?? []) : [];
+        if (sR.status === "fulfilled") setSubjects(subjectList);
+        // Strip any compulsory subjects persisted by older profiles — the picker
+        // only deals with electives now, so they'd otherwise fail backend validation.
+        const compulsoryIds = new Set(
+          subjectList.filter((s) => COMPULSORY_CODES.includes(s.code)).map((s) => s.id),
+        );
         if (meR.status === "fulfilled") {
           const user = meR.value;
           setMe(user);
@@ -78,10 +85,10 @@ export default function OnboardingPage() {
           setAvatarConfig((user.studentProfile?.avatarConfig as AvatarFullConfig) ?? null);
           setAvatarUrl(user.studentProfile?.avatarUrl ?? null);
           setUtmeSubjectIds(
-            user.studentProfile?.courseSubjectCombinations.map((c) => c.subjectId) ?? [],
+            (user.studentProfile?.courseSubjectCombinations.map((c) => c.subjectId) ?? [])
+              .filter((id) => !compulsoryIds.has(id)),
           );
         }
-        if (sR.status === "fulfilled") setSubjects(sR.value.subjects ?? []);
       })
       .finally(() => setLoading(false));
   }, [router]);

@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { apiClient } from "@/lib/api/client";
 
 interface LeaderboardEntry {
@@ -32,10 +32,11 @@ function fmtScore(score: number | null) {
 }
 
 function FloatingCrown() {
+  const reduce = useReducedMotion();
   return (
     <motion.span
-      animate={{ y: [0, -7, 0] }}
-      transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+      animate={reduce ? undefined : { y: [0, -7, 0] }}
+      transition={reduce ? undefined : { duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
       className="block select-none leading-none"
       style={{ fontSize: 52 }}
     >
@@ -76,6 +77,7 @@ function PodiumAvatar({ entry, size, accent }: { entry: LeaderboardEntry; size: 
 }
 
 function RankRow({ entry, delay }: { entry: LeaderboardEntry; delay: number }) {
+  const reduce = useReducedMotion();
   const top3Cfg = entry.rank <= 3 ? RANK_CFG[entry.rank as 1 | 2 | 3] : null;
   const isSolidRow = entry.rank === 1 || entry.rank === 3;
   const rowBg = top3Cfg ? (isSolidRow ? top3Cfg.solidBg : top3Cfg.subtleBg) : "rgba(255,255,255,0.05)";
@@ -85,9 +87,9 @@ function RankRow({ entry, delay }: { entry: LeaderboardEntry; delay: number }) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, x: -18 }}
+      initial={reduce ? false : { opacity: 0, x: -18 }}
       animate={{ opacity: 1, x: 0 }}
-      transition={{ delay, duration: 0.28, ease: "easeOut" }}
+      transition={reduce ? { duration: 0 } : { delay, duration: 0.28, ease: "easeOut" }}
       className="flex items-center gap-3 px-4 py-2.5 rounded-2xl"
     >
       <div className="flex items-center gap-3 w-full px-4 py-3 rounded-2xl" style={{ background: rowBg }}>
@@ -113,6 +115,7 @@ function RankRow({ entry, delay }: { entry: LeaderboardEntry; delay: number }) {
 
 export default function MockLeaderboardPage() {
   const { id } = useParams<{ id: string }>();
+  const reduce = useReducedMotion();
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
@@ -168,9 +171,9 @@ export default function MockLeaderboardPage() {
                     return (
                       <motion.div
                         key={entry.participantId}
-                        initial={{ opacity: 0, y: 50 }}
+                        initial={reduce ? false : { opacity: 0, y: 50 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay, type: "spring", stiffness: 180, damping: 16 }}
+                        transition={reduce ? { duration: 0 } : { delay, type: "spring", stiffness: 180, damping: 16 }}
                         className="flex flex-col items-center gap-3 flex-1 max-w-35"
                       >
                         <div className="h-14 flex items-end justify-center">

@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { apiClient, ApiError } from "@/lib/api/client";
+import { ApiError } from "@/lib/api/client";
+import { mockFetch } from "@/lib/api/mockClient";
 import { useExamGuard } from "@/app/exam/hooks/useExamGuard";
 import type { StrikeWarning } from "@/app/exam/hooks/useExamGuard";
 
@@ -19,19 +20,6 @@ interface SessionData {
   examEndsAt: string;
   questions: Question[];
   savedAnswers: Record<string, string | null>;
-}
-
-function mockFetch<T>(path: string, examId: string, init?: RequestInit) {
-  const token = typeof window !== "undefined" ? localStorage.getItem(`mock_token_${examId}`) : null;
-  return apiClient<T>(path, {
-    ...(init ?? {}),
-    skipAuth: true,
-    on401: "throw",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-  });
 }
 
 export default function MockExamPage() {

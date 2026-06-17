@@ -72,6 +72,13 @@ export default function ProfilePage() {
       apiClient<{ subjects: SubjectLite[] }>("/api/subjects"),
     ])
       .then(([uRes, sRes]) => {
+        const subjectList = sRes.status === "fulfilled" ? (sRes.value.subjects ?? []) : [];
+        if (sRes.status === "fulfilled") setSubjects(subjectList);
+        // Strip any compulsory subjects persisted by older profiles — the picker
+        // only deals with electives now, so they'd otherwise fail backend validation.
+        const compulsoryIds = new Set(
+          subjectList.filter((s) => COMPULSORY_CODES.includes(s.code)).map((s) => s.id),
+        );
         if (uRes.status === "fulfilled") {
           const u = uRes.value;
           setProfile(u);
@@ -83,10 +90,10 @@ export default function ProfilePage() {
             institution: u.studentProfile?.institution ?? "",
           });
           setUtmeSubjectIds(
-            u.studentProfile?.courseSubjectCombinations.map((c) => c.subjectId) ?? [],
+            (u.studentProfile?.courseSubjectCombinations.map((c) => c.subjectId) ?? [])
+              .filter((id) => !compulsoryIds.has(id)),
           );
         }
-        if (sRes.status === "fulfilled") setSubjects(sRes.value.subjects ?? []);
       })
       .finally(() => setLoading(false));
   }, []);

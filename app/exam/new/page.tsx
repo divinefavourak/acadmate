@@ -12,6 +12,10 @@ const SUBJECT_COLORS = [
   "#059669", "#65A30D", "#D97706", "#DC2626",
 ];
 
+// Compulsory subjects auto-added to Post-UTME papers; only electives count
+// toward the combination requirement.
+const COMPULSORY_CODES = ["ENG", "MTH", "GEN"];
+
 interface Subject {
   id: string;
   name: string;
@@ -89,9 +93,13 @@ export default function NewExamPage() {
       setProseTexts(proseList);
       if (subjList.length > 0) setSelectedSubject(subjList[0].id);
       if (meResult.status === "fulfilled") {
-        setUtmeComboCount(
-          meResult.value.studentProfile?.courseSubjectCombinations.length ?? 0,
+        // Count electives only — legacy combos may still include compulsory IDs.
+        const compulsoryIds = new Set(
+          subjList.filter((s) => COMPULSORY_CODES.includes(s.code)).map((s) => s.id),
         );
+        const electiveCount = (meResult.value.studentProfile?.courseSubjectCombinations ?? [])
+          .filter((c) => !compulsoryIds.has(c.subjectId)).length;
+        setUtmeComboCount(electiveCount);
       }
       // Default to the first available exam group so a student never lands on a
       // disabled type (e.g. UTME closed during Post-UTME season).
