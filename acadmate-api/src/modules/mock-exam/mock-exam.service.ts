@@ -7,7 +7,7 @@ import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
-  CreateMockExamDto, UpdateMockExamDto, AddParticipantDto,
+  CreateMockExamDto, UpdateMockExamDto, AddParticipantDto, BulkAddParticipantsDto,
   RegisterParticipantDto, LoginParticipantDto, UploadQuestionsDto,
   SaveAnswerDto, PanicReportDto,
 } from './dto';
@@ -79,13 +79,12 @@ export class MockExamService {
 
   async listParticipants(mockExamId: string) {
     await this.getMockExam(mockExamId);
-    return this.prisma.mockExamParticipant.findMany({
+    const rows = await this.prisma.mockExamParticipant.findMany({
       where: { mockExamId },
       orderBy: { createdAt: 'desc' },
-      include: {
-        sessions: { select: { id: true, attemptNumber: true, status: true, score: true, submittedAt: true } },
-      },
+      include: { _count: { select: { sessions: true } } },
     });
+    return rows.map(({ pinHash, ...rest }) => ({ ...rest, isRegistered: pinHash !== null }));
   }
 
   async addParticipant(mockExamId: string, dto: AddParticipantDto) {
@@ -98,6 +97,25 @@ export class MockExamService {
     return this.prisma.mockExamParticipant.create({
       data: { mockExamId, phone, name: dto.name, isApproved: true },
     });
+  }
+
+  async addParticipants(mockExamId: string, dto: BulkAddParticipantsDto) {
+    await this.getMockExam(mockExamId);
+    const phones = [...new Set(dto.phones.map((p) => p.trim()).filter(Boolean))];
+    const existing = await this.prisma.mockExamParticipant.findMany({
+      where: { mockExamId, phone: { in: phones } },
+      select: { phone: true },
+    });
+    const existingSet = new Set(existing.map((p) => p.phone));
+    const newPhones = phones.filter((p) => !existingSet.has(p));
+    if (newPhones.length > 0) {
+      await this.prisma.$transaction(async (tx) => {
+        await tx.mockExamParticipant.createMany({
+          data: newPhones.map((phone) => ({ mockExamId, phone, isApproved: true })),
+        });
+      });
+    }
+    return { added: newPhones.length, skipped: phones.length - newPhones.length };
   }
 
   async setParticipantApproval(participantId: string, isApproved: boolean) {
@@ -127,18 +145,27 @@ export class MockExamService {
 
   async uploadQuestions(mockExamId: string, dto: UploadQuestionsDto) {
     await this.getMockExam(mockExamId);
-    const created = await this.prisma.mockExamQuestion.createMany({
-      data: dto.questions.map((q, i) => ({
-        mockExamId,
-        text: q.text,
-        imageUrl: q.imageUrl,
-        options: q.options as unknown as object,
-        subject: q.subject,
-        explanation: q.explanation,
-        sortOrder: i,
-      })),
+    const activeSessions = await this.prisma.mockExamSession.count({
+      where: { mockExamId, status: 'IN_PROGRESS' },
     });
-    return { count: created.count };
+    if (activeSessions > 0) {
+      throw new BadRequestException('Cannot replace questions while sessions are in progress');
+    }
+    return this.prisma.$transaction(async (tx) => {
+      await tx.mockExamQuestion.deleteMany({ where: { mockExamId } });
+      const created = await tx.mockExamQuestion.createMany({
+        data: dto.questions.map((q, i) => ({
+          mockExamId,
+          text: q.text,
+          imageUrl: q.imageUrl,
+          options: q.options as unknown as object,
+          subject: q.subject,
+          explanation: q.explanation,
+          sortOrder: i,
+        })),
+      });
+      return { count: created.count };
+    });
   }
 
   async deleteQuestion(questionId: string) {
@@ -151,13 +178,17 @@ export class MockExamService {
 
   async listResults(mockExamId: string) {
     await this.getMockExam(mockExamId);
-    return this.prisma.mockExamSession.findMany({
-      where: { mockExamId, status: { in: ['SUBMITTED', 'TIMED_OUT'] } },
-      include: {
-        participant: { select: { id: true, phone: true, name: true } },
-      },
+    const sessions = await this.prisma.mockExamSession.findMany({
+      where: { mockExamId },
+      include: { participant: { select: { id: true, phone: true, name: true } } },
       orderBy: [{ score: 'desc' }, { submittedAt: 'asc' }],
     });
+    return sessions.map((s) => ({
+      ...s,
+      durationSeconds: s.submittedAt
+        ? Math.floor((s.submittedAt.getTime() - s.startedAt.getTime()) / 1000)
+        : null,
+    }));
   }
 
   async listPanics(mockExamId: string) {
@@ -190,7 +221,19 @@ export class MockExamService {
       include: { _count: { select: { questions: true } } },
     });
     if (!exam) throw new NotFoundException('No active mock exam');
-    // Never expose questions here — just metadata
+    return this.publicExamShape(exam);
+  }
+
+  async getPublicMockExam(id: string) {
+    const exam = await this.prisma.mockExam.findUnique({
+      where: { id, isActive: true },
+      include: { _count: { select: { questions: true } } },
+    });
+    if (!exam) throw new NotFoundException('Exam not found or not active');
+    return this.publicExamShape(exam);
+  }
+
+  private publicExamShape(exam: { id: string; title: string; description: string | null; startsAt: Date; endsAt: Date; durationMinutes: number; _count: { questions: number } }) {
     return {
       id: exam.id,
       title: exam.title,

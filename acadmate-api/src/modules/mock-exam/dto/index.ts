@@ -1,4 +1,4 @@
-import { IsString, IsDateString, IsInt, IsOptional, IsBoolean, Min, Max, IsArray, ValidateNested, IsIn } from 'class-validator';
+import { IsString, IsDateString, IsInt, IsOptional, IsBoolean, Min, Max, IsArray, ValidateNested, IsIn, ArrayNotEmpty, ArrayMaxSize } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateMockExamDto {
@@ -22,6 +22,12 @@ export class AddParticipantDto {
   @IsString() phone: string;
   @IsOptional() @IsString() name?: string;
 }
+
+export class BulkAddParticipantsDto {
+  @IsArray() @ArrayNotEmpty() @ArrayMaxSize(500) @IsString({ each: true }) phones: string[];
+}
+
+
 
 export class RegisterParticipantDto {
   @IsString() phone: string;
