@@ -339,21 +339,22 @@ export class MockExamService {
   }
 
   async getPublicMockExam(idOrSlug: string) {
-    const exam = await this.prisma.mockExam.findFirst({
-      where: { isActive: true, OR: [{ id: idOrSlug }, { slug: idOrSlug }] },
-      include: { _count: { select: { questions: true } } },
-    });
-    if (!exam) throw new NotFoundException('Exam not found or not active');
+    // Look up by id first, then slug, so a slug that happens to equal another
+    // exam's id can never shadow it (id always wins — deterministic).
+    const include = { _count: { select: { questions: true } } };
+    const exam =
+      (await this.prisma.mockExam.findUnique({ where: { id: idOrSlug }, include })) ??
+      (await this.prisma.mockExam.findUnique({ where: { slug: idOrSlug }, include }));
+    if (!exam || !exam.isActive) throw new NotFoundException('Exam not found or not active');
     return this.publicExamShape(exam);
   }
 
   // Resolve a public /mock/:idOrSlug param to the real exam id (slugs are
-  // human-friendly aliases for the cuid).
+  // human-friendly aliases for the cuid). id is matched first, deterministically.
   private async resolveExamId(idOrSlug: string): Promise<string> {
-    const exam = await this.prisma.mockExam.findFirst({
-      where: { OR: [{ id: idOrSlug }, { slug: idOrSlug }] },
-      select: { id: true },
-    });
+    const exam =
+      (await this.prisma.mockExam.findUnique({ where: { id: idOrSlug }, select: { id: true } })) ??
+      (await this.prisma.mockExam.findUnique({ where: { slug: idOrSlug }, select: { id: true } }));
     if (!exam) throw new NotFoundException('Mock exam not found');
     return exam.id;
   }

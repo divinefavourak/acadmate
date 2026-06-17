@@ -39,12 +39,19 @@ export default function MockExamOverviewPage() {
   const [durationMinutes, setDurationMinutes] = useState(60);
   const [isActive, setIsActive] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
+  // Derived client-side to avoid an SSR/client hydration mismatch on the URLs.
+  const [origin, setOrigin] = useState("");
+  useEffect(() => { setOrigin(window.location.origin); }, []);
 
-  function copyLink(key: string, url: string) {
-    navigator.clipboard?.writeText(url).then(() => {
+  async function copyLink(key: string, url: string) {
+    try {
+      if (!navigator.clipboard) throw new Error("Clipboard unavailable");
+      await navigator.clipboard.writeText(url);
       setCopied(key);
-      setTimeout(() => setCopied((c) => (c === key ? null : c)), 1500);
-    });
+    } catch {
+      setCopied(`${key}:error`);
+    }
+    setTimeout(() => setCopied((c) => (c === key || c === `${key}:error` ? null : c)), 1500);
   }
 
   useEffect(() => {
@@ -162,7 +169,6 @@ export default function MockExamOverviewPage() {
         )}
         <div className="space-y-2">
           {(() => {
-            const origin = typeof window !== "undefined" ? window.location.origin : "";
             const base = `${origin}/mock/${exam.slug || id}`;
             const links = [
               { key: "exam", label: "Exam page", url: base },
@@ -178,7 +184,7 @@ export default function MockExamOverviewPage() {
                   onClick={() => copyLink(l.key, l.url)}
                   className="shrink-0 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 hover:bg-indigo-500/25 transition-colors"
                 >
-                  {copied === l.key ? "Copied!" : "Copy"}
+                  {copied === l.key ? "Copied!" : copied === `${l.key}:error` ? "Failed" : "Copy"}
                 </button>
               </div>
             ));
