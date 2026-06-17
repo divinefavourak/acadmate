@@ -140,6 +140,15 @@ export default function MockResultPage() {
             className="block text-center text-sm text-slate-400 hover:text-slate-200 transition-colors">
             ← Back to exam info
           </Link>
+          <button
+            onClick={() => {
+              localStorage.removeItem(`mock_token_${id}`);
+              router.replace(`/mock/${id}`);
+            }}
+            className="block w-full text-center text-sm text-slate-500 hover:text-red-400 transition-colors"
+          >
+            Log out
+          </button>
         </div>
 
         {/* Answer review */}

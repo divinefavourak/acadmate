@@ -179,6 +179,18 @@ export default function MockLandingPage() {
             View Final Leaderboard
           </Link>
         )}
+
+        {hasToken && (
+          <button
+            onClick={() => {
+              localStorage.removeItem(`mock_token_${id}`);
+              setHasToken(false);
+            }}
+            className="block w-full text-center text-sm text-slate-500 hover:text-red-400 transition-colors"
+          >
+            Log out
+          </button>
+        )}
       </div>
     </div>
   );
