@@ -5,6 +5,7 @@ import { MockExamService } from './mock-exam.service';
 import { MockParticipantGuard, MockParticipantPayload } from './guards/mock-participant.guard';
 import {
   RegisterParticipantDto, LoginParticipantDto, SaveAnswerDto, PanicReportDto,
+  StartSessionDto,
 } from './dto';
 
 interface AuthenticatedRequest extends Request {
@@ -47,12 +48,26 @@ export class MockExamController {
 
   // ── Authenticated participant routes ────────────────────────────────────
 
+  /** Subject picker options (compulsory + electives) for the logged-in exam */
+  @Get('subject-options')
+  @UseGuards(MockParticipantGuard)
+  subjectOptions(@Req() req: AuthenticatedRequest) {
+    return this.service.getMockSubjects(req.mockParticipant.mockExamId);
+  }
+
+  /** Current in-progress session (for resume), or null */
+  @Get('sessions/current')
+  @UseGuards(MockParticipantGuard)
+  currentSession(@Req() req: AuthenticatedRequest) {
+    return this.service.getCurrentSession(req.mockParticipant.sub);
+  }
+
   /** Start or resume a session */
   @Post('sessions')
   @UseGuards(MockParticipantGuard)
-  startSession(@Req() req: AuthenticatedRequest) {
+  startSession(@Req() req: AuthenticatedRequest, @Body() dto: StartSessionDto) {
     const { sub, mockExamId } = req.mockParticipant;
-    return this.service.startSession(sub, mockExamId);
+    return this.service.startSession(sub, mockExamId, dto.subjects);
   }
 
   /** Get session + questions (no answers) */

@@ -14,7 +14,7 @@ const UTME_SUBJECT_QUESTIONS = 40;
 const UTME_DURATION_MINUTES = 120;
 const ENGLISH_CODE = 'ENG';
 
-// Post-UTME composition: English + Math + General Knowledge + 3 UTME subjects.
+// Post-UTME composition: English + Math + General Knowledge + 2–3 elective UTME subjects.
 // Weights are tuned for a 40-question paper, then scaled to the requested
 // question count so shorter packs keep the same rough balance.
 const POST_UTME_SPLIT = {

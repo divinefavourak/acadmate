@@ -37,6 +37,11 @@ interface SubjectLite {
 const CURRENT_YEAR = new Date().getFullYear();
 const YEARS = Array.from({ length: 6 }, (_, i) => CURRENT_YEAR + i);
 
+// English, Maths & General Knowledge are compulsory (auto-included for Mock &
+// Post-UTME papers); the student picks 2–3 electives beyond these.
+const COMPULSORY_CODES = ["ENG", "MTH", "GEN"];
+const COMPULSORY_LABELS = ["Use of English", "Mathematics", "General Knowledge"];
+
 export default function ProfilePage() {
   const router = useRouter();
   const { refetch: refetchUser } = useUser();
@@ -67,6 +72,13 @@ export default function ProfilePage() {
       apiClient<{ subjects: SubjectLite[] }>("/api/subjects"),
     ])
       .then(([uRes, sRes]) => {
+        const subjectList = sRes.status === "fulfilled" ? (sRes.value.subjects ?? []) : [];
+        if (sRes.status === "fulfilled") setSubjects(subjectList);
+        // Strip any compulsory subjects persisted by older profiles — the picker
+        // only deals with electives now, so they'd otherwise fail backend validation.
+        const compulsoryIds = new Set(
+          subjectList.filter((s) => COMPULSORY_CODES.includes(s.code)).map((s) => s.id),
+        );
         if (uRes.status === "fulfilled") {
           const u = uRes.value;
           setProfile(u);
@@ -78,10 +90,10 @@ export default function ProfilePage() {
             institution: u.studentProfile?.institution ?? "",
           });
           setUtmeSubjectIds(
-            u.studentProfile?.courseSubjectCombinations.map((c) => c.subjectId) ?? [],
+            (u.studentProfile?.courseSubjectCombinations.map((c) => c.subjectId) ?? [])
+              .filter((id) => !compulsoryIds.has(id)),
           );
         }
-        if (sRes.status === "fulfilled") setSubjects(sRes.value.subjects ?? []);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -108,8 +120,15 @@ export default function ProfilePage() {
       setSaving(false);
       return;
     }
-    if (utmeSubjectIds.length > 0 && utmeSubjectIds.length !== 3) {
-      setError("Pick exactly 3 UTME subjects, or clear the selection.");
+    // Normalize to loaded elective IDs only. If the subject catalog failed to
+    // load (subjects empty), we omit utmeSubjectIds entirely below so a transient
+    // fetch failure never clears or corrupts the saved combination.
+    const subjectsLoaded = subjects.length > 0;
+    const electives = subjectsLoaded
+      ? utmeSubjectIds.filter((id) => subjects.some((s) => s.id === id && !COMPULSORY_CODES.includes(s.code)))
+      : [];
+    if (subjectsLoaded && electives.length > 0 && (electives.length < 2 || electives.length > 3)) {
+      setError("Pick 2 or 3 elective subjects, or clear the selection.");
       setSaving(false);
       return;
     }
@@ -123,7 +142,7 @@ export default function ProfilePage() {
           targetYear: form.targetYear ? Number(form.targetYear) : undefined,
           courseChoice: form.courseChoice || undefined,
           institution: form.institution || undefined,
-          utmeSubjectIds,
+          ...(subjectsLoaded ? { utmeSubjectIds: electives } : {}),
         }),
       });
       setProfile(updated);
@@ -305,7 +324,7 @@ export default function ProfilePage() {
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label className="text-sm font-medium">UTME Subject Combination</label>
+              <label className="text-sm font-medium">Subject Combination</label>
               {utmeSubjectIds.length > 0 && (
                 <button
                   type="button"
@@ -317,11 +336,19 @@ export default function ProfilePage() {
               )}
             </div>
             <p className="text-xs text-slate-500">
-              Use of English is included automatically — pick the 3 other subjects you&apos;ll write.
+              English, Mathematics &amp; General Knowledge are compulsory and included automatically — pick 2 or 3 electives beyond these.
             </p>
+            <div className="flex flex-wrap gap-1.5">
+              {COMPULSORY_LABELS.map((label) => (
+                <span key={label} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                  {label}
+                </span>
+              ))}
+            </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {subjects
-                .filter((s) => s.code !== "ENG")
+                .filter((s) => !COMPULSORY_CODES.includes(s.code))
                 .map((s) => {
                   const selected = utmeSubjectIds.includes(s.id);
                   const disabled = !selected && utmeSubjectIds.length >= 3;

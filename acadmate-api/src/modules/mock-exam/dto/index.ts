@@ -58,6 +58,11 @@ export class UploadQuestionsDto {
   @IsArray() @ValidateNested({ each: true }) @Type(() => UploadQuestionItemDto) questions: UploadQuestionItemDto[];
 }
 
+export class StartSessionDto {
+  // Chosen elective subjects (compulsory subjects are added server-side).
+  @IsOptional() @IsArray() @ArrayMaxSize(3) @IsString({ each: true }) subjects?: string[];
+}
+
 export class SaveAnswerDto {
   @IsString() questionId: string;
   @IsOptional() @IsString() @IsIn(['A', 'B', 'C', 'D']) selected?: string;

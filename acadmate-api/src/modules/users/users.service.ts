@@ -109,22 +109,23 @@ export class UsersService {
   ) {
     const { name, age, institution, utmeSubjectIds, avatarConfig, avatarUrl } = dto;
 
-    // Validate the 3 subjects exist, are active, and aren't English (English is implied)
+    // English, Maths and General Knowledge are compulsory and added automatically
+    // at exam time; the student picks 2–3 electives beyond those.
+    const uniqueIds = [...new Set(utmeSubjectIds)];
+    if (uniqueIds.length < 2 || uniqueIds.length > 3) {
+      throw new BadRequestException('Please select 2 or 3 elective subjects.');
+    }
     const subjects = await this.prisma.subject.findMany({
-      where: { id: { in: utmeSubjectIds }, isActive: true },
+      where: { id: { in: uniqueIds }, isActive: true },
       select: { id: true, code: true },
     });
-
-    if (subjects.length !== 3) {
-      throw new BadRequestException('Please select 3 valid UTME subjects.');
+    if (subjects.length !== uniqueIds.length) {
+      throw new BadRequestException('One or more selected subjects are invalid.');
     }
-    if (subjects.some((s) => s.code === 'ENG')) {
+    if (subjects.some((s) => ['ENG', 'MTH', 'GEN'].includes(s.code))) {
       throw new BadRequestException(
-        'Use of English is automatically included — please pick 3 other subjects.',
+        'English, Mathematics and General Knowledge are compulsory and added automatically — please pick other electives.',
       );
-    }
-    if (new Set(subjects.map((s) => s.id)).size !== 3) {
-      throw new BadRequestException('UTME subjects must be unique.');
     }
 
     const jsonConfig =
@@ -152,7 +153,7 @@ export class UsersService {
         select: { id: true },
       });
 
-      await this.syncUtmeSubjects(tx, profile.id, utmeSubjectIds);
+      await this.syncUtmeSubjects(tx, profile.id, uniqueIds);
     });
 
     return this.getMe(userId);

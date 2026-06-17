@@ -32,6 +32,11 @@ interface MeResponse {
 
 const TOTAL_STEPS = 3;
 
+// Compulsory subjects, added automatically for Mock & Post-UTME papers.
+// The student picks 2–3 electives beyond these.
+const COMPULSORY_CODES = ["ENG", "MTH", "GEN"];
+const COMPULSORY_LABELS = ["Use of English", "Mathematics", "General Knowledge"];
+
 export default function OnboardingPage() {
   const router = useRouter();
 
@@ -60,6 +65,13 @@ export default function OnboardingPage() {
       apiClient<{ subjects: Subject[] }>("/api/subjects"),
     ])
       .then(([meR, sR]) => {
+        const subjectList = sR.status === "fulfilled" ? (sR.value.subjects ?? []) : [];
+        if (sR.status === "fulfilled") setSubjects(subjectList);
+        // Strip any compulsory subjects persisted by older profiles — the picker
+        // only deals with electives now, so they'd otherwise fail backend validation.
+        const compulsoryIds = new Set(
+          subjectList.filter((s) => COMPULSORY_CODES.includes(s.code)).map((s) => s.id),
+        );
         if (meR.status === "fulfilled") {
           const user = meR.value;
           setMe(user);
@@ -73,17 +85,24 @@ export default function OnboardingPage() {
           setAvatarConfig((user.studentProfile?.avatarConfig as AvatarFullConfig) ?? null);
           setAvatarUrl(user.studentProfile?.avatarUrl ?? null);
           setUtmeSubjectIds(
-            user.studentProfile?.courseSubjectCombinations.map((c) => c.subjectId) ?? [],
+            (user.studentProfile?.courseSubjectCombinations.map((c) => c.subjectId) ?? [])
+              .filter((id) => !compulsoryIds.has(id)),
           );
         }
-        if (sR.status === "fulfilled") setSubjects(sR.value.subjects ?? []);
       })
       .finally(() => setLoading(false));
   }, [router]);
 
   const otherSubjects = useMemo(
-    () => subjects.filter((s) => s.code !== "ENG"),
+    () => subjects.filter((s) => !COMPULSORY_CODES.includes(s.code)),
     [subjects],
+  );
+
+  // Only IDs that map to a loaded elective subject — guards against legacy
+  // compulsory IDs or a failed subject fetch leaking into the payload.
+  const selectedElectives = useMemo(
+    () => utmeSubjectIds.filter((id) => otherSubjects.some((s) => s.id === id)),
+    [utmeSubjectIds, otherSubjects],
   );
 
   function toggleSubject(id: string) {
@@ -107,8 +126,8 @@ export default function OnboardingPage() {
   }
 
   function validateStep2(): string | null {
-    if (utmeSubjectIds.length !== 3) {
-      return "Please pick exactly 3 UTME subjects (Use of English is automatic).";
+    if (selectedElectives.length < 2 || selectedElectives.length > 3) {
+      return "Please pick 2 or 3 elective subjects (English, Maths & General Knowledge are automatic).";
     }
     return null;
   }
@@ -141,7 +160,7 @@ export default function OnboardingPage() {
         name: name.trim(),
         age: Number(age),
         institution: institution.trim(),
-        utmeSubjectIds,
+        utmeSubjectIds: selectedElectives,
       };
       if (!skipAvatar) {
         if (avatarUrl) payload.avatarUrl = avatarUrl;
@@ -244,30 +263,34 @@ export default function OnboardingPage() {
         {step === 2 && (
           <div className="space-y-5">
             <div>
-              <h2 className="font-semibold text-lg">Your UTME subjects</h2>
+              <h2 className="font-semibold text-lg">Your subjects</h2>
               <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                Pick the 3 subjects you&apos;ll write alongside Use of English. We&apos;ll use this for Mock and Post-UTME papers.
+                English, Mathematics and General Knowledge are compulsory. Pick 2 or 3 electives to complete your combination. We&apos;ll use this for Mock and Post-UTME papers.
               </p>
             </div>
 
-            <div className="flex items-center gap-3 p-3 rounded-xl border-2 border-indigo-500 bg-indigo-50/50 dark:bg-indigo-900/20">
-              <div className="flex-shrink-0 w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-              </div>
-              <div className="font-semibold text-sm">Use of English</div>
-              <span className="ml-auto text-xs font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-100 dark:bg-indigo-900/40 px-2 py-0.5 rounded-full">
-                Compulsory
-              </span>
+            <div className="space-y-2">
+              {COMPULSORY_LABELS.map((label) => (
+                <div key={label} className="flex items-center gap-3 p-3 rounded-xl border-2 border-indigo-500 bg-indigo-50/50 dark:bg-indigo-900/20">
+                  <div className="shrink-0 w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </div>
+                  <div className="font-semibold text-sm">{label}</div>
+                  <span className="ml-auto text-xs font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-100 dark:bg-indigo-900/40 px-2 py-0.5 rounded-full">
+                    Compulsory
+                  </span>
+                </div>
+              ))}
             </div>
 
             <div>
               <div className="flex items-center justify-between mb-3">
                 <span className="text-sm font-medium">
-                  {utmeSubjectIds.length === 3
-                    ? "3 subjects selected"
-                    : `Pick ${3 - utmeSubjectIds.length} more`}
+                  {utmeSubjectIds.length >= 2
+                    ? `${utmeSubjectIds.length} elective${utmeSubjectIds.length > 1 ? "s" : ""} selected`
+                    : `Pick ${2 - utmeSubjectIds.length} more (up to 3)`}
                 </span>
                 {utmeSubjectIds.length > 0 && (
                   <button

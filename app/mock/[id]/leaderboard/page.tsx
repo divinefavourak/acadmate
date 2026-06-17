@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import { motion, useReducedMotion } from "framer-motion";
 import { apiClient } from "@/lib/api/client";
 
 interface LeaderboardEntry {
@@ -10,40 +11,119 @@ interface LeaderboardEntry {
   participantId: string;
   name: string;
   score: number | null;
-  correct: number | null;
-  total: number | null;
-  timeTakenSeconds: number | null;
   attemptNumber: number;
 }
 
-function fmtTime(sec: number | null) {
-  if (sec === null) return "—";
-  const m = Math.floor(sec / 60);
-  const s = sec % 60;
-  return `${m}m ${s}s`;
+// Same palette + ordering as the main dashboard leaderboard (LeaderboardView).
+const RANK_CFG = {
+  1: { accent: "#EAB308", solidBg: "rgba(234,179,8,0.88)", subtleBg: "rgba(234,179,8,0.12)" },
+  2: { accent: "#818CF8", solidBg: "rgba(129,140,248,0.18)", subtleBg: "rgba(129,140,248,0.10)" },
+  3: { accent: "#F97316", solidBg: "rgba(249,115,22,0.88)", subtleBg: "rgba(249,115,22,0.12)" },
+} as const;
+
+const PODIUM_IDX = [1, 0, 2]; // left = 2nd, centre = 1st, right = 3rd
+
+function initial(name: string) {
+  return (name?.trim()?.[0] ?? "?").toUpperCase();
 }
 
-const RANK_COLORS = ["#EAB308", "#818CF8", "#F97316"];
-const RANK_LABELS = ["1st", "2nd", "3rd"];
-const PODIUM_ORDER = [1, 0, 2]; // left=2nd, center=1st, right=3rd
+function fmtScore(score: number | null) {
+  return `${(score?.toFixed(1) ?? "0")}%`;
+}
+
+function FloatingCrown() {
+  const reduce = useReducedMotion();
+  return (
+    <motion.span
+      animate={reduce ? undefined : { y: [0, -7, 0] }}
+      transition={reduce ? undefined : { duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+      className="block select-none leading-none"
+      style={{ fontSize: 52 }}
+    >
+      👑
+    </motion.span>
+  );
+}
+
+/** Initials avatar with a coloured ring + rank badge overlaid bottom-left */
+function PodiumAvatar({ entry, size, accent }: { entry: LeaderboardEntry; size: number; accent: string }) {
+  const badgeSize = Math.round(size * 0.36);
+  return (
+    <div className="relative shrink-0" style={{ width: size, height: size }}>
+      <div
+        className="rounded-full flex items-center justify-center w-full h-full font-black text-white"
+        style={{
+          fontSize: size * 0.4,
+          background: `radial-gradient(circle, ${accent}66, ${accent}33)`,
+          boxShadow: `0 0 0 3px ${accent}, 0 0 16px ${accent}55`,
+        }}
+      >
+        {initial(entry.name)}
+      </div>
+      <div
+        className="absolute -bottom-1 -left-1 rounded-full flex items-center justify-center font-black text-white"
+        style={{
+          width: badgeSize,
+          height: badgeSize,
+          fontSize: badgeSize * 0.48,
+          background: accent,
+          border: "2px solid #120824",
+        }}
+      >
+        {entry.rank}
+      </div>
+    </div>
+  );
+}
+
+function RankRow({ entry, delay }: { entry: LeaderboardEntry; delay: number }) {
+  const reduce = useReducedMotion();
+  const top3Cfg = entry.rank <= 3 ? RANK_CFG[entry.rank as 1 | 2 | 3] : null;
+  const isSolidRow = entry.rank === 1 || entry.rank === 3;
+  const rowBg = top3Cfg ? (isSolidRow ? top3Cfg.solidBg : top3Cfg.subtleBg) : "rgba(255,255,255,0.05)";
+  const accent = top3Cfg?.accent ?? "#475569";
+  const ringColor = top3Cfg?.accent ?? "rgba(255,255,255,0.15)";
+  const textColor = isSolidRow ? "#fff" : "#e2e8f0";
+
+  return (
+    <motion.div
+      initial={reduce ? false : { opacity: 0, x: -18 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={reduce ? { duration: 0 } : { delay, duration: 0.28, ease: "easeOut" }}
+      className="flex items-center gap-3 px-4 py-2.5 rounded-2xl"
+    >
+      <div className="flex items-center gap-3 w-full px-4 py-3 rounded-2xl" style={{ background: rowBg }}>
+        <span className="w-6 shrink-0 text-center font-bold text-sm tabular-nums" style={{ color: accent }}>
+          {entry.rank}
+        </span>
+        <div
+          className="rounded-full flex items-center justify-center shrink-0 font-bold text-sm text-white"
+          style={{ width: 36, height: 36, background: `${ringColor}55`, boxShadow: `0 0 0 2px ${ringColor}` }}
+        >
+          {initial(entry.name)}
+        </div>
+        <p className="flex-1 font-semibold text-sm truncate" style={{ color: textColor }}>
+          {entry.name}
+        </p>
+        <p className="font-bold tabular-nums text-sm shrink-0" style={{ color: isSolidRow ? "#fff" : accent }}>
+          {fmtScore(entry.score)}
+        </p>
+      </div>
+    </motion.div>
+  );
+}
 
 export default function MockLeaderboardPage() {
   const { id } = useParams<{ id: string }>();
+  const reduce = useReducedMotion();
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
 
   const load = useCallback(() => {
     apiClient<LeaderboardEntry[]>(`/api/mock/${id}/leaderboard`, { skipAuth: true })
-      .then((data) => {
-        setEntries(data);
-        setFetchError(false);
-        setLoading(false);
-      })
-      .catch(() => {
-        setFetchError(true);
-        setLoading(false);
-      });
+      .then((data) => { setEntries(data); setFetchError(false); setLoading(false); })
+      .catch(() => { setFetchError(true); setLoading(false); });
   }, [id]);
 
   useEffect(() => {
@@ -53,15 +133,11 @@ export default function MockLeaderboardPage() {
   }, [load]);
 
   const top3 = entries.slice(0, 3);
-  const rest = entries.slice(3);
+  const podiumEntries = PODIUM_IDX.map((i) => top3[i]).filter(Boolean) as LeaderboardEntry[];
 
   return (
-    <div
-      className="min-h-screen text-white py-10 px-4"
-      style={{ background: "#120824" }}
-    >
-      <div className="max-w-2xl mx-auto space-y-8">
-        {/* Header */}
+    <div className="min-h-screen text-white py-10 px-4" style={{ background: "#0f172a" }}>
+      <div className="max-w-2xl mx-auto space-y-6">
         <div className="text-center space-y-2">
           <div className="text-5xl">🏆</div>
           <h1 className="text-3xl font-black">Mock Exam Leaderboard</h1>
@@ -77,88 +153,53 @@ export default function MockLeaderboardPage() {
             Failed to load leaderboard. It will retry automatically.
           </div>
         ) : entries.length === 0 ? (
-          <div className="text-center py-16 text-slate-500 text-sm">
-            No results yet. Results will appear here as participants complete the exam.
+          <div className="rounded-3xl p-12 text-center" style={{ background: "#120824" }}>
+            <div className="text-5xl mb-4">🏆</div>
+            <p className="text-slate-400">No results yet. Results will appear here as participants finish.</p>
           </div>
         ) : (
-          <>
+          <div className="rounded-3xl overflow-hidden pb-4" style={{ background: "#120824" }}>
             {/* Podium */}
             {top3.length > 0 && (
-              <div className="flex items-end justify-center gap-4 pt-6">
-                {PODIUM_ORDER.filter((pi) => top3[pi]).map((pi) => {
-                  const entry = top3[pi];
-                  const isFirst = pi === 0;
-                  const color = RANK_COLORS[pi];
-                  const initial = (entry.name ?? "?").charAt(0).toUpperCase();
-
-                  return (
-                    <div key={entry.participantId} className="flex flex-col items-center gap-2 flex-1 max-w-35">
-                      {isFirst && (
-                        <div className="text-3xl" style={{ animation: "float 3s ease-in-out infinite" }}>👑</div>
-                      )}
-                      {/* Avatar */}
-                      <div
-                        className="rounded-full flex items-center justify-center font-black text-white shadow-lg"
-                        style={{
-                          width: isFirst ? 72 : 56,
-                          height: isFirst ? 72 : 56,
-                          fontSize: isFirst ? 28 : 22,
-                          background: `radial-gradient(circle, ${color}80, ${color}40)`,
-                          boxShadow: `0 0 20px ${color}66`,
-                          border: `3px solid ${color}`,
-                        }}
+              <div className="px-6 pt-10 pb-8">
+                <div className="flex items-end justify-center gap-6">
+                  {podiumEntries.map((entry, pi) => {
+                    const isFirst = entry.rank === 1;
+                    const cfg = RANK_CFG[entry.rank as 1 | 2 | 3];
+                    const avatarSize = isFirst ? 76 : 58;
+                    const delay = pi === 0 ? 0.1 : pi === 2 ? 0.38 : 0.58;
+                    return (
+                      <motion.div
+                        key={entry.participantId}
+                        initial={reduce ? false : { opacity: 0, y: 50 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={reduce ? { duration: 0 } : { delay, type: "spring", stiffness: 180, damping: 16 }}
+                        className="flex flex-col items-center gap-3 flex-1 max-w-35"
                       >
-                        {initial}
-                      </div>
-                      <div className="text-center">
-                        <p className={`font-bold truncate max-w-30 ${isFirst ? "text-base" : "text-sm"}`}>
-                          {entry.name}
-                        </p>
-                        <p className={`font-black tabular-nums ${isFirst ? "text-2xl" : "text-lg"}`} style={{ color }}>
-                          {(entry.score?.toFixed(1) ?? "0")}%
-                        </p>
-                        <p className="text-xs text-slate-500">{fmtTime(entry.timeTakenSeconds)}</p>
-                      </div>
-                      <div
-                        className={`w-full rounded-t-xl flex items-center justify-center font-black text-xl ${isFirst ? "h-28" : pi === 1 ? "h-20" : "h-14"}`}
-                        style={{ background: `${color}22`, border: `2px solid ${color}55` }}
-                      >
-                        <span style={{ color }}>{RANK_LABELS[pi]}</span>
-                      </div>
-                    </div>
-                  );
-                })}
+                        <div className="h-14 flex items-end justify-center">
+                          {isFirst && <FloatingCrown />}
+                        </div>
+                        <PodiumAvatar entry={entry} size={avatarSize} accent={cfg.accent} />
+                        <div className="text-center">
+                          <p className="font-semibold text-white text-sm truncate max-w-30">{entry.name}</p>
+                          <p className="font-bold tabular-nums text-sm mt-0.5" style={{ color: cfg.accent }}>
+                            {fmtScore(entry.score)}
+                          </p>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
               </div>
             )}
 
             {/* Ranked list */}
-            {rest.length > 0 && (
-              <div className="space-y-2">
-                {rest.map((entry) => (
-                  <div
-                    key={entry.participantId}
-                    className="flex items-center gap-4 rounded-2xl px-4 py-3"
-                    style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" }}
-                  >
-                    <span className="w-8 text-center text-slate-500 font-bold">#{entry.rank}</span>
-                    <div
-                      className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm shrink-0"
-                      style={{ background: "rgba(99,102,241,0.25)", color: "#a5b4fc" }}
-                    >
-                      {entry.name.charAt(0).toUpperCase()}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold truncate">{entry.name}</p>
-                      <p className="text-xs text-slate-500">{fmtTime(entry.timeTakenSeconds)}</p>
-                    </div>
-                    <span className="font-black tabular-nums text-indigo-300 shrink-0">
-                      {(entry.score?.toFixed(1) ?? "0")}%
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </>
+            <div className="flex flex-col gap-1.5 px-3">
+              {entries.map((entry, i) => (
+                <RankRow key={entry.participantId} entry={entry} delay={0.05 * i + 0.35} />
+              ))}
+            </div>
+          </div>
         )}
 
         <div className="text-center">
@@ -167,13 +208,6 @@ export default function MockLeaderboardPage() {
           </Link>
         </div>
       </div>
-
-      <style>{`
-        @keyframes float {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-7px); }
-        }
-      `}</style>
     </div>
   );
 }

@@ -773,6 +773,9 @@ model MockExamSession {
   score         Float?
   correct       Int?
   total         Int?
+  // Subject strings this attempt covers (compulsory + chosen electives).
+  // Empty = legacy session created before per-subject selection; treat as "all".
+  subjects      String[]          @default([])
 
   mockExam     MockExam            @relation(fields: [mockExamId], references: [id], onDelete: Cascade)
   participant  MockExamParticipant @relation(fields: [participantId], references: [id], onDelete: Cascade)

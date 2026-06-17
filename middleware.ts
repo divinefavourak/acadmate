@@ -31,6 +31,10 @@ const ROUTE_POLICY = {
     // Student live-session landing — viewable without auth; the Join action
     // itself prompts login when needed.
     "/live",
+    // Mock exam participant flow — landing, register, login, exam, result,
+    // leaderboard. Participants authenticate with a separate localStorage token
+    // (not the acadmate_token cookie), so these must never hit the cookie gate.
+    "/mock",
   ],
 
   // Public routes where a logged-in user should be redirected to their home.
