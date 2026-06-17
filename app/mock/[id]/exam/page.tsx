@@ -49,8 +49,16 @@ export default function MockExamPage() {
   const [panicSent, setPanicSent] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const savingRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const hasSubmittedRef = useRef(false);
 
   const submitSession = useCallback(async (sessionId: string, timedOut = false) => {
+    if (hasSubmittedRef.current) return;
+    hasSubmittedRef.current = true;
+    // Flush any pending debounced answer saves before submitting
+    for (const [qId, timeout] of Object.entries(savingRef.current)) {
+      clearTimeout(timeout);
+      delete savingRef.current[qId];
+    }
     try {
       const endpoint = timedOut ? "timeout" : "submit";
       await mockFetch(`/api/mock/sessions/${sessionId}/${endpoint}`, id, { method: "POST" });
@@ -174,7 +182,7 @@ export default function MockExamPage() {
     <div className="min-h-screen flex items-center justify-center bg-[#0f172a] text-white p-6">
       <div className="text-center space-y-4 max-w-sm">
         <div className="text-5xl">⛔</div>
-        <h1 className="text-xl font-bold">Can't start exam</h1>
+        <h1 className="text-xl font-bold">Can&apos;t start exam</h1>
         <p className="text-slate-400">{error}</p>
         <button onClick={() => router.push(`/mock/${id}`)} className="px-6 py-2.5 rounded-xl bg-white/10 text-white hover:bg-white/20 transition-colors">
           Back to exam info

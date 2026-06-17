@@ -31,14 +31,17 @@ export default function MockLeaderboardPage() {
   const { id } = useParams<{ id: string }>();
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
 
   const load = useCallback(() => {
     apiClient<LeaderboardEntry[]>(`/api/mock/${id}/leaderboard`, { skipAuth: true })
       .then((data) => {
         setEntries(data);
+        setFetchError(false);
         setLoading(false);
       })
       .catch(() => {
+        setFetchError(true);
         setLoading(false);
       });
   }, [id]);
@@ -69,6 +72,10 @@ export default function MockLeaderboardPage() {
           <div className="flex justify-center py-16">
             <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
           </div>
+        ) : fetchError ? (
+          <div className="text-center py-16 text-red-400 text-sm">
+            Failed to load leaderboard. It will retry automatically.
+          </div>
         ) : entries.length === 0 ? (
           <div className="text-center py-16 text-slate-500 text-sm">
             No results yet. Results will appear here as participants complete the exam.
@@ -85,7 +92,7 @@ export default function MockLeaderboardPage() {
                   const initial = (entry.name ?? "?").charAt(0).toUpperCase();
 
                   return (
-                    <div key={entry.participantId} className="flex flex-col items-center gap-2 flex-1 max-w-[140px]">
+                    <div key={entry.participantId} className="flex flex-col items-center gap-2 flex-1 max-w-35">
                       {isFirst && (
                         <div className="text-3xl" style={{ animation: "float 3s ease-in-out infinite" }}>👑</div>
                       )}
@@ -104,11 +111,11 @@ export default function MockLeaderboardPage() {
                         {initial}
                       </div>
                       <div className="text-center">
-                        <p className={`font-bold truncate max-w-[120px] ${isFirst ? "text-base" : "text-sm"}`}>
+                        <p className={`font-bold truncate max-w-30 ${isFirst ? "text-base" : "text-sm"}`}>
                           {entry.name}
                         </p>
                         <p className={`font-black tabular-nums ${isFirst ? "text-2xl" : "text-lg"}`} style={{ color }}>
-                          {entry.score?.toFixed(1)}%
+                          {(entry.score?.toFixed(1) ?? "0")}%
                         </p>
                         <p className="text-xs text-slate-500">{fmtTime(entry.timeTakenSeconds)}</p>
                       </div>
@@ -145,7 +152,7 @@ export default function MockLeaderboardPage() {
                       <p className="text-xs text-slate-500">{fmtTime(entry.timeTakenSeconds)}</p>
                     </div>
                     <span className="font-black tabular-nums text-indigo-300 shrink-0">
-                      {entry.score?.toFixed(1)}%
+                      {(entry.score?.toFixed(1) ?? "0")}%
                     </span>
                   </div>
                 ))}

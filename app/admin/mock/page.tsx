@@ -47,7 +47,7 @@ export default function AdminMockPage() {
     try {
       const exam = await apiClient<MockExam>("/api/admin/mock", {
         method: "POST",
-        body: JSON.stringify({ title: title.trim(), description: description.trim() || undefined, startsAt, endsAt, durationMinutes }),
+        body: JSON.stringify({ title: title.trim(), description: description.trim() || undefined, startsAt: new Date(startsAt).toISOString(), endsAt: new Date(endsAt).toISOString(), durationMinutes }),
       });
       setExams((prev) => [exam, ...prev]);
       setTitle(""); setDescription(""); setStartsAt(""); setEndsAt("");

@@ -9,7 +9,6 @@ interface Participant {
   id: string;
   phone: string;
   name: string | null;
-  pinHash: string | null;
   isRegistered: boolean;
   isApproved: boolean;
   createdAt: string;
@@ -48,6 +47,11 @@ export default function ParticipantsPage() {
       .split(/[\n,]+/)
       .map((p) => p.trim())
       .filter(Boolean);
+    if (phoneList.length === 0) {
+      setError("Please enter at least one phone number.");
+      setAdding(false);
+      return;
+    }
     try {
       const res = await apiClient<{ added: number; skipped: number }>(`/api/admin/mock/${id}/participants/bulk`, {
         method: "POST",

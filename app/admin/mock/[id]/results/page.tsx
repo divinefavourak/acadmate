@@ -63,7 +63,11 @@ export default function ResultsPage() {
       return { participant: pSessions[0].participant, best, sessions: pSessions };
     })
     .filter((p) => p.best)
-    .sort((a, b) => (b.best!.score ?? 0) - (a.best!.score ?? 0));
+    .sort((a, b) => {
+      const scoreDiff = (b.best!.score ?? 0) - (a.best!.score ?? 0);
+      if (scoreDiff !== 0) return scoreDiff;
+      return (a.best!.durationSeconds ?? Infinity) - (b.best!.durationSeconds ?? Infinity);
+    });
 
   const inProgress = sessions.filter((s) => s.status === "IN_PROGRESS");
 

@@ -51,11 +51,16 @@ export default function MockLandingPage() {
   const [error, setError] = useState("");
   const [hasToken, setHasToken] = useState(false);
 
+  const [now, setNow] = useState(() => Date.now());
   const countdown = useCountdown(exam ? exam.startsAt : null);
   const endCountdown = useCountdown(exam ? exam.endsAt : null);
-  const now = Date.now();
   const isLive = exam ? new Date(exam.startsAt).getTime() <= now && new Date(exam.endsAt).getTime() > now : false;
   const isOver = exam ? new Date(exam.endsAt).getTime() <= now : false;
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => {
     const token = localStorage.getItem(`mock_token_${id}`);

@@ -87,7 +87,7 @@ export default function PanicsPage() {
                   </div>
                   {r.message && (
                     <p className="text-sm bg-red-50 dark:bg-red-900/20 rounded-xl px-4 py-3 text-red-700 dark:text-red-300 leading-relaxed">
-                      "{r.message}"
+                      &quot;{r.message}&quot;
                     </p>
                   )}
                   <button
@@ -115,7 +115,7 @@ export default function PanicsPage() {
                     <span className="text-xs text-slate-400 shrink-0">{fmt(r.createdAt)}</span>
                   </div>
                   {r.resolvedNote && (
-                    <p className="text-xs text-emerald-600 dark:text-emerald-400">Note: {r.resolvedNote}</p>
+                    <p className="text-xs text-emerald-600 dark:text-emerald-400">Note: &quot;{r.resolvedNote}&quot;</p>
                   )}
                 </div>
               ))}

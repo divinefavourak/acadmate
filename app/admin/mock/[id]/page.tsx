@@ -59,7 +59,7 @@ export default function MockExamOverviewPage() {
     try {
       const updated = await apiClient<MockExam>(`/api/admin/mock/${id}`, {
         method: "PUT",
-        body: JSON.stringify({ title, description: description || undefined, startsAt, endsAt, durationMinutes, isActive }),
+        body: JSON.stringify({ title, description: description || undefined, startsAt: startsAt ? new Date(startsAt).toISOString() : undefined, endsAt: endsAt ? new Date(endsAt).toISOString() : undefined, durationMinutes, isActive }),
       });
       setExam(updated);
       setSuccess("Saved!");
@@ -117,11 +117,17 @@ export default function MockExamOverviewPage() {
             <span className="w-20 text-right font-semibold text-indigo-600 dark:text-indigo-400">{durationMinutes} min</span>
           </div>
         </div>
-        <label className="flex items-center gap-3 cursor-pointer">
-          <div className={`relative w-11 h-6 rounded-full transition-colors ${isActive ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-700"}`}
-            onClick={() => setIsActive((v) => !v)}>
+        <label className="flex items-center gap-3 cursor-pointer select-none">
+          <button
+            type="button"
+            role="switch"
+            aria-checked={isActive}
+            onClick={() => setIsActive((v) => !v)}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setIsActive((v) => !v); } }}
+            className={`relative w-11 h-6 rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${isActive ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-700"}`}
+          >
             <div className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${isActive ? "translate-x-5" : ""}`} />
-          </div>
+          </button>
           <span className="text-sm font-medium">{isActive ? "Active — visible to participants" : "Inactive — hidden from participants"}</span>
         </label>
         {error && <p className="text-sm text-red-500">{error}</p>}

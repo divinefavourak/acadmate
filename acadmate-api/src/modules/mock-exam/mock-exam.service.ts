@@ -84,7 +84,7 @@ export class MockExamService {
       orderBy: { createdAt: 'desc' },
       include: { _count: { select: { sessions: true } } },
     });
-    return rows.map((p) => ({ ...p, isRegistered: p.pinHash !== null }));
+    return rows.map(({ pinHash, ...rest }) => ({ ...rest, isRegistered: pinHash !== null }));
   }
 
   async addParticipant(mockExamId: string, dto: AddParticipantDto) {
@@ -101,20 +101,21 @@ export class MockExamService {
 
   async addParticipants(mockExamId: string, dto: BulkAddParticipantsDto) {
     await this.getMockExam(mockExamId);
-    let added = 0, skipped = 0;
-    for (const rawPhone of dto.phones) {
-      const phone = rawPhone.trim();
-      if (!phone) continue;
-      const exists = await this.prisma.mockExamParticipant.findUnique({
-        where: { mockExamId_phone: { mockExamId, phone } },
+    const phones = [...new Set(dto.phones.map((p) => p.trim()).filter(Boolean))];
+    const existing = await this.prisma.mockExamParticipant.findMany({
+      where: { mockExamId, phone: { in: phones } },
+      select: { phone: true },
+    });
+    const existingSet = new Set(existing.map((p) => p.phone));
+    const newPhones = phones.filter((p) => !existingSet.has(p));
+    if (newPhones.length > 0) {
+      await this.prisma.$transaction(async (tx) => {
+        await tx.mockExamParticipant.createMany({
+          data: newPhones.map((phone) => ({ mockExamId, phone, isApproved: true })),
+        });
       });
-      if (exists) { skipped++; continue; }
-      await this.prisma.mockExamParticipant.create({
-        data: { mockExamId, phone, isApproved: true },
-      });
-      added++;
     }
-    return { added, skipped };
+    return { added: newPhones.length, skipped: phones.length - newPhones.length };
   }
 
   async setParticipantApproval(participantId: string, isApproved: boolean) {
@@ -144,19 +145,27 @@ export class MockExamService {
 
   async uploadQuestions(mockExamId: string, dto: UploadQuestionsDto) {
     await this.getMockExam(mockExamId);
-    await this.prisma.mockExamQuestion.deleteMany({ where: { mockExamId } });
-    const created = await this.prisma.mockExamQuestion.createMany({
-      data: dto.questions.map((q, i) => ({
-        mockExamId,
-        text: q.text,
-        imageUrl: q.imageUrl,
-        options: q.options as unknown as object,
-        subject: q.subject,
-        explanation: q.explanation,
-        sortOrder: i,
-      })),
+    const activeSessions = await this.prisma.mockExamSession.count({
+      where: { mockExamId, status: 'IN_PROGRESS' },
     });
-    return { count: created.count };
+    if (activeSessions > 0) {
+      throw new BadRequestException('Cannot replace questions while sessions are in progress');
+    }
+    return this.prisma.$transaction(async (tx) => {
+      await tx.mockExamQuestion.deleteMany({ where: { mockExamId } });
+      const created = await tx.mockExamQuestion.createMany({
+        data: dto.questions.map((q, i) => ({
+          mockExamId,
+          text: q.text,
+          imageUrl: q.imageUrl,
+          options: q.options as unknown as object,
+          subject: q.subject,
+          explanation: q.explanation,
+          sortOrder: i,
+        })),
+      });
+      return { count: created.count };
+    });
   }
 
   async deleteQuestion(questionId: string) {
