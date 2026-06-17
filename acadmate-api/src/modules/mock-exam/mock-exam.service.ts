@@ -31,6 +31,57 @@ function isCompulsorySubject(subject: string): boolean {
   return COMPULSORY_SUBJECT_PATTERNS.some((re) => re.test(subject));
 }
 
+// ── Deterministic per-session shuffling ──────────────────────────────────────
+// Questions and their options are randomised per session so no two participants
+// see the same order, yet a given session always reproduces the same layout
+// (stable across refresh/resume, and reproducible at scoring time).
+
+function hashSeed(s: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+function mulberry32(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function seededShuffle<T>(arr: T[], seed: number): T[] {
+  const out = [...arr];
+  const rand = mulberry32(seed);
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+const OPTION_LABELS = ['A', 'B', 'C', 'D', 'E', 'F'];
+
+// Shuffle a question's options for a session and re-label them A/B/C/D by their
+// new position, so the correct letter differs per participant and "it's B" can't
+// be shared. The same (sessionId, questionId) always yields the same ordering,
+// which is what lets scoring re-derive the mapping.
+function shuffleOptionsForSession(
+  sessionId: string,
+  questionId: string,
+  options: QuestionOption[],
+): QuestionOption[] {
+  return seededShuffle(options, hashSeed(`${sessionId}:${questionId}`)).map((o, i) => ({
+    ...o,
+    label: OPTION_LABELS[i] ?? o.label,
+  }));
+}
+
 @Injectable()
 export class MockExamService {
   constructor(
@@ -347,7 +398,7 @@ export class MockExamService {
    * (English / Maths / General Knowledge) and the electives a participant
    * chooses 2–3 of. Used to render the pre-exam subject picker.
    */
-  async getMockSubjects(mockExamId: string) {
+  async getMockSubjects(mockExamId: string, participantId?: string) {
     const rows = await this.prisma.mockExamQuestion.findMany({
       where: { mockExamId },
       select: { subject: true },
@@ -366,7 +417,21 @@ export class MockExamService {
     const maxElectives = Math.min(3, electives.length);
     const minElectives = electives.length <= 2 ? electives.length : 2;
 
-    return { compulsory, electives, minElectives, maxElectives };
+    // On a retake the picker is skipped: surface the electives chosen in the most
+    // recent completed attempt so the page can show (locked) and start directly.
+    let previousElectives: string[] | null = null;
+    if (participantId) {
+      const last = await this.prisma.mockExamSession.findFirst({
+        where: { participantId, status: { in: ['SUBMITTED', 'TIMED_OUT'] } },
+        orderBy: { attemptNumber: 'desc' },
+        select: { subjects: true },
+      });
+      if (last && last.subjects.length > 0) {
+        previousElectives = last.subjects.filter((s) => !isCompulsorySubject(s));
+      }
+    }
+
+    return { compulsory, electives, minElectives, maxElectives, previousElectives };
   }
 
   /** Returns the participant's in-progress session (with questions) or null. */
@@ -408,26 +473,35 @@ export class MockExamService {
     const exam = await this.prisma.mockExam.findUnique({ where: { id: mockExamId } });
     if (!exam) throw new NotFoundException('Mock exam not found');
 
-    // Resolve the subject set: compulsory subjects are always in; the participant
-    // picks 2–3 electives (auto-included when ≤2 exist).
-    const { compulsory, electives, minElectives, maxElectives } =
-      await this.getMockSubjects(mockExamId);
+    // Resolve the subject set. A retake reuses the subjects from the most recent
+    // completed attempt, so the participant doesn't pick again. The first attempt
+    // takes compulsory subjects + the 2–3 electives chosen (auto-included when ≤2).
+    const lastCompleted = [...completedAttempts].sort(
+      (a, b) => b.attemptNumber - a.attemptNumber,
+    )[0];
 
-    let chosenElectives: string[];
-    if (electives.length <= 2) {
-      chosenElectives = electives;
+    let sessionSubjects: string[];
+    if (lastCompleted && lastCompleted.subjects.length > 0) {
+      sessionSubjects = lastCompleted.subjects;
     } else {
-      const requested = (selectedElectives ?? []).filter((s) => electives.includes(s));
-      const unique = [...new Set(requested)];
-      if (unique.length < minElectives || unique.length > maxElectives) {
-        throw new BadRequestException(
-          `Please pick ${minElectives === maxElectives ? minElectives : `${minElectives}–${maxElectives}`} elective subjects.`,
-        );
-      }
-      chosenElectives = unique;
-    }
+      const { compulsory, electives, minElectives, maxElectives } =
+        await this.getMockSubjects(mockExamId);
 
-    const sessionSubjects = [...compulsory, ...chosenElectives];
+      let chosenElectives: string[];
+      if (electives.length <= 2) {
+        chosenElectives = electives;
+      } else {
+        const requested = (selectedElectives ?? []).filter((s) => electives.includes(s));
+        const unique = [...new Set(requested)];
+        if (unique.length < minElectives || unique.length > maxElectives) {
+          throw new BadRequestException(
+            `Please pick ${minElectives === maxElectives ? minElectives : `${minElectives}–${maxElectives}`} elective subjects.`,
+          );
+        }
+        chosenElectives = unique;
+      }
+      sessionSubjects = [...compulsory, ...chosenElectives];
+    }
 
     const questions = await this.prisma.mockExamQuestion.findMany({
       where: { mockExamId, subject: { in: sessionSubjects } },
@@ -494,13 +568,16 @@ export class MockExamService {
       orderBy: { sortOrder: 'asc' },
     });
 
-    // Strip isCorrect from options before sending to client
-    const sanitisedQuestions = questions.map((q) => ({
+    // Randomise question order per session, and option order per question, then
+    // strip isCorrect before sending to the client.
+    const orderedQuestions = seededShuffle(questions, hashSeed(session.id));
+    const sanitisedQuestions = orderedQuestions.map((q) => ({
       id: q.id,
       text: q.text,
       imageUrl: q.imageUrl,
       subject: q.subject,
-      options: (q.options as unknown as QuestionOption[]).map(({ label, text }) => ({ label, text })),
+      options: shuffleOptionsForSession(session.id, q.id, q.options as unknown as QuestionOption[])
+        .map(({ label, text }) => ({ label, text })),
     }));
 
     const savedAnswers: Record<string, string | null> = {};
@@ -552,7 +629,8 @@ export class MockExamService {
     for (const answer of session.answers) {
       const question = questions.find((q) => q.id === answer.questionId);
       if (!question || !answer.selected) continue;
-      const opts = question.options as unknown as QuestionOption[];
+      // Re-derive the same per-session option shuffle to map the chosen label back.
+      const opts = shuffleOptionsForSession(sessionId, question.id, question.options as unknown as QuestionOption[]);
       const chosen = opts.find((o) => o.label === answer.selected);
       const isCorrect = chosen?.isCorrect ?? false;
       if (isCorrect) correct++;
@@ -591,7 +669,7 @@ export class MockExamService {
       if (!answer.selected) continue;
       const question = questions.find((q) => q.id === answer.questionId);
       if (!question) continue;
-      const opts = question.options as unknown as QuestionOption[];
+      const opts = shuffleOptionsForSession(sessionId, question.id, question.options as unknown as QuestionOption[]);
       const isCorrect = opts.find((o) => o.label === answer.selected)?.isCorrect ?? false;
       if (isCorrect) correct++;
     }
@@ -626,9 +704,15 @@ export class MockExamService {
       if (answer.isCorrect) subjectMap[subject].correct++;
     }
 
-    // Answered with correct option shown
-    const reviewAnswers = session.answers.map((a) => {
-      const opts = a.question.options as unknown as QuestionOption[];
+    // Reorder answers to match the shuffled order the participant saw (sort by
+    // sortOrder first to mirror getSessionWithQuestions, then apply the same seed),
+    // and re-derive each question's shuffled option labels.
+    const orderedAnswers = seededShuffle(
+      [...session.answers].sort((a, b) => a.question.sortOrder - b.question.sortOrder),
+      hashSeed(session.id),
+    );
+    const reviewAnswers = orderedAnswers.map((a) => {
+      const opts = shuffleOptionsForSession(session.id, a.questionId, a.question.options as unknown as QuestionOption[]);
       const correctLabel = opts.find((o) => o.isCorrect)?.label ?? null;
       return {
         questionId: a.questionId,

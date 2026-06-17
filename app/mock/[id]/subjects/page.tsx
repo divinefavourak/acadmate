@@ -10,6 +10,9 @@ interface SubjectOptions {
   electives: string[];
   minElectives: number;
   maxElectives: number;
+  // Electives from a prior completed attempt — present on a retake, when the
+  // picker is skipped and the same subjects are reused.
+  previousElectives: string[] | null;
 }
 
 const RULES = [
@@ -43,8 +46,10 @@ export default function MockSubjectsPage() {
       .then((opts) => {
         if (!opts) return;
         setOptions(opts);
-        // Nothing to choose when ≤2 electives exist — they're auto-included.
-        if (opts.electives.length <= 2) setSelected(opts.electives);
+        // Retake: reuse the previous attempt's electives (picker is skipped).
+        // Otherwise pre-fill when there's nothing to choose (≤2 electives).
+        if (opts.previousElectives) setSelected(opts.previousElectives);
+        else if (opts.electives.length <= 2) setSelected(opts.electives);
         setLoading(false);
       })
       .catch((err) => {
@@ -58,7 +63,8 @@ export default function MockSubjectsPage() {
       });
   }, [id, router]);
 
-  const fixedElectives = (options?.electives.length ?? 0) <= 2;
+  const isRetake = !!options?.previousElectives;
+  const fixedElectives = (options?.electives.length ?? 0) <= 2 || isRetake;
 
   function toggle(subject: string) {
     if (!options || fixedElectives) return;
@@ -73,8 +79,8 @@ export default function MockSubjectsPage() {
 
   const canBegin =
     !!options &&
-    selected.length >= options.minElectives &&
-    selected.length <= options.maxElectives;
+    (isRetake ||
+      (selected.length >= options.minElectives && selected.length <= options.maxElectives));
 
   async function handleBegin() {
     if (!canBegin || starting) return;
@@ -107,12 +113,18 @@ export default function MockSubjectsPage() {
       <div className="w-full max-w-lg space-y-6">
         <div className="text-center space-y-2">
           <div className="text-4xl">📝</div>
-          <h1 className="text-2xl font-bold">Choose your subjects</h1>
+          <h1 className="text-2xl font-bold">{isRetake ? "Ready for your retake?" : "Choose your subjects"}</h1>
           <p className="text-sm text-slate-400">
-            English, Mathematics and General Knowledge are compulsory.{" "}
-            {options && options.electives.length > 2
-              ? `Pick ${options.minElectives === options.maxElectives ? options.minElectives : `${options.minElectives}–${options.maxElectives}`} electives.`
-              : "Your electives are included automatically."}
+            {isRetake ? (
+              "You'll retake the exam with the same subjects as your first attempt."
+            ) : (
+              <>
+                English, Mathematics and General Knowledge are compulsory.{" "}
+                {options && options.electives.length > 2
+                  ? `Pick ${options.minElectives === options.maxElectives ? options.minElectives : `${options.minElectives}–${options.maxElectives}`} electives.`
+                  : "Your electives are included automatically."}
+              </>
+            )}
           </p>
         </div>
 
@@ -131,8 +143,23 @@ export default function MockSubjectsPage() {
           </div>
         )}
 
+        {/* Retake: show the reused electives as locked */}
+        {options && isRetake && (options.previousElectives?.length ?? 0) > 0 && (
+          <div className="space-y-2">
+            <p className="text-xs uppercase tracking-wider text-slate-500">Your electives</p>
+            <div className="flex flex-wrap gap-2">
+              {options.previousElectives!.map((s) => (
+                <span key={s} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium bg-indigo-600/20 border border-indigo-500/40 text-indigo-200">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                  {s}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Elective picker */}
-        {options && options.electives.length > 0 && (
+        {options && !isRetake && options.electives.length > 0 && (
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <p className="text-xs uppercase tracking-wider text-slate-500">

@@ -52,7 +52,7 @@ export class MockExamController {
   @Get('subject-options')
   @UseGuards(MockParticipantGuard)
   subjectOptions(@Req() req: AuthenticatedRequest) {
-    return this.service.getMockSubjects(req.mockParticipant.mockExamId);
+    return this.service.getMockSubjects(req.mockParticipant.mockExamId, req.mockParticipant.sub);
   }
 
   /** Current in-progress session (for resume), or null */
