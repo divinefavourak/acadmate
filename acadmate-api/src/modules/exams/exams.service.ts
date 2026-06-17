@@ -94,7 +94,9 @@ export class ExamsService {
       const utmeSubjectIds =
         profile?.courseSubjectCombinations.map((c) => c.subjectId) ?? [];
 
-      if (utmeSubjectIds.length < 3) {
+      // English, Maths and General Knowledge are added automatically; the student
+      // supplies 2–3 electives, so a combination of fewer than 2 is incomplete.
+      if (utmeSubjectIds.length < 2) {
         throw new BadRequestException(
           'Set your UTME subject combination in your profile before taking a Post-UTME exam.',
         );

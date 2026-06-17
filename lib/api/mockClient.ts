@@ -13,6 +13,8 @@ export function mockFetch<T>(path: string, examId: string, init?: RequestInit) {
     on401: "throw",
     headers: {
       "Content-Type": "application/json",
+      // Preserve any caller-supplied headers, but keep our auth token authoritative.
+      ...(init?.headers as Record<string, string> | undefined),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
   });

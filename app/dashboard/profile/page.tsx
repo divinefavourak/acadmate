@@ -120,7 +120,14 @@ export default function ProfilePage() {
       setSaving(false);
       return;
     }
-    if (utmeSubjectIds.length > 0 && (utmeSubjectIds.length < 2 || utmeSubjectIds.length > 3)) {
+    // Normalize to loaded elective IDs only. If the subject catalog failed to
+    // load (subjects empty), we omit utmeSubjectIds entirely below so a transient
+    // fetch failure never clears or corrupts the saved combination.
+    const subjectsLoaded = subjects.length > 0;
+    const electives = subjectsLoaded
+      ? utmeSubjectIds.filter((id) => subjects.some((s) => s.id === id && !COMPULSORY_CODES.includes(s.code)))
+      : [];
+    if (subjectsLoaded && electives.length > 0 && (electives.length < 2 || electives.length > 3)) {
       setError("Pick 2 or 3 elective subjects, or clear the selection.");
       setSaving(false);
       return;
@@ -135,7 +142,7 @@ export default function ProfilePage() {
           targetYear: form.targetYear ? Number(form.targetYear) : undefined,
           courseChoice: form.courseChoice || undefined,
           institution: form.institution || undefined,
-          utmeSubjectIds,
+          ...(subjectsLoaded ? { utmeSubjectIds: electives } : {}),
         }),
       });
       setProfile(updated);

@@ -98,6 +98,13 @@ export default function OnboardingPage() {
     [subjects],
   );
 
+  // Only IDs that map to a loaded elective subject — guards against legacy
+  // compulsory IDs or a failed subject fetch leaking into the payload.
+  const selectedElectives = useMemo(
+    () => utmeSubjectIds.filter((id) => otherSubjects.some((s) => s.id === id)),
+    [utmeSubjectIds, otherSubjects],
+  );
+
   function toggleSubject(id: string) {
     setUtmeSubjectIds((prev) =>
       prev.includes(id)
@@ -119,7 +126,7 @@ export default function OnboardingPage() {
   }
 
   function validateStep2(): string | null {
-    if (utmeSubjectIds.length < 2 || utmeSubjectIds.length > 3) {
+    if (selectedElectives.length < 2 || selectedElectives.length > 3) {
       return "Please pick 2 or 3 elective subjects (English, Maths & General Knowledge are automatic).";
     }
     return null;
@@ -153,7 +160,7 @@ export default function OnboardingPage() {
         name: name.trim(),
         age: Number(age),
         institution: institution.trim(),
-        utmeSubjectIds,
+        utmeSubjectIds: selectedElectives,
       };
       if (!skipAvatar) {
         if (avatarUrl) payload.avatarUrl = avatarUrl;
