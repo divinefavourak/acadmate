@@ -149,7 +149,7 @@ export default function MockLandingPage() {
           <div className="space-y-3">
             {hasToken ? (
               <button
-                onClick={() => router.push(`/mock/${id}/exam`)}
+                onClick={() => router.push(`/mock/${id}/subjects`)}
                 className="w-full py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-lg transition-colors"
               >
                 Enter Exam

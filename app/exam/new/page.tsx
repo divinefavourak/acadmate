@@ -103,7 +103,7 @@ export default function NewExamPage() {
     }).finally(() => setLoadingData(false));
   }, []);
 
-  const utmeComboMissing = utmeComboCount !== null && utmeComboCount < 3;
+  const utmeComboMissing = utmeComboCount !== null && utmeComboCount < 2;
 
   // Fetch topics when subject changes (TOPIC mode)
   useEffect(() => {

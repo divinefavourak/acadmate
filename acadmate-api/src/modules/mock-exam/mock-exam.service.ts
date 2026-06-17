@@ -17,6 +17,19 @@ const MAX_ATTEMPTS = 2;
 
 interface QuestionOption { label: string; text: string; isCorrect: boolean }
 
+// Mock papers store each question's subject as free text. These patterns flag the
+// three subjects that are compulsory for every participant (English, Mathematics,
+// General Knowledge); anything else is an elective the participant chooses from.
+const COMPULSORY_SUBJECT_PATTERNS: RegExp[] = [
+  /english/i,
+  /math/i,
+  /general\s*knowledge|^\s*gk\s*$/i,
+];
+
+function isCompulsorySubject(subject: string): boolean {
+  return COMPULSORY_SUBJECT_PATTERNS.some((re) => re.test(subject));
+}
+
 @Injectable()
 export class MockExamService {
   constructor(
@@ -301,7 +314,47 @@ export class MockExamService {
 
   // ── Public: exam session ─────────────────────────────────────────────────
 
-  async startSession(participantId: string, mockExamId: string) {
+  /**
+   * Distinct subjects in a mock paper, split into the compulsory three
+   * (English / Maths / General Knowledge) and the electives a participant
+   * chooses 2–3 of. Used to render the pre-exam subject picker.
+   */
+  async getMockSubjects(mockExamId: string) {
+    const rows = await this.prisma.mockExamQuestion.findMany({
+      where: { mockExamId },
+      select: { subject: true },
+      distinct: ['subject'],
+      orderBy: { subject: 'asc' },
+    });
+
+    const compulsory: string[] = [];
+    const electives: string[] = [];
+    for (const { subject } of rows) {
+      (isCompulsorySubject(subject) ? compulsory : electives).push(subject);
+    }
+
+    // When ≤2 electives exist there's nothing meaningful to choose — they're all
+    // included automatically. Otherwise the participant picks 2–3.
+    const maxElectives = Math.min(3, electives.length);
+    const minElectives = electives.length <= 2 ? electives.length : 2;
+
+    return { compulsory, electives, minElectives, maxElectives };
+  }
+
+  /** Returns the participant's in-progress session (with questions) or null. */
+  async getCurrentSession(participantId: string) {
+    const inProgress = await this.prisma.mockExamSession.findFirst({
+      where: { participantId, status: 'IN_PROGRESS' },
+    });
+    if (!inProgress) return null;
+    return this.getSessionWithQuestions(inProgress.id);
+  }
+
+  async startSession(
+    participantId: string,
+    mockExamId: string,
+    selectedElectives?: string[],
+  ) {
     const participant = await this.prisma.mockExamParticipant.findUnique({
       where: { id: participantId },
       include: { sessions: true },
@@ -316,10 +369,10 @@ export class MockExamService {
       throw new ForbiddenException(`Maximum ${MAX_ATTEMPTS} attempts reached`);
     }
 
-    // Block if there's already an in-progress session
+    // Block if there's already an in-progress session — return it as-is, keeping
+    // the subjects chosen when it was first started.
     const inProgress = participant.sessions.find((s) => s.status === 'IN_PROGRESS');
     if (inProgress) {
-      // Return the existing session instead of creating a new one
       return this.getSessionWithQuestions(inProgress.id);
     }
 
@@ -327,26 +380,61 @@ export class MockExamService {
     const exam = await this.prisma.mockExam.findUnique({ where: { id: mockExamId } });
     if (!exam) throw new NotFoundException('Mock exam not found');
 
-    const session = await this.prisma.mockExamSession.create({
-      data: { mockExamId, participantId, attemptNumber, total: 0 },
-    });
+    // Resolve the subject set: compulsory subjects are always in; the participant
+    // picks 2–3 electives (auto-included when ≤2 exist).
+    const { compulsory, electives, minElectives, maxElectives } =
+      await this.getMockSubjects(mockExamId);
 
-    // Pre-create answer slots for all questions
+    let chosenElectives: string[];
+    if (electives.length <= 2) {
+      chosenElectives = electives;
+    } else {
+      const requested = (selectedElectives ?? []).filter((s) => electives.includes(s));
+      const unique = [...new Set(requested)];
+      if (unique.length < minElectives || unique.length > maxElectives) {
+        throw new BadRequestException(
+          `Please pick ${minElectives === maxElectives ? minElectives : `${minElectives}–${maxElectives}`} elective subjects.`,
+        );
+      }
+      chosenElectives = unique;
+    }
+
+    const sessionSubjects = [...compulsory, ...chosenElectives];
+
     const questions = await this.prisma.mockExamQuestion.findMany({
-      where: { mockExamId },
+      where: { mockExamId, subject: { in: sessionSubjects } },
       orderBy: { sortOrder: 'asc' },
     });
+    if (questions.length === 0) {
+      throw new BadRequestException('No questions available for the selected subjects.');
+    }
 
+    const session = await this.prisma.mockExamSession.create({
+      data: {
+        mockExamId,
+        participantId,
+        attemptNumber,
+        total: questions.length,
+        subjects: sessionSubjects,
+      },
+    });
+
+    // Pre-create answer slots only for the questions in this attempt's subjects.
     await this.prisma.mockExamAnswer.createMany({
       data: questions.map((q) => ({ sessionId: session.id, questionId: q.id })),
     });
 
-    await this.prisma.mockExamSession.update({
-      where: { id: session.id },
-      data: { total: questions.length },
-    });
-
     return this.getSessionWithQuestions(session.id);
+  }
+
+  /**
+   * Question filter for a session. Empty `subjects` (legacy sessions created
+   * before per-subject selection) means "the whole paper".
+   */
+  private sessionQuestionWhere(mockExamId: string, subjects: string[]) {
+    return subjects.length > 0
+      ? { mockExamId, subject: { in: subjects } }
+      : { mockExamId };
   }
 
   async getSessionWithQuestions(sessionId: string) {
@@ -360,7 +448,7 @@ export class MockExamService {
     if (!session) throw new NotFoundException('Session not found');
 
     const questions = await this.prisma.mockExamQuestion.findMany({
-      where: { mockExamId: session.mockExamId },
+      where: this.sessionQuestionWhere(session.mockExamId, session.subjects),
       orderBy: { sortOrder: 'asc' },
     });
 
@@ -413,7 +501,7 @@ export class MockExamService {
     if (session.status !== 'IN_PROGRESS') throw new BadRequestException('Session already submitted');
 
     const questions = await this.prisma.mockExamQuestion.findMany({
-      where: { mockExamId: session.mockExamId },
+      where: this.sessionQuestionWhere(session.mockExamId, session.subjects),
     });
 
     let correct = 0;
@@ -453,7 +541,7 @@ export class MockExamService {
     if (!session || session.status !== 'IN_PROGRESS') return;
 
     const questions = await this.prisma.mockExamQuestion.findMany({
-      where: { mockExamId: session.mockExamId },
+      where: this.sessionQuestionWhere(session.mockExamId, session.subjects),
     });
 
     let correct = 0;

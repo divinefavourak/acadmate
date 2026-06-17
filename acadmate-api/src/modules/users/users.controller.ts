@@ -40,7 +40,7 @@ class CompleteOnboardingDto {
   @IsOptional() @IsString() name?: string;
   @IsInt() @Min(10) @Max(99) age!: number;
   @IsString() institution!: string;
-  @IsArray() @ArrayMinSize(3) @ArrayMaxSize(3) @IsString({ each: true }) utmeSubjectIds!: string[];
+  @IsArray() @ArrayMinSize(2) @ArrayMaxSize(3) @IsString({ each: true }) utmeSubjectIds!: string[];
   @IsOptional() @IsObject() avatarConfig?: Record<string, unknown>;
   @IsOptional() @IsString() avatarUrl?: string;
 }

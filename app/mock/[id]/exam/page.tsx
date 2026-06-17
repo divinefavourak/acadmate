@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { apiClient, ApiError } from "@/lib/api/client";
+import { useExamGuard } from "@/app/exam/hooks/useExamGuard";
+import type { StrikeWarning } from "@/app/exam/hooks/useExamGuard";
 
 interface Option { label: string; text: string }
 interface Question { id: string; text: string; subject: string | null; imageUrl?: string | null; options: Option[] }
@@ -72,8 +74,10 @@ export default function MockExamPage() {
     const token = localStorage.getItem(`mock_token_${id}`);
     if (!token) { router.replace(`/mock/${id}/login`); return; }
 
-    mockFetch<SessionData>("/api/mock/sessions", id, { method: "POST" })
+    // The session is created on the subjects/briefing page; here we only resume it.
+    mockFetch<SessionData | null>("/api/mock/sessions/current", id)
       .then((data) => {
+        if (!data) { router.replace(`/mock/${id}/subjects`); return; }
         if (data.status !== "IN_PROGRESS") {
           router.replace(`/mock/${id}/result/${data.sessionId}`);
           return;
@@ -119,6 +123,28 @@ export default function MockExamPage() {
     }, 1000);
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [session, secondsLeft, submitSession]);
+
+  // Anti-cheat: fullscreen + tab-switch monitoring (same rules as the main exam)
+  const handleGuardAutoSubmit = useCallback(() => {
+    if (session) submitSession(session.sessionId, true);
+  }, [session, submitSession]);
+
+  const { strikes, warning, isFullscreen, dismissWarning, requestFullscreen } =
+    useExamGuard(session !== null, handleGuardAutoSubmit);
+
+  // Disable copy, cut, and right-click while the exam is open
+  useEffect(() => {
+    if (!session) return;
+    const block = (e: Event) => e.preventDefault();
+    document.addEventListener("copy", block);
+    document.addEventListener("cut", block);
+    document.addEventListener("contextmenu", block);
+    return () => {
+      document.removeEventListener("copy", block);
+      document.removeEventListener("cut", block);
+      document.removeEventListener("contextmenu", block);
+    };
+  }, [session]);
 
   function fmtTimer(sec: number) {
     const m = Math.floor(sec / 60);
@@ -208,8 +234,25 @@ export default function MockExamPage() {
             <p className="text-xs text-slate-500 uppercase tracking-wider">Attempt {session.attemptNumber}</p>
             <p className="font-semibold truncate text-sm">{session.examTitle}</p>
           </div>
-          <div className={`text-2xl font-mono font-bold tabular-nums shrink-0 ${timerCritical ? "text-red-400 animate-pulse" : "text-indigo-300"}`}>
-            {secondsLeft !== null ? fmtTimer(secondsLeft) : "--:--"}
+          <div className="flex items-center gap-2 shrink-0">
+            {!isFullscreen && (
+              <button
+                onClick={requestFullscreen}
+                title="Enter fullscreen"
+                className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold border border-amber-500/40 text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 transition-colors"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+                Fullscreen
+              </button>
+            )}
+            {strikes > 0 && (
+              <span className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-red-500/15 text-red-400 border border-red-500/30">
+                ⚠ {strikes}/2
+              </span>
+            )}
+            <div className={`text-2xl font-mono font-bold tabular-nums ${timerCritical ? "text-red-400 animate-pulse" : "text-indigo-300"}`}>
+              {secondsLeft !== null ? fmtTimer(secondsLeft) : "--:--"}
+            </div>
           </div>
         </div>
         {/* Progress bar */}
@@ -372,6 +415,54 @@ export default function MockExamPage() {
           </div>
         </div>
       )}
+
+      {/* Strike warning modal */}
+      {warning && <StrikeWarningModal warning={warning} onDismiss={dismissWarning} />}
+    </div>
+  );
+}
+
+function StrikeWarningModal({
+  warning,
+  onDismiss,
+}: {
+  warning: StrikeWarning;
+  onDismiss: () => void;
+}) {
+  const { type, strike, isFinal } = warning;
+  const reason = type === "tab" ? "You switched to another tab or window" : "You exited fullscreen mode";
+
+  return (
+    <div className="fixed inset-0 z-999 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+      <div className="w-full max-w-md bg-[#1e293b] rounded-2xl shadow-2xl border border-white/10 overflow-hidden">
+        <div className={`h-1.5 w-full ${isFinal ? "bg-red-600" : "bg-amber-500"}`} />
+        <div className="p-6 sm:p-8 space-y-5">
+          <div className="flex items-start gap-4">
+            <div className={`shrink-0 w-12 h-12 rounded-full flex items-center justify-center ${isFinal ? "bg-red-500/20" : "bg-amber-500/20"}`}>
+              <span className="text-2xl">{isFinal ? "⛔" : "⚠️"}</span>
+            </div>
+            <div>
+              <h2 className="font-bold text-lg text-white">
+                {isFinal ? "Exam Auto-Submitted" : `Strike ${strike} of 2`}
+              </h2>
+              <p className="text-sm text-slate-400 mt-0.5">{reason}</p>
+            </div>
+          </div>
+          <div className={`rounded-xl p-4 text-sm ${isFinal ? "bg-red-500/10 text-red-300" : "bg-amber-500/10 text-amber-300"}`}>
+            {isFinal
+              ? "You have used both strikes. Your exam is being submitted now — you'll be redirected to your results shortly."
+              : "This is a monitored exam. One more violation will automatically submit your exam."}
+          </div>
+          {!isFinal && (
+            <button
+              onClick={onDismiss}
+              className="w-full py-3 rounded-xl font-bold text-sm bg-indigo-600 hover:bg-indigo-500 text-white transition-colors"
+            >
+              I understand — return to exam
+            </button>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
