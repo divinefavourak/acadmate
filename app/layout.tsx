@@ -5,6 +5,7 @@ import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import { ThemeProvider } from "./components/ThemeProvider";
 import VisitTracker from "./components/VisitTracker";
+import RouteTitle from "./components/RouteTitle";
 import {
   SITE_NAME,
   SITE_URL,
@@ -139,6 +140,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         <Analytics />
         <VisitTracker />
+        <RouteTitle />
         <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>

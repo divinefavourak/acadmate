@@ -3,6 +3,7 @@ import { Type } from 'class-transformer';
 
 export class CreateMockExamDto {
   @IsString() title: string;
+  @IsOptional() @IsString() slug?: string;
   @IsOptional() @IsString() description?: string;
   @IsDateString() startsAt: string;
   @IsDateString() endsAt: string;
@@ -11,6 +12,7 @@ export class CreateMockExamDto {
 
 export class UpdateMockExamDto {
   @IsOptional() @IsString() title?: string;
+  @IsOptional() @IsString() slug?: string;
   @IsOptional() @IsString() description?: string;
   @IsOptional() @IsDateString() startsAt?: string;
   @IsOptional() @IsDateString() endsAt?: string;

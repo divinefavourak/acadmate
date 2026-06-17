@@ -16,6 +16,21 @@ import { MockParticipantPayload } from './guards/mock-participant.guard';
 
 const MAX_ATTEMPTS = 2;
 
+// Slugs share the /mock/:idOrSlug URL space with these subpaths/words, so they
+// can't be used as a slug.
+const RESERVED_SLUGS = new Set([
+  'active', 'register', 'login', 'exam', 'subjects', 'leaderboard',
+  'result', 'info', 'sessions', 'panic', 'current', 'new',
+]);
+
+function normalizeSlug(input: string): string {
+  return input
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
 interface QuestionOption { label: string; text: string; isCorrect: boolean }
 
 // Mock papers store each question's subject as free text. These patterns flag the
@@ -108,31 +123,65 @@ export class MockExamService {
     return exam;
   }
 
+  // Normalise + validate a slug, rejecting reserved words and bad lengths.
+  private cleanSlug(input: string): string {
+    const slug = normalizeSlug(input);
+    if (slug.length < 3 || slug.length > 60) {
+      throw new BadRequestException('Slug must be 3–60 characters (letters, numbers, hyphens).');
+    }
+    if (RESERVED_SLUGS.has(slug)) {
+      throw new BadRequestException(`"${slug}" is a reserved word — please choose another slug.`);
+    }
+    return slug;
+  }
+
   async createMockExam(dto: CreateMockExamDto) {
-    return this.prisma.mockExam.create({
-      data: {
-        title: dto.title,
-        description: dto.description,
-        startsAt: new Date(dto.startsAt),
-        endsAt: new Date(dto.endsAt),
-        durationMinutes: dto.durationMinutes,
-      },
-    });
+    const slug = dto.slug ? this.cleanSlug(dto.slug) : undefined;
+    try {
+      return await this.prisma.mockExam.create({
+        data: {
+          title: dto.title,
+          slug,
+          description: dto.description,
+          startsAt: new Date(dto.startsAt),
+          endsAt: new Date(dto.endsAt),
+          durationMinutes: dto.durationMinutes,
+        },
+      });
+    } catch (e) {
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+        throw new BadRequestException('That slug is already taken.');
+      }
+      throw e;
+    }
   }
 
   async updateMockExam(id: string, dto: UpdateMockExamDto) {
     await this.getMockExam(id);
-    return this.prisma.mockExam.update({
-      where: { id },
-      data: {
-        ...(dto.title && { title: dto.title }),
-        ...(dto.description !== undefined && { description: dto.description }),
-        ...(dto.startsAt && { startsAt: new Date(dto.startsAt) }),
-        ...(dto.endsAt && { endsAt: new Date(dto.endsAt) }),
-        ...(dto.durationMinutes && { durationMinutes: dto.durationMinutes }),
-        ...(dto.isActive !== undefined && { isActive: dto.isActive }),
-      },
-    });
+    // undefined = leave unchanged; "" = clear; otherwise set a validated slug.
+    const slugUpdate =
+      dto.slug === undefined
+        ? {}
+        : { slug: dto.slug.trim() === '' ? null : this.cleanSlug(dto.slug) };
+    try {
+      return await this.prisma.mockExam.update({
+        where: { id },
+        data: {
+          ...(dto.title && { title: dto.title }),
+          ...slugUpdate,
+          ...(dto.description !== undefined && { description: dto.description }),
+          ...(dto.startsAt && { startsAt: new Date(dto.startsAt) }),
+          ...(dto.endsAt && { endsAt: new Date(dto.endsAt) }),
+          ...(dto.durationMinutes && { durationMinutes: dto.durationMinutes }),
+          ...(dto.isActive !== undefined && { isActive: dto.isActive }),
+        },
+      });
+    } catch (e) {
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+        throw new BadRequestException('That slug is already taken.');
+      }
+      throw e;
+    }
   }
 
   async deleteMockExam(id: string) {
@@ -289,13 +338,24 @@ export class MockExamService {
     return this.publicExamShape(exam);
   }
 
-  async getPublicMockExam(id: string) {
-    const exam = await this.prisma.mockExam.findUnique({
-      where: { id, isActive: true },
+  async getPublicMockExam(idOrSlug: string) {
+    const exam = await this.prisma.mockExam.findFirst({
+      where: { isActive: true, OR: [{ id: idOrSlug }, { slug: idOrSlug }] },
       include: { _count: { select: { questions: true } } },
     });
     if (!exam) throw new NotFoundException('Exam not found or not active');
     return this.publicExamShape(exam);
+  }
+
+  // Resolve a public /mock/:idOrSlug param to the real exam id (slugs are
+  // human-friendly aliases for the cuid).
+  private async resolveExamId(idOrSlug: string): Promise<string> {
+    const exam = await this.prisma.mockExam.findFirst({
+      where: { OR: [{ id: idOrSlug }, { slug: idOrSlug }] },
+      select: { id: true },
+    });
+    if (!exam) throw new NotFoundException('Mock exam not found');
+    return exam.id;
   }
 
   private publicExamShape(exam: { id: string; title: string; description: string | null; startsAt: Date; endsAt: Date; durationMinutes: number; _count: { questions: number } }) {
@@ -312,7 +372,8 @@ export class MockExamService {
 
   // ── Public: participant register / login ─────────────────────────────────
 
-  async registerParticipant(mockExamId: string, dto: RegisterParticipantDto) {
+  async registerParticipant(idOrSlug: string, dto: RegisterParticipantDto) {
+    const mockExamId = await this.resolveExamId(idOrSlug);
     const phone = dto.phone.trim();
 
     if (!/^\d{4}$/.test(dto.pin)) {
@@ -362,7 +423,8 @@ export class MockExamService {
     return { avatarConfig: Prisma.JsonNull, avatarUrl: null };
   }
 
-  async loginParticipant(mockExamId: string, dto: LoginParticipantDto) {
+  async loginParticipant(idOrSlug: string, dto: LoginParticipantDto) {
+    const mockExamId = await this.resolveExamId(idOrSlug);
     const phone = dto.phone.trim();
     const participant = await this.prisma.mockExamParticipant.findUnique({
       where: { mockExamId_phone: { mockExamId, phone } },
@@ -758,7 +820,8 @@ export class MockExamService {
 
   // ── Public: leaderboard ──────────────────────────────────────────────────
 
-  async getLeaderboard(mockExamId: string) {
+  async getLeaderboard(idOrSlug: string) {
+    const mockExamId = await this.resolveExamId(idOrSlug);
     const sessions = await this.prisma.mockExamSession.findMany({
       where: { mockExamId, status: { in: ['SUBMITTED', 'TIMED_OUT'] } },
       include: { participant: { select: { id: true, name: true, phone: true, avatarConfig: true, avatarUrl: true } } },

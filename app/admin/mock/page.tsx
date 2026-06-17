@@ -7,6 +7,7 @@ import Loader from "@/app/components/Loader";
 
 interface MockExam {
   id: string;
+  slug: string | null;
   title: string;
   description: string | null;
   startsAt: string;
@@ -27,6 +28,7 @@ export default function AdminMockPage() {
 
   // Create form
   const [title, setTitle] = useState("");
+  const [slug, setSlug] = useState("");
   const [description, setDescription] = useState("");
   const [startsAt, setStartsAt] = useState("");
   const [endsAt, setEndsAt] = useState("");
@@ -47,10 +49,10 @@ export default function AdminMockPage() {
     try {
       const exam = await apiClient<MockExam>("/api/admin/mock", {
         method: "POST",
-        body: JSON.stringify({ title: title.trim(), description: description.trim() || undefined, startsAt: new Date(startsAt).toISOString(), endsAt: new Date(endsAt).toISOString(), durationMinutes }),
+        body: JSON.stringify({ title: title.trim(), slug: slug.trim() || undefined, description: description.trim() || undefined, startsAt: new Date(startsAt).toISOString(), endsAt: new Date(endsAt).toISOString(), durationMinutes }),
       });
       setExams((prev) => [exam, ...prev]);
-      setTitle(""); setDescription(""); setStartsAt(""); setEndsAt("");
+      setTitle(""); setSlug(""); setDescription(""); setStartsAt(""); setEndsAt("");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to create exam");
     } finally {
@@ -85,6 +87,12 @@ export default function AdminMockPage() {
             <label className="text-sm font-medium">Title</label>
             <input required value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Unilag Post-UTME Mock 2026"
               className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500" />
+          </div>
+          <div className="sm:col-span-2 space-y-1.5">
+            <label className="text-sm font-medium">Custom link (slug) <span className="text-slate-400 font-normal">(optional)</span></label>
+            <input value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="e.g. unilag-mock-2026"
+              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500" />
+            <p className="text-xs text-slate-400">Shareable as /mock/your-slug. Letters, numbers and hyphens only.</p>
           </div>
           <div className="sm:col-span-2 space-y-1.5">
             <label className="text-sm font-medium">Description <span className="text-slate-400 font-normal">(optional)</span></label>
