@@ -1,4 +1,4 @@
-import { IsString, IsDateString, IsInt, IsOptional, IsBoolean, Min, Max, IsArray, ValidateNested, IsIn, ArrayNotEmpty, ArrayMaxSize } from 'class-validator';
+import { IsString, IsDateString, IsInt, IsOptional, IsBoolean, IsObject, Min, Max, IsArray, ValidateNested, IsIn, ArrayNotEmpty, ArrayMaxSize } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateMockExamDto {
@@ -33,6 +33,10 @@ export class RegisterParticipantDto {
   @IsString() phone: string;
   @IsString() name: string;
   @IsString() pin: string; // 4-digit, validated in service
+  // Avatar chosen at registration: a generated react-nice-avatar config OR an
+  // uploaded image (data URL). Either may be present; both are optional.
+  @IsOptional() @IsObject() avatarConfig?: Record<string, unknown>;
+  @IsOptional() @IsString() avatarUrl?: string;
 }
 
 export class LoginParticipantDto {

@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ApiError } from "@/lib/api/client";
 import { mockFetch } from "@/lib/api/mockClient";
 import { useExamGuard } from "@/app/exam/hooks/useExamGuard";
 import type { StrikeWarning } from "@/app/exam/hooks/useExamGuard";
+import Calculator from "@/app/exam/components/Calculator";
 
 interface Option { label: string; text: string }
 interface Question { id: string; text: string; subject: string | null; imageUrl?: string | null; options: Option[] }
@@ -37,6 +38,7 @@ export default function MockExamPage() {
   const [panicMessage, setPanicMessage] = useState("");
   const [showPanicModal, setShowPanicModal] = useState(false);
   const [panicSent, setPanicSent] = useState(false);
+  const [showCalculator, setShowCalculator] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const savingRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const hasSubmittedRef = useRef(false);
@@ -112,13 +114,19 @@ export default function MockExamPage() {
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [session, secondsLeft, submitSession]);
 
-  // Anti-cheat: fullscreen + tab-switch monitoring (same rules as the main exam)
+  // Anti-cheat: fullscreen + tab-switch monitoring (same rules as the main exam).
+  // Fullscreen is enforced on desktop only — on touch devices it's unreliable and
+  // causes false strikes / forced rotation, so we rely on tab-switch detection.
+  const requireFullscreen = useMemo(
+    () => typeof window !== "undefined" && !window.matchMedia("(pointer: coarse)").matches,
+    [],
+  );
   const handleGuardAutoSubmit = useCallback(() => {
     if (session) submitSession(session.sessionId, true);
   }, [session, submitSession]);
 
   const { strikes, warning, isFullscreen, dismissWarning, requestFullscreen } =
-    useExamGuard(session !== null, handleGuardAutoSubmit);
+    useExamGuard(session !== null, handleGuardAutoSubmit, { requireFullscreen });
 
   // Disable copy, cut, and right-click while the exam is open
   useEffect(() => {
@@ -223,7 +231,7 @@ export default function MockExamPage() {
             <p className="font-semibold truncate text-sm">{session.examTitle}</p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            {!isFullscreen && (
+            {requireFullscreen && !isFullscreen && (
               <button
                 onClick={requestFullscreen}
                 title="Enter fullscreen"
@@ -346,13 +354,22 @@ export default function MockExamPage() {
         )}
 
         {/* Bottom actions */}
-        <div className="flex items-center justify-between pt-2 border-t border-white/10">
-          <button
-            onClick={() => setShowPanicModal(true)}
-            className="flex items-center gap-2 text-sm text-red-400 hover:text-red-300 transition-colors"
-          >
-            🚨 Report Issue
-          </button>
+        <div className="flex items-center justify-between gap-3 pt-2 border-t border-white/10">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setShowPanicModal(true)}
+              className="flex items-center gap-1.5 text-sm text-red-400 hover:text-red-300 transition-colors"
+            >
+              🚨 Report
+            </button>
+            <button
+              onClick={() => setShowCalculator(true)}
+              className="flex items-center gap-1.5 text-sm text-slate-300 hover:text-white transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="16" height="20" x="4" y="2" rx="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="16" x2="16" y1="14" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></svg>
+              Calculator
+            </button>
+          </div>
           <button
             onClick={handleSubmit}
             disabled={submitting}
@@ -362,6 +379,9 @@ export default function MockExamPage() {
           </button>
         </div>
       </div>
+
+      {/* Calculator */}
+      {showCalculator && <Calculator onClose={() => setShowCalculator(false)} />}
 
       {/* Panic modal */}
       {showPanicModal && (

@@ -279,7 +279,12 @@ export class MockExamService {
     const pinHash = await bcrypt.hash(dto.pin, 10);
     return this.prisma.mockExamParticipant.update({
       where: { id: participant.id },
-      data: { name: dto.name, pinHash },
+      data: {
+        name: dto.name,
+        pinHash,
+        avatarConfig: (dto.avatarConfig as Prisma.InputJsonValue) ?? Prisma.JsonNull,
+        avatarUrl: dto.avatarUrl ?? null,
+      },
       select: { id: true, phone: true, name: true },
     });
   }
@@ -650,7 +655,7 @@ export class MockExamService {
   async getLeaderboard(mockExamId: string) {
     const sessions = await this.prisma.mockExamSession.findMany({
       where: { mockExamId, status: { in: ['SUBMITTED', 'TIMED_OUT'] } },
-      include: { participant: { select: { id: true, name: true, phone: true } } },
+      include: { participant: { select: { id: true, name: true, phone: true, avatarConfig: true, avatarUrl: true } } },
     });
 
     // Best score per participant; tiebreak by fastest time
@@ -681,6 +686,8 @@ export class MockExamService {
       rank: i + 1,
       participantId: s.participantId,
       name: s.participant.name ?? s.participant.phone,
+      avatarConfig: s.participant.avatarConfig,
+      avatarUrl: s.participant.avatarUrl,
       score: s.score,
       correct: s.correct,
       total: s.total,
