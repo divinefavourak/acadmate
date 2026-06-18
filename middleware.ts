@@ -26,6 +26,13 @@ const ROUTE_POLICY = {
     "/reset-password",
     "/blog",
     "/api/blog",
+    // Legal pages must be reachable without auth — Google API verification
+    // (and most app-store / OAuth reviews) require the privacy policy URL to
+    // load without a login wall. These live in the (public) route group, but
+    // that folder name is a Next.js routing convention only; this middleware
+    // gate is independent and must list them explicitly.
+    "/privacy",
+    "/terms",
     "/forum",
     "/api/forum",
     // Student live-session landing — viewable without auth; the Join action

@@ -33,7 +33,7 @@ export default function PrivacyPage() {
 
         <h1 className="text-3xl font-bold mb-2">Privacy Policy</h1>
         <p className="text-slate-500 dark:text-slate-400 text-sm mb-10">
-          Last updated: May 31, 2026
+          Last updated: June 18, 2026
         </p>
 
         <div className="prose prose-slate dark:prose-invert max-w-none space-y-8">
@@ -58,7 +58,7 @@ export default function PrivacyPage() {
             <ul className="list-disc pl-5 space-y-1">
               <li>
                 <strong>Account data</strong> — name, email address, and (if you use Google
-                Sign-In) your Google profile details.
+                Sign-In) your Google account&rsquo;s name, email address, and profile picture.
               </li>
               <li>
                 <strong>Usage data</strong> — exam attempts, scores, subjects studied, topics
@@ -86,12 +86,44 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold mb-3">4. Google Sign-In</h2>
+            <h2 className="text-xl font-semibold mb-3">4. Google Sign-In and Google user data</h2>
             <p>
-              If you choose to sign in with Google, we receive your name and email address from
-              Google&rsquo;s OAuth service. We use this information solely to create and manage
-              your Acadmate account. Acadmate Business Consult&rsquo;s use of data received from
-              Google APIs adheres to the{" "}
+              Signing in with Google is optional. If you choose it, Acadmate requests only the{" "}
+              <code>email</code> and <code>profile</code> OAuth scopes. The following describes how
+              we handle data received from Google APIs.
+            </p>
+            <ul className="list-disc pl-5 space-y-2 mt-3">
+              <li>
+                <strong>Data we access</strong> — your Google account&rsquo;s name, email address,
+                and profile picture. We do not request or access your Gmail, Google Drive,
+                contacts, calendar, or any other Google service data.
+              </li>
+              <li>
+                <strong>How we use it</strong> — solely to create and sign you in to your Acadmate
+                account, identify you within the platform, and set your initial profile avatar from
+                your Google picture (which you can later change). We do not use Google user data for
+                advertising.
+              </li>
+              <li>
+                <strong>How we share it</strong> — we do <strong>not</strong> sell, rent, or
+                transfer Google user data to third parties, and we do not share it with anyone for
+                advertising or other unrelated purposes. It is used only to operate Acadmate.
+              </li>
+              <li>
+                <strong>How we store and protect it</strong> — your name, email, and avatar are
+                stored in our secured PostgreSQL database. All data is transmitted over HTTPS and
+                protected with industry-standard access controls.
+              </li>
+              <li>
+                <strong>Retention and deletion</strong> — Google user data is retained for as long
+                as your Acadmate account remains active. You can request deletion of your account
+                and all associated Google data at any time by emailing us at the address in the
+                Contact section below; we will action such requests promptly.
+              </li>
+            </ul>
+            <p className="mt-3">
+              Acadmate Business Consult&rsquo;s use of information received from Google APIs adheres
+              to the{" "}
               <a
                 href="https://developers.google.com/terms/api-services-user-data-policy"
                 target="_blank"
