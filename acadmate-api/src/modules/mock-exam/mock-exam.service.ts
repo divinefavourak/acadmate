@@ -135,8 +135,21 @@ export class MockExamService {
     return slug;
   }
 
+  // id wins over slug at resolution, so a slug equal to another exam's id would
+  // silently route to that exam — reject it.
+  private async ensureSlugNotAnExamId(slug: string, currentExamId?: string) {
+    const match = await this.prisma.mockExam.findUnique({
+      where: { id: slug },
+      select: { id: true },
+    });
+    if (match && match.id !== currentExamId) {
+      throw new BadRequestException('That slug matches an existing exam ID — please choose another.');
+    }
+  }
+
   async createMockExam(dto: CreateMockExamDto) {
     const slug = dto.slug ? this.cleanSlug(dto.slug) : undefined;
+    if (slug) await this.ensureSlugNotAnExamId(slug);
     try {
       return await this.prisma.mockExam.create({
         data: {
@@ -159,10 +172,12 @@ export class MockExamService {
   async updateMockExam(id: string, dto: UpdateMockExamDto) {
     await this.getMockExam(id);
     // undefined = leave unchanged; "" = clear; otherwise set a validated slug.
-    const slugUpdate =
-      dto.slug === undefined
-        ? {}
-        : { slug: dto.slug.trim() === '' ? null : this.cleanSlug(dto.slug) };
+    let slugUpdate: { slug?: string | null } = {};
+    if (dto.slug !== undefined) {
+      const nextSlug = dto.slug.trim() === '' ? null : this.cleanSlug(dto.slug);
+      if (nextSlug) await this.ensureSlugNotAnExamId(nextSlug, id);
+      slugUpdate = { slug: nextSlug };
+    }
     try {
       return await this.prisma.mockExam.update({
         where: { id },

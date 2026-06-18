@@ -80,6 +80,8 @@ export default function MockExamOverviewPage() {
         body: JSON.stringify({ title, slug, description: description || undefined, startsAt: startsAt ? new Date(startsAt).toISOString() : undefined, endsAt: endsAt ? new Date(endsAt).toISOString() : undefined, durationMinutes, isActive }),
       });
       setExam(updated);
+      // Reflect the server-normalised slug (e.g. "My Mock" → "my-mock").
+      setSlug(updated.slug ?? "");
       setSuccess("Saved!");
       setTimeout(() => setSuccess(""), 2000);
     } catch (err) {
