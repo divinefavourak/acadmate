@@ -709,6 +709,7 @@ model ForumReply {
 
 model MockExam {
   id              String   @id @default(cuid())
+  slug            String?  @unique
   title           String
   description     String?  @db.Text
   startsAt        DateTime

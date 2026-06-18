@@ -7,6 +7,7 @@ import Loader from "@/app/components/Loader";
 
 interface MockExam {
   id: string;
+  slug: string | null;
   title: string;
   description: string | null;
   startsAt: string;
@@ -31,17 +32,34 @@ export default function MockExamOverviewPage() {
   const [success, setSuccess] = useState("");
 
   const [title, setTitle] = useState("");
+  const [slug, setSlug] = useState("");
   const [description, setDescription] = useState("");
   const [startsAt, setStartsAt] = useState("");
   const [endsAt, setEndsAt] = useState("");
   const [durationMinutes, setDurationMinutes] = useState(60);
   const [isActive, setIsActive] = useState(false);
+  const [copied, setCopied] = useState<string | null>(null);
+  // Derived client-side to avoid an SSR/client hydration mismatch on the URLs.
+  const [origin, setOrigin] = useState("");
+  useEffect(() => { setOrigin(window.location.origin); }, []);
+
+  async function copyLink(key: string, url: string) {
+    try {
+      if (!navigator.clipboard) throw new Error("Clipboard unavailable");
+      await navigator.clipboard.writeText(url);
+      setCopied(key);
+    } catch {
+      setCopied(`${key}:error`);
+    }
+    setTimeout(() => setCopied((c) => (c === key || c === `${key}:error` ? null : c)), 1500);
+  }
 
   useEffect(() => {
     apiClient<MockExam>(`/api/admin/mock/${id}`)
       .then((e) => {
         setExam(e);
         setTitle(e.title);
+        setSlug(e.slug ?? "");
         setDescription(e.description ?? "");
         setStartsAt(toLocal(e.startsAt));
         setEndsAt(toLocal(e.endsAt));
@@ -59,9 +77,11 @@ export default function MockExamOverviewPage() {
     try {
       const updated = await apiClient<MockExam>(`/api/admin/mock/${id}`, {
         method: "PUT",
-        body: JSON.stringify({ title, description: description || undefined, startsAt: startsAt ? new Date(startsAt).toISOString() : undefined, endsAt: endsAt ? new Date(endsAt).toISOString() : undefined, durationMinutes, isActive }),
+        body: JSON.stringify({ title, slug, description: description || undefined, startsAt: startsAt ? new Date(startsAt).toISOString() : undefined, endsAt: endsAt ? new Date(endsAt).toISOString() : undefined, durationMinutes, isActive }),
       });
       setExam(updated);
+      // Reflect the server-normalised slug (e.g. "My Mock" → "my-mock").
+      setSlug(updated.slug ?? "");
       setSuccess("Saved!");
       setTimeout(() => setSuccess(""), 2000);
     } catch (err) {
@@ -91,6 +111,12 @@ export default function MockExamOverviewPage() {
           <label className="text-sm font-medium">Title</label>
           <input required value={title} onChange={(e) => setTitle(e.target.value)}
             className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500" />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium">Custom link (slug)</label>
+          <input value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="e.g. unilag-mock-2026"
+            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500" />
+          <p className="text-xs text-slate-400">Shareable as /mock/your-slug. Leave blank to use the default link.</p>
         </div>
         <div className="space-y-1.5">
           <label className="text-sm font-medium">Description</label>
@@ -137,12 +163,34 @@ export default function MockExamOverviewPage() {
         </button>
       </form>
 
-      {/* Share link */}
-      <div className="glass-panel p-5 rounded-2xl space-y-2">
+      {/* Share links */}
+      <div className="glass-panel p-5 rounded-2xl space-y-3">
         <h3 className="font-semibold text-sm">Participant Links</h3>
-        <div className="text-xs text-slate-400 space-y-1">
-          <p>Register: <code className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">{typeof window !== "undefined" ? window.location.origin : ""}/mock/{id}/register</code></p>
-          <p>Leaderboard: <code className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">{typeof window !== "undefined" ? window.location.origin : ""}/mock/{id}/leaderboard</code></p>
+        {!exam.slug && (
+          <p className="text-xs text-slate-400">Tip: set a custom slug above for shorter, branded links.</p>
+        )}
+        <div className="space-y-2">
+          {(() => {
+            const base = `${origin}/mock/${exam.slug || id}`;
+            const links = [
+              { key: "exam", label: "Exam page", url: base },
+              { key: "register", label: "Register", url: `${base}/register` },
+              { key: "leaderboard", label: "Leaderboard", url: `${base}/leaderboard` },
+            ];
+            return links.map((l) => (
+              <div key={l.key} className="flex items-center gap-2">
+                <span className="w-24 shrink-0 text-xs font-medium text-slate-500">{l.label}</span>
+                <code className="flex-1 min-w-0 truncate bg-slate-100 dark:bg-slate-800 px-2 py-1.5 rounded text-xs text-slate-600 dark:text-slate-300">{l.url}</code>
+                <button
+                  type="button"
+                  onClick={() => copyLink(l.key, l.url)}
+                  className="shrink-0 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 hover:bg-indigo-500/25 transition-colors"
+                >
+                  {copied === l.key ? "Copied!" : copied === `${l.key}:error` ? "Failed" : "Copy"}
+                </button>
+              </div>
+            ));
+          })()}
         </div>
       </div>
     </div>
