@@ -1,0 +1,111 @@
+name: Deploy Backend
+
+# Auto-deploys the NestJS API to the HackClub Nest server on every push to main
+# that touches the backend, plus manual runs. Frontend deploys separately (Vercel),
+# so this is path-filtered to backend files only.
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'acadmate-api/**'
+      - 'docker-compose.prod.yml'
+      - '.github/workflows/deploy-backend.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Never cancel an in-flight deploy (it may be mid prisma db push / container swap).
+concurrency:
+  group: deploy-backend
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: acadmate-api
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: acadmate-api/package-lock.json
+
+      - name: Install, generate client, build
+        run: npm ci          # postinstall runs `prisma generate && nest build` (type-check)
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test -- --passWithNoTests
+
+  deploy:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check required secrets
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          missing=0
+          for v in SSH_HOST SSH_USER SSH_PRIVATE_KEY DEPLOY_PATH; do
+            if [ -z "${!v}" ]; then echo "::error::Missing required secret: $v"; missing=1; fi
+          done
+          [ "$missing" -eq 0 ] || exit 1
+
+      - name: Set up SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          mkdir -p ~/.ssh
+          # tr -d '\r' guards against CRLF if the key was pasted from Windows.
+          printf '%s\n' "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          PORT="${SSH_PORT:-22}"
+          if [ -n "$SSH_KNOWN_HOSTS" ]; then
+            printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          else
+            # Don't swallow keyscan failures — a bad host should fail the deploy.
+            ssh-keyscan -p "$PORT" -H "$SSH_HOST" >> ~/.ssh/known_hosts
+          fi
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Deploy over SSH
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          PORT="${SSH_PORT:-22}"
+          ssh -i ~/.ssh/deploy_key -p "$PORT" \
+            -o StrictHostKeyChecking=yes \
+            "$SSH_USER@$SSH_HOST" bash -s <<EOF
+          set -euo pipefail
+          cd "${DEPLOY_PATH}"
+          # Deterministic update — never a fast-forward-or-conflict 'git pull'.
+          git fetch origin master
+          git reset --hard origin/master
+          # Rebuild ONLY the api image; db + redis keep running untouched.
+          # Schema is applied at container boot via 'prisma db push' (Dockerfile CMD),
+          # so there is intentionally no separate migrate step here.
+          docker compose -f docker-compose.prod.yml build api
+          docker compose -f docker-compose.prod.yml up -d api
+          # Reclaim disk on the small Nest box.
+          docker image prune -f
+          EOF

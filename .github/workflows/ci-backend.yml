@@ -1,0 +1,48 @@
+name: Backend CI
+
+# Quality gate for the NestJS API (acadmate-api/). Runs on PRs that touch the
+# backend so a red build can be made a required check before merge.
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - 'acadmate-api/**'
+      - '.github/workflows/ci-backend.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-backend-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: acadmate-api
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'           # matches acadmate-api/Dockerfile (node:22-alpine)
+          cache: npm
+          cache-dependency-path: acadmate-api/package-lock.json
+
+      # `npm ci` triggers postinstall (`prisma generate && nest build`), so this
+      # single step also generates the Prisma client and type-checks via tsc.
+      - name: Install, generate client, build
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        # No spec files yet — --passWithNoTests keeps CI green until tests exist,
+        # while still running the suite once they're added.
+        run: npm test -- --passWithNoTests
