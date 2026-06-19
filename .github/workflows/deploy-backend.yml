@@ -95,22 +95,17 @@ jobs:
           SSH_PORT: ${{ secrets.SSH_PORT }}
           DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
         run: |
-          PORT="${SSH_PORT:-22}"
-          # Pass the script as a single ssh command argument (like acadmate_bot's
-          # deploy) instead of piping it via `bash -s`. The bash -s form returns
-          # ssh exit 255 here: the detached api container inherits the SSH channel's
-          # stdout so the channel never closes cleanly, even though the commands
-          # succeed. Ending on `docker compose ps` gives a clean foreground exit;
-          # </dev/null keeps ssh from reading the workflow's stdin.
-          # Deterministic update (reset, not pull); rebuild ONLY the api image so
-          # db + redis stay up; schema is applied at boot via prisma db push
-          # (Dockerfile CMD), so there is no separate migrate step.
-          ssh -i ~/.ssh/deploy_key -p "$PORT" \
-            -o StrictHostKeyChecking=yes \
+          set -euo pipefail
+          # Invocation mirrors acadmate_bot's working deploy: script passed as a
+          # single ssh command argument ending in `docker compose ps`. Deterministic
+          # update (reset, not pull); rebuild ONLY the api image so db + redis stay
+          # up; schema is applied at boot via prisma db push (Dockerfile CMD), so
+          # there is no separate migrate step.
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes \
             "$SSH_USER@$SSH_HOST" \
             "set -e; cd $DEPLOY_PATH \
               && git fetch origin master \
               && git reset --hard origin/master \
               && docker compose -f docker-compose.prod.yml build api \
               && docker compose -f docker-compose.prod.yml up -d api \
-              && docker compose -f docker-compose.prod.yml ps" </dev/null
+              && docker compose -f docker-compose.prod.yml ps"
