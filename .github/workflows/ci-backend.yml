@@ -1,0 +1,46 @@
+name: Backend CI
+
+# Quality gate for the NestJS API (acadmate-api/). Runs on PRs that touch the
+# backend so a red build can be made a required check before merge.
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - 'acadmate-api/**'
+      - '.github/workflows/ci-backend.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-backend-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: acadmate-api
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4.3.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4.4.0
+        with:
+          node-version: '22'           # matches acadmate-api/Dockerfile (node:22-alpine)
+          cache: npm
+          cache-dependency-path: acadmate-api/package-lock.json
+
+      # Use `npm install` (not `npm ci`) to match the Dockerfile — the lockfile is
+      # generated on Windows and omits Linux-only optional deps (e.g. @emnapi/*),
+      # which makes `npm ci` fail on the runner. postinstall then runs
+      # `prisma generate && nest build`, so this step also type-checks via tsc.
+      - name: Install, generate client, build
+        run: npm install
+
+      # NOTE: `npm run lint` / `npm test` are intentionally omitted — eslint and
+      # jest are not yet installed in acadmate-api (the scripts exist but the deps
+      # don't). Add those steps back once the tooling is added to the backend.
