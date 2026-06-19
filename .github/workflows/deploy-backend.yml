@@ -95,17 +95,28 @@ jobs:
           SSH_PORT: ${{ secrets.SSH_PORT }}
           DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
         run: |
-          set -euo pipefail
-          # Invocation mirrors acadmate_bot's working deploy: script passed as a
-          # single ssh command argument ending in `docker compose ps`. Deterministic
-          # update (reset, not pull); rebuild ONLY the api image so db + redis stay
-          # up; schema is applied at boot via prisma db push (Dockerfile CMD), so
-          # there is no separate migrate step.
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes \
+          set -uo pipefail
+          # The remote work succeeds but ssh returns 255 on this host during
+          # connection teardown after `docker compose up -d` (the remote shell
+          # exits 0 and we receive all output, but the channel close is reported
+          # as an ssh transport error). So we don't trust ssh's exit code: the
+          # remote prints __DEPLOY_OK__ only if every command ran (`set -e` aborts
+          # before the marker on any real failure), and we assert on that.
+          # Deterministic update (reset, not pull); rebuild ONLY the api image so
+          # db + redis stay up; schema is applied at boot via prisma db push
+          # (Dockerfile CMD), so there is no separate migrate step.
+          out="$(ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes \
             "$SSH_USER@$SSH_HOST" \
             "set -e; cd $DEPLOY_PATH \
               && git fetch origin master \
               && git reset --hard origin/master \
               && docker compose -f docker-compose.prod.yml build api \
               && docker compose -f docker-compose.prod.yml up -d api \
-              && docker compose -f docker-compose.prod.yml ps"
+              && docker compose -f docker-compose.prod.yml ps \
+              && echo __DEPLOY_OK__" 2>&1)" || true
+          printf '%s\n' "$out"
+          if ! printf '%s\n' "$out" | grep -q '__DEPLOY_OK__'; then
+            echo "::error::Deploy did not reach the success marker — remote command failed (see output above)."
+            exit 1
+          fi
+          echo "Deploy verified: __DEPLOY_OK__ received."
