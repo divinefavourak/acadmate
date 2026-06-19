@@ -1,6 +1,6 @@
 name: Deploy Backend
 
-# Auto-deploys the NestJS API to the HackClub Nest server on every push to main
+# Auto-deploys the NestJS API to the HackClub Nest server on every push to master
 # that touches the backend, plus manual runs. Frontend deploys separately (Vercel),
 # so this is path-filtered to backend files only.
 on:
@@ -28,11 +28,11 @@ jobs:
       run:
         working-directory: acadmate-api
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4.3.1
         with:
           persist-credentials: false
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4.4.0
         with:
           node-version: '22'
           cache: npm
@@ -78,9 +78,14 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           PORT="${SSH_PORT:-22}"
           if [ -n "$SSH_KNOWN_HOSTS" ]; then
+            # Preferred: pinned, pre-verified host key — no trust-on-first-use window.
             printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
           else
-            # Don't swallow keyscan failures — a bad host should fail the deploy.
+            # Fallback: TOFU. ssh-keyscan trusts whatever key the host presents on
+            # THIS run, so a MITM during the scan would be trusted. Acceptable only
+            # for initial setup / low-risk use — set the SSH_KNOWN_HOSTS secret to
+            # close this gap. Don't swallow keyscan failures — a bad host must fail.
+            echo "::warning::SSH_KNOWN_HOSTS not set — using ssh-keyscan (trust-on-first-use). Set SSH_KNOWN_HOSTS to pin the host key."
             ssh-keyscan -p "$PORT" -H "$SSH_HOST" >> ~/.ssh/known_hosts
           fi
           chmod 644 ~/.ssh/known_hosts
