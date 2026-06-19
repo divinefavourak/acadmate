@@ -34,10 +34,12 @@ jobs:
           cache: npm
           cache-dependency-path: acadmate-api/package-lock.json
 
-      # `npm ci` triggers postinstall (`prisma generate && nest build`), so this
-      # single step also generates the Prisma client and type-checks via tsc.
+      # Use `npm install` (not `npm ci`) to match the Dockerfile — the lockfile is
+      # generated on Windows and omits Linux-only optional deps (e.g. @emnapi/*),
+      # which makes `npm ci` fail on the runner. postinstall then runs
+      # `prisma generate && nest build`, so this step also type-checks via tsc.
       - name: Install, generate client, build
-        run: npm ci
+        run: npm install
 
       - name: Lint
         run: npm run lint

@@ -38,8 +38,10 @@ jobs:
           cache: npm
           cache-dependency-path: acadmate-api/package-lock.json
 
+      # `npm install` (not `npm ci`) to match the Dockerfile — the Windows-generated
+      # lockfile omits Linux-only optional deps and breaks `npm ci` on the runner.
       - name: Install, generate client, build
-        run: npm ci          # postinstall runs `prisma generate && nest build` (type-check)
+        run: npm install    # postinstall runs `prisma generate && nest build` (type-check)
 
       - name: Lint
         run: npm run lint
