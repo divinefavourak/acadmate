@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { apiClient, ApiError } from "@/lib/api/client";
 import Loader from "@/app/components/Loader";
+import MathText from "@/app/components/MathText";
 
 interface QuestionOption {
   label: string;
@@ -30,10 +31,35 @@ export default function QuestionsPage() {
   const [uploadResult, setUploadResult] = useState<{ count: number } | null>(null);
   const [parseError, setParseError] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [subjectFilter, setSubjectFilter] = useState<string>("all");
+
+  const UNCATEGORISED = "Uncategorised";
+
+  // Distinct subjects with their question counts, sorted alphabetically.
+  const subjectCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const q of questions) {
+      const key = q.subject?.trim() || UNCATEGORISED;
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    return [...counts.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+  }, [questions]);
+
+  const visibleQuestions = useMemo(() => {
+    if (subjectFilter === "all") return questions;
+    return questions.filter((q) => (q.subject?.trim() || UNCATEGORISED) === subjectFilter);
+  }, [questions, subjectFilter]);
 
   useEffect(() => {
     load();
   }, [id]);
+
+  // If the active filter disappears after a re-upload, fall back to "all".
+  useEffect(() => {
+    if (subjectFilter !== "all" && !subjectCounts.some(([s]) => s === subjectFilter)) {
+      setSubjectFilter("all");
+    }
+  }, [subjectCounts, subjectFilter]);
 
   function load() {
     setLoading(true);
@@ -124,12 +150,44 @@ export default function QuestionsPage() {
 
       {/* Question list */}
       <div>
-        <h3 className="font-semibold mb-3">Questions ({questions.length})</h3>
+        <h3 className="font-semibold mb-3">
+          Questions ({visibleQuestions.length}{subjectFilter !== "all" ? ` of ${questions.length}` : ""})
+        </h3>
+
+        {/* Subject filter */}
+        {subjectCounts.length > 1 && (
+          <div className="flex flex-wrap gap-2 mb-4">
+            <button
+              onClick={() => setSubjectFilter("all")}
+              className={`text-xs px-3 py-1 rounded-full border transition-colors ${
+                subjectFilter === "all"
+                  ? "bg-indigo-600 border-indigo-500 text-white"
+                  : "border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+              }`}
+            >
+              All ({questions.length})
+            </button>
+            {subjectCounts.map(([subject, count]) => (
+              <button
+                key={subject}
+                onClick={() => setSubjectFilter(subject)}
+                className={`text-xs px-3 py-1 rounded-full border transition-colors ${
+                  subjectFilter === subject
+                    ? "bg-indigo-600 border-indigo-500 text-white"
+                    : "border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+                }`}
+              >
+                {subject} ({count})
+              </button>
+            ))}
+          </div>
+        )}
+
         {loading ? <Loader className="py-8" /> : questions.length === 0 ? (
           <div className="glass-panel rounded-2xl p-8 text-center text-slate-400 text-sm">No questions yet. Upload a JSON file above.</div>
         ) : (
           <div className="space-y-2">
-            {questions.map((q, idx) => (
+            {visibleQuestions.map((q, idx) => (
               <div key={q.id} className="glass-panel rounded-xl overflow-hidden">
                 <button
                   onClick={() => setExpanded(expanded === q.id ? null : q.id)}
@@ -138,7 +196,7 @@ export default function QuestionsPage() {
                   <span className="shrink-0 w-6 h-6 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-xs font-bold flex items-center justify-center mt-0.5">
                     {idx + 1}
                   </span>
-                  <span className="flex-1 text-sm leading-relaxed line-clamp-2">{q.text}</span>
+                  <MathText text={q.text} className="flex-1 text-sm leading-relaxed line-clamp-2" />
                   {q.subject && (
                     <span className="shrink-0 text-xs text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">{q.subject}</span>
                   )}
@@ -155,7 +213,7 @@ export default function QuestionsPage() {
                     {q.options.map((opt) => (
                       <div key={opt.label} className={`flex items-start gap-2 text-sm px-3 py-2 rounded-lg ${opt.isCorrect ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300" : "text-slate-600 dark:text-slate-300"}`}>
                         <span className="font-bold shrink-0 w-5">{opt.label}.</span>
-                        <span>{opt.text}</span>
+                        <MathText text={opt.text} />
                         {opt.isCorrect && <span className="ml-auto text-xs font-semibold shrink-0">Correct</span>}
                       </div>
                     ))}

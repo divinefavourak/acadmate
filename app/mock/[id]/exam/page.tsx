@@ -7,6 +7,7 @@ import { mockFetch } from "@/lib/api/mockClient";
 import { useExamGuard } from "@/app/exam/hooks/useExamGuard";
 import type { StrikeWarning } from "@/app/exam/hooks/useExamGuard";
 import Calculator from "@/app/exam/components/Calculator";
+import MathText from "@/app/components/MathText";
 import Image from "next/image";
 
 interface Option { label: string; text: string }
@@ -297,7 +298,7 @@ export default function MockExamPage() {
                 <span className="shrink-0 w-7 h-7 rounded-full bg-indigo-600/60 text-xs font-bold flex items-center justify-center text-indigo-200">
                   {current + 1}
                 </span>
-                <p className="leading-relaxed text-white">{q.text}</p>
+                <MathText text={q.text} className="leading-relaxed text-white" />
               </div>
               {q.imageUrl && (
                 <img src={q.imageUrl} alt="Question image" className="rounded-xl max-h-48 object-contain w-full bg-black/20" />
@@ -322,7 +323,7 @@ export default function MockExamPage() {
                     }`}>
                       {opt.label}
                     </span>
-                    <span className="leading-snug">{opt.text}</span>
+                    <MathText text={opt.text} className="leading-snug" />
                   </button>
                 );
               })}

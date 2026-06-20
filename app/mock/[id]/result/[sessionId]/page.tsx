@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiClient, ApiError } from "@/lib/api/client";
+import MathText from "@/app/components/MathText";
 
 interface SubjectStat { correct: number; total: number }
 interface ReviewAnswer {
@@ -164,7 +165,7 @@ export default function MockResultPage() {
                   }`}>
                     Q{i + 1}
                   </span>
-                  <p className="text-sm leading-relaxed">{a.text}</p>
+                  <MathText text={a.text} className="text-sm leading-relaxed" />
                 </div>
                 <div className="space-y-1">
                   {a.options.map((opt) => {
@@ -176,7 +177,7 @@ export default function MockResultPage() {
                         isSelected && !isCorrect ? "bg-red-900/30 text-red-300" : "text-slate-400"
                       }`}>
                         <span className="font-bold shrink-0 w-4">{opt.label}.</span>
-                        <span>{opt.text}</span>
+                        <MathText text={opt.text} />
                         {isSelected && !isCorrect && <span className="ml-auto shrink-0">✗ Your answer</span>}
                         {isCorrect && <span className="ml-auto shrink-0">✓ Correct</span>}
                       </div>
@@ -184,7 +185,7 @@ export default function MockResultPage() {
                   })}
                 </div>
                 {a.explanation && (
-                  <p className="text-xs text-slate-400 border-t border-white/10 pt-2">{a.explanation}</p>
+                  <MathText text={a.explanation} className="block text-xs text-slate-400 border-t border-white/10 pt-2" />
                 )}
               </div>
             ))}

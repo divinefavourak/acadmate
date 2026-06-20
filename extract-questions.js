@@ -7,6 +7,13 @@
  * Usage:
  *   node extract-questions.js <photos-folder> <output.json> [year]
  *   node extract-questions.js <output.json> --correct-only
+ *   node extract-questions.js <input.md> <output.json> --from-md [--provider groq|gemini|anthropic]
+ *
+ * --from-md converts a text/markdown booklet (no images) into the MOCK-EXAM
+ * upload format ({ text, subject, options:[{label,text,isCorrect}], explanation })
+ * used by /admin/mock/<id>/questions. Where the booklet supplies an "ANSWER: X"
+ * line it is used; otherwise the model solves the question to pick the answer.
+ * Provider defaults to Gemini (GEMINI_API_KEY — high free-tier limits); pass --provider groq or anthropic to switch.
  *
  * Env:
  *   GEMINI_API_KEY    — required (vision extraction)
@@ -21,9 +28,17 @@ const path      = require('path');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const Anthropic = require('@anthropic-ai/sdk');
 
+// Load API keys from the project env files (this script reads process.env but
+// isn't run through Next.js, so nothing loads them otherwise). .env.local wins:
+// dotenv does not override already-set vars, so load it first.
+require('dotenv').config({ path: path.join(__dirname, '.env.local') });
+require('dotenv').config({ path: path.join(__dirname, '.env') });
+
 // ── Config ────────────────────────────────────────────────────────────────────
 const VISION_MODEL      = 'gemini-2.5-flash';          // Google Gemini — vision
 const CORRECTION_MODEL  = 'claude-haiku-4-5-20251001'; // Anthropic — correction
+const MOCK_MODEL        = 'claude-sonnet-4-6';         // Anthropic — markdown→mock (needs to SOLVE unanswered Qs)
+const GROQ_MODEL        = 'llama-3.3-70b-versatile';    // Groq — markdown→mock (proven to work within free-tier TPM)
 const VERIFY_BATCH  = 20;
 const REQUEST_DELAY = 3000;    // ms between vision calls
 const MAX_RETRIES   = 8;       // retries before giving up
@@ -225,19 +240,324 @@ Return ONLY a JSON array with the same length and index order. Each element: { "
   }
 }
 
+// ── Markdown mode: convert a text booklet into mock-exam JSON ────────────────
+
+// Conservative question-start detector. Used ONLY to choose safe chunk
+// boundaries so a single question is never split across two API calls — being
+// strict here means chunks may run a little long, never that a question is cut.
+function isQuestionStart(line) {
+  return /^\s*\d+\.\s/.test(line)        // "1. ..."        numbered (English + General Paper)
+      || /^\s*Q:/i.test(line)            // "Q: ..."        maths section
+      || /^\s*•?\s*From\b/i.test(line);  // "• From the..."  English bulleted stems
+}
+
+function chunkByQuestions(text, maxChars = 2500) {
+  const lines  = text.split(/\r?\n/);
+  const chunks = [];
+  let current = [];
+  let size    = 0;
+  for (const line of lines) {
+    if (size >= maxChars && current.length && isQuestionStart(line)) {
+      chunks.push(current.join('\n'));
+      current = [];
+      size    = 0;
+    }
+    current.push(line);
+    size += line.length + 1;
+  }
+  if (current.length) chunks.push(current.join('\n'));
+  return chunks;
+}
+
+function normalizeText(s) {
+  return String(s ?? '').toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
+}
+
+// Pull out every balanced top-level {...} object, ignoring braces inside strings.
+// Lets us recover whole questions even when the model's JSON array is truncated
+// mid-object (hit max_tokens) — the unclosed tail simply never matches and is dropped.
+function extractJsonObjects(str) {
+  const objs = [];
+  let depth = 0, start = -1, inStr = false, esc = false;
+  for (let i = 0; i < str.length; i++) {
+    const ch = str[i];
+    if (inStr) {
+      if (esc) esc = false;
+      else if (ch === '\\') esc = true;
+      else if (ch === '"') inStr = false;
+      continue;
+    }
+    if (ch === '"') inStr = true;
+    else if (ch === '{') { if (depth++ === 0) start = i; }
+    else if (ch === '}') { if (--depth === 0 && start !== -1) { objs.push(str.slice(start, i + 1)); start = -1; } }
+  }
+  return objs;
+}
+
+// Returns null when valid, else a human-readable reason it needs manual review.
+function validateMockQuestion(q) {
+  if (!q || typeof q.text !== 'string' || !q.text.trim()) return 'missing question text';
+  if (!Array.isArray(q.options) || q.options.length < 2)  return 'fewer than 2 options';
+  const badShape = q.options.some(o => !o || typeof o.text !== 'string' || !o.text.trim() || !/^[A-E]$/.test(o.label ?? ''));
+  if (badShape) return 'malformed option (label must be A–E with text)';
+  const correct = q.options.filter(o => o.isCorrect === true).length;
+  if (correct !== 1) return `expected exactly 1 correct option, found ${correct}`;
+  const labels = q.options.map(o => o.label);
+  const isAtoD = q.options.length === 4 && ['A', 'B', 'C', 'D'].every((l, i) => labels[i] === l);
+  if (!isAtoD) return 'not exactly A–D (mock exams only support 4 options A–D)';
+  return null;
+}
+
+// `complete(prompt, label)` runs one chat/text completion and resolves to the
+// raw model text. Provider is chosen in runFromMarkdown so this stays generic.
+async function convertChunk(complete, chunkText, chunkIndex) {
+  const prompt = `You are digitising a Nigerian JAMB / Post-UTME mock-exam booklet. Below is raw text (possibly OCR'd) containing multiple-choice questions. Convert it into structured JSON.
+
+Output a JSON array. Each element is ONE question:
+{
+  "text": string,        // the question stem ONLY — no leading number, bullet, or "Q:"
+  "subject": string,     // infer: the "ENGLISH LANGUAGE" section -> "Use of English"; the civil-service "GENERAL PAPER" section -> "General Paper"; the "Q:"-prefixed maths -> "Mathematics"
+  "options": [
+    { "label": "A", "text": string, "isCorrect": boolean },
+    { "label": "B", "text": string, "isCorrect": boolean },
+    { "label": "C", "text": string, "isCorrect": boolean },
+    { "label": "D", "text": string, "isCorrect": boolean }
+  ],
+  "explanation": string  // 1-2 sentences justifying the correct answer; math in $...$ LaTeX, same as below
+}
+
+The "text", every option "text", and "explanation" are rendered with KaTeX + lightweight markdown, so format them accordingly.
+
+RULES — breaking any one makes the entry wrong:
+1. LABELS: always uppercase A, B, C, D. Re-letter "(a)/(b)/(c)/(d)" to A/B/C/D. If a question genuinely has a 5th option, add it as "E" — do not drop or merge options.
+2. EXACTLY ONE option must have "isCorrect": true.
+3. ANSWER KEY: if the booklet states the answer (a line like "ANSWER: C"), trust it and mark that option correct. NEVER put the "ANSWER: X" line into the text or an option.
+4. NO KEY GIVEN: if no answer is provided, SOLVE the question yourself (antonym, synonym, grammar, comprehension, calculation, etc.) and mark the option you determine is correct.
+5. SKIP non-questions entirely: section titles ("ENGLISH LANGUAGE", "GENERAL PAPER"), standalone page numbers, and any instruction/stem that has no options.
+6. DUPLICATES: some questions appear more than once in the booklet — just convert each as you meet it; duplicates are removed afterwards.
+7. MATHS → LaTeX: wrap EVERY mathematical expression, equation, variable, number-with-unit, or symbol in inline LaTeX delimiters $...$ using valid KaTeX syntax. In JSON every backslash MUST be written doubled. Examples of correct option/text values:
+     "2y + 5x - 4 = 0"  -> "$2y + 5x - 4 = 0$"
+     "x^2" -> "$x^2$";  "sqrt(3)" -> "$\\\\sqrt{3}$";  "3/4" -> "$\\\\frac{3}{4}$"
+     "pi" -> "$\\\\pi$";  "sin30" -> "$\\\\sin 30^\\\\circ$";  "3 x 10^8 m/s" -> "$3 \\\\times 10^{8}\\\\ \\\\text{m/s}$"
+     binary "10.011two" -> "$10.011_2$";  "<=" -> "$\\\\le$";  a lone variable like x -> "$x$".
+   Use $$...$$ only for a large standalone display equation (rare here).
+8. EMPHASIS: this text has lost the booklet's original bold/italic styling, so do NOT guess it. Apply only these two safe conventions: when a stem refers to "the underlined word", italicise that word with _word_; bold genuine negation/emphasis words (NOT, EXCEPT, ALL, ONLY) with **WORD**.
+9. Reminder: a backslash inside a JSON string is written as two characters, e.g. "\\\\sqrt", "\\\\frac", "\\\\pi", "\\\\times".
+10. Return ONLY the JSON array — no markdown fences, no prose.
+
+RAW TEXT:
+${chunkText}`;
+
+  const raw     = (await complete(prompt, `convert(chunk ${chunkIndex})`)).trim();
+  const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+
+  // Parse RAW first — the model now emits valid JSON with correctly-doubled
+  // LaTeX backslashes (e.g. "$\\ \\text{cm}$"). sanitizeJson would corrupt that
+  // valid "\\ " into an invalid "\ ", so only use it as a fallback for genuinely
+  // broken (single-backslash) output.
+  const tryParse = (s) => {
+    try { return JSON.parse(s); } catch {}
+    try { return JSON.parse(sanitizeJson(s)); } catch {}
+    return undefined;
+  };
+
+  const whole = tryParse(cleaned);
+  if (Array.isArray(whole)) return whole;
+
+  // Salvage: parse each complete object independently so a truncated or single
+  // malformed object costs only itself, not the whole chunk.
+  const salvaged = [];
+  for (const objStr of extractJsonObjects(cleaned)) {
+    const obj = tryParse(objStr);
+    if (obj) salvaged.push(obj);
+  }
+  if (salvaged.length > 0) {
+    console.warn(`  [salvaged] chunk ${chunkIndex}: recovered ${salvaged.length} question(s) from malformed/truncated JSON`);
+    return salvaged;
+  }
+
+  console.error(`  [parse error] chunk ${chunkIndex}: no recoverable questions`);
+  console.error('  Raw output (first 500 chars):', raw.slice(0, 500));
+  return [];
+}
+
+// Build a completer for the chosen provider. Returns { label, complete, delayMs }
+// where complete(prompt, label) resolves to the raw model text and delayMs is the
+// pause between chunks. Defaults to Groq (reuses GROQ_API_KEY).
+function buildCompleter(provider) {
+  if (provider === 'anthropic') {
+    if (!process.env.ANTHROPIC_API_KEY) {
+      console.error('Error: ANTHROPIC_API_KEY is not set (needed for --provider anthropic)');
+      process.exit(1);
+    }
+    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    return {
+      label: `${MOCK_MODEL} (Claude)`,
+      delayMs: 1500,
+      complete: (prompt, lbl) => callWithRetry((model) =>
+        anthropic.messages.create({ model, max_tokens: 8192, messages: [{ role: 'user', content: prompt }] })
+          .then(r => r.content[0].text),
+        lbl, [MOCK_MODEL]),
+    };
+  }
+
+  if (provider === 'gemini') {
+    if (!process.env.GEMINI_API_KEY) {
+      console.error('Error: GEMINI_API_KEY is not set (needed for --provider gemini)');
+      process.exit(1);
+    }
+    const gemini = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    return {
+      label: `${VISION_MODEL} (Gemini)`,
+      delayMs: 4500,
+      complete: (prompt, lbl) => callWithRetry((model) =>
+        gemini.getGenerativeModel({ model }).generateContent({
+          contents: [{ role: 'user', parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.1, maxOutputTokens: 8192 },
+        }).then(r => r.response.text()),
+        lbl, [VISION_MODEL]),
+    };
+  }
+
+  // Default: Groq (OpenAI-compatible). Free-tier tokens-per-minute is the limit,
+  // so chunks are paced ~10s apart; callWithRetry backs off further on any 429.
+  if (!process.env.GROQ_API_KEY) {
+    console.error('Error: GROQ_API_KEY is not set (needed for the default Groq provider)');
+    process.exit(1);
+  }
+  const Groq = require('groq-sdk');
+  const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+  return {
+    label: `${GROQ_MODEL} (Groq)`,
+    // Groq free tier ≈ 8000 TPM and counts max_tokens against it, so keep the
+    // reservation small (input ~2k + 4k ≈ 6k < 8k) and pace ~30s apart.
+    delayMs: 30000,
+    complete: (prompt, lbl) => callWithRetry((model) =>
+      groq.chat.completions.create({
+        model, max_tokens: 4096, temperature: 0,
+        messages: [{ role: 'user', content: prompt }],
+      }).then(r => r.choices[0].message.content),
+      lbl, [GROQ_MODEL]),
+  };
+}
+
+async function runFromMarkdown(inputPath, outputFile, provider) {
+  if (!inputPath || !outputFile) {
+    console.error('Usage: node extract-questions.js <input.md> <output.json> --from-md [--provider gemini|anthropic]');
+    process.exit(1);
+  }
+  if (!fs.existsSync(inputPath)) {
+    console.error(`Input file not found: ${inputPath}`);
+    process.exit(1);
+  }
+
+  const { label, complete, delayMs } = buildCompleter(provider);
+  const text   = fs.readFileSync(inputPath, 'utf8').replace(/^﻿/, '');
+  const chunks = chunkByQuestions(text);
+
+  // Incremental save + resume: every successful chunk is flushed to disk, so a
+  // rate-limit/crash never loses prior work — just re-run the SAME command.
+  const partialPath  = outputFile.replace(/\.json$/i, '-partial.json');
+  const progressPath = outputFile.replace(/\.json$/i, '-progress.json');
+
+  let all = [];
+  let startChunk = 0;
+  if (fs.existsSync(partialPath) && fs.existsSync(progressPath)) {
+    try {
+      const prog = JSON.parse(fs.readFileSync(progressPath, 'utf8').replace(/^﻿/, ''));
+      if (prog.totalChunks === chunks.length && prog.lastChunk >= 0) {
+        all = JSON.parse(fs.readFileSync(partialPath, 'utf8').replace(/^﻿/, ''));
+        startChunk = prog.lastChunk + 1;
+        console.log(`Resuming at chunk ${startChunk + 1}/${chunks.length} (${all.length} question(s) already saved)`);
+      }
+    } catch (e) {
+      console.warn(`Could not read progress (${e.message}) — starting fresh`);
+    }
+  }
+
+  console.log(`Loaded "${inputPath}" — ${chunks.length} chunk(s)`);
+  console.log(`Conversion model : ${label}\n`);
+
+  for (let i = startChunk; i < chunks.length; i++) {
+    console.log(`  Chunk ${i + 1}/${chunks.length}`);
+    let qs;
+    try {
+      qs = await convertChunk(complete, chunks[i], i + 1);
+    } catch (err) {
+      console.error(`\n  Stopped at chunk ${i + 1}: ${err.message ?? err}`);
+      console.error(`  ${all.length} question(s) saved to ${partialPath}. Re-run the SAME command to resume.\n`);
+      return; // partial + progress from prior chunks are already on disk
+    }
+    console.log(`    → ${qs.length} question(s)`);
+    all.push(...qs);
+    fs.writeFileSync(partialPath,  JSON.stringify(all, null, 2));
+    fs.writeFileSync(progressPath, JSON.stringify({ lastChunk: i, totalChunks: chunks.length }));
+    if (i < chunks.length - 1) await sleep(delayMs);
+  }
+
+  // Drop verbatim duplicates (the booklet repeats whole blocks).
+  const seen = new Set();
+  const deduped = all.filter(q => {
+    const key = normalizeText(q && q.text);
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  // Split into upload-ready vs. needs-manual-review (e.g. 5-option maths).
+  const valid = [];
+  const needsReview = [];
+  for (const q of deduped) {
+    const reason = validateMockQuestion(q);
+    const clean  = {
+      text:        String(q.text).trim(),
+      subject:     (q.subject && String(q.subject).trim()) || 'General',
+      options:     q.options,
+      explanation: q.explanation ? String(q.explanation).trim() : '',
+    };
+    if (reason) needsReview.push({ ...clean, _reason: reason });
+    else valid.push(clean);
+  }
+
+  fs.writeFileSync(outputFile, JSON.stringify(valid, null, 2));
+  console.log(`\nSaved ${valid.length} upload-ready question(s) → ${outputFile}`);
+
+  if (needsReview.length > 0) {
+    const sidecar = outputFile.replace(/\.json$/i, '-needs-review.json');
+    fs.writeFileSync(sidecar, JSON.stringify(needsReview, null, 2));
+    console.log(`Flagged ${needsReview.length} question(s) needing manual review → ${sidecar}`);
+  }
+
+  // All chunks done — clear the resume checkpoint.
+  if (fs.existsSync(partialPath))  fs.unlinkSync(partialPath);
+  if (fs.existsSync(progressPath)) fs.unlinkSync(progressPath);
+
+  console.log('\nDone. Upload the JSON at /admin/mock/<id>/questions (Upload Questions panel).\n');
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 async function main() {
   const args        = process.argv.slice(2);
   const correctOnly = args.includes('--correct-only');
+  const fromMd      = args.includes('--from-md');
   const [inputDir, outputFile, yearArg] = args.filter(a => !a.startsWith('--'));
 
   if (correctOnly && !inputDir) {
     console.error('Usage: node extract-questions.js <output.json> --correct-only');
     process.exit(1);
   }
-  if (!correctOnly && (!inputDir || !outputFile)) {
+  if (!correctOnly && !fromMd && (!inputDir || !outputFile)) {
     console.error('Usage: node extract-questions.js <photos-folder> <output.json> [year]');
     process.exit(1);
+  }
+
+  // ── Markdown mode: convert a text booklet straight into mock-exam JSON ──────
+  // Picks its own provider (Gemini by default) so it runs even without Claude credits.
+  if (fromMd) {
+    const pIdx     = args.indexOf('--provider');
+    const provider = pIdx !== -1 ? args[pIdx + 1] : 'gemini';
+    await runFromMarkdown(inputDir, outputFile, provider);
+    return;
   }
 
   if (!process.env.ANTHROPIC_API_KEY) {
@@ -246,6 +566,7 @@ async function main() {
   }
 
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
   console.log(`Correction model : ${CORRECTION_MODEL} (Claude)\n`);
 
   // ── Correct-only mode: read existing JSON and skip extraction ──────────────
