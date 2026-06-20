@@ -16,6 +16,11 @@ import { MockParticipantPayload } from './guards/mock-participant.guard';
 
 const MAX_ATTEMPTS = 2;
 
+// Max questions served per subject in a single attempt. The question pool can be
+// far larger (admins upload everything); each attempt randomly samples up to this
+// many per subject so candidates get a JAMB-sized paper, not the whole bank.
+const QUESTIONS_PER_SUBJECT = 40;
+
 // Slugs share the /mock/:idOrSlug URL space with these subpaths/words, so they
 // can't be used as a slug.
 const RESERVED_SLUGS = new Set([
@@ -593,13 +598,26 @@ export class MockExamService {
       sessionSubjects = [...compulsory, ...chosenElectives];
     }
 
-    const questions = await this.prisma.mockExamQuestion.findMany({
+    const pool = await this.prisma.mockExamQuestion.findMany({
       where: { mockExamId, subject: { in: sessionSubjects } },
       orderBy: { sortOrder: 'asc' },
     });
-    if (questions.length === 0) {
+    if (pool.length === 0) {
       throw new BadRequestException('No questions available for the selected subjects.');
     }
+
+    // Randomly sample up to QUESTIONS_PER_SUBJECT per subject. The selected set is
+    // persisted via the answer slots below and is what every read/score path uses,
+    // so a candidate gets a fixed, capped paper — not the entire question bank.
+    const bySubject = new Map<string, typeof pool>();
+    for (const q of pool) {
+      const arr = bySubject.get(q.subject ?? '') ?? [];
+      arr.push(q);
+      bySubject.set(q.subject ?? '', arr);
+    }
+    const questions = [...bySubject.values()].flatMap((arr) =>
+      seededShuffle(arr, Math.floor(Math.random() * 2 ** 31)).slice(0, QUESTIONS_PER_SUBJECT),
+    );
 
     let session;
     try {
@@ -643,6 +661,30 @@ export class MockExamService {
       : { mockExamId };
   }
 
+  /**
+   * The exact questions belonging to a session. The pre-created answer slots are
+   * the source of truth (each attempt samples a capped subset), so we resolve by
+   * their questionIds. Legacy sessions with no answer rows fall back to the whole
+   * paper by subject.
+   */
+  private questionsForSession(session: {
+    mockExamId: string;
+    subjects: string[];
+    answers: { questionId: string }[];
+  }) {
+    const ids = session.answers.map((a) => a.questionId);
+    if (ids.length > 0) {
+      return this.prisma.mockExamQuestion.findMany({
+        where: { id: { in: ids } },
+        orderBy: { sortOrder: 'asc' },
+      });
+    }
+    return this.prisma.mockExamQuestion.findMany({
+      where: this.sessionQuestionWhere(session.mockExamId, session.subjects),
+      orderBy: { sortOrder: 'asc' },
+    });
+  }
+
   async getSessionWithQuestions(sessionId: string) {
     const session = await this.prisma.mockExamSession.findUnique({
       where: { id: sessionId },
@@ -653,10 +695,7 @@ export class MockExamService {
     });
     if (!session) throw new NotFoundException('Session not found');
 
-    const questions = await this.prisma.mockExamQuestion.findMany({
-      where: this.sessionQuestionWhere(session.mockExamId, session.subjects),
-      orderBy: { sortOrder: 'asc' },
-    });
+    const questions = await this.questionsForSession(session);
 
     // Randomise question order per session, and option order per question, then
     // strip isCorrect before sending to the client.
@@ -709,9 +748,7 @@ export class MockExamService {
     if (!session || session.participantId !== participantId) throw new NotFoundException('Session not found');
     if (session.status !== 'IN_PROGRESS') throw new BadRequestException('Session already submitted');
 
-    const questions = await this.prisma.mockExamQuestion.findMany({
-      where: this.sessionQuestionWhere(session.mockExamId, session.subjects),
-    });
+    const questions = await this.questionsForSession(session);
 
     let correct = 0;
     const answerUpdates: Promise<unknown>[] = [];
@@ -750,9 +787,7 @@ export class MockExamService {
     });
     if (!session || session.status !== 'IN_PROGRESS') return;
 
-    const questions = await this.prisma.mockExamQuestion.findMany({
-      where: this.sessionQuestionWhere(session.mockExamId, session.subjects),
-    });
+    const questions = await this.questionsForSession(session);
 
     let correct = 0;
     for (const answer of session.answers) {
