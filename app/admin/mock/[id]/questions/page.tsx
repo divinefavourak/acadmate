@@ -69,6 +69,16 @@ export default function QuestionsPage() {
       .finally(() => setLoading(false));
   }
 
+  async function handleDeleteQuestion(questionId: string) {
+    if (!window.confirm("Delete this question permanently? This cannot be undone.")) return;
+    try {
+      await apiClient(`/api/admin/mock/${id}/questions/${questionId}`, { method: "DELETE" });
+      setQuestions((prev) => prev.filter((q) => q.id !== questionId));
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to delete question");
+    }
+  }
+
   async function handleUpload(e: React.FormEvent) {
     e.preventDefault();
     setParseError("");
@@ -217,6 +227,14 @@ export default function QuestionsPage() {
                         {opt.isCorrect && <span className="ml-auto text-xs font-semibold shrink-0">Correct</span>}
                       </div>
                     ))}
+                    <div className="flex justify-end pt-1">
+                      <button
+                        onClick={() => handleDeleteQuestion(q.id)}
+                        className="text-xs font-medium text-red-500 hover:text-red-600 hover:underline"
+                      >
+                        Delete question
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>

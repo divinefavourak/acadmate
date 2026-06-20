@@ -4,8 +4,10 @@ import "katex/dist/katex.min.css";
 import { InlineMath, BlockMath } from "react-katex";
 import { Fragment } from "react";
 
-// Matches raw LaTeX commands when no $ delimiters are present
-const RAW_LATEX_RE = /\\[a-zA-Z]+|(?<![a-zA-Z0-9])\^|(?<![a-zA-Z0-9])_/;
+// Matches raw LaTeX commands (\frac, \sqrt, …) when no $ delimiters are present.
+// Deliberately does NOT treat a lone ^ or _ as math: those collide with prose and
+// with our _italic_ markdown, which would render whole English sentences as math.
+const RAW_LATEX_RE = /\\[a-zA-Z]+/;
 
 // Inline markdown patterns applied only to plain-text segments (never inside math)
 const MARKDOWN_RE = /(\*\*[^*]+\*\*|\*[^*]+\*|_[^_]+_|`[^`]+`)/g;

@@ -341,7 +341,7 @@ RULES — breaking any one makes the entry wrong:
      "pi" -> "$\\\\pi$";  "sin30" -> "$\\\\sin 30^\\\\circ$";  "3 x 10^8 m/s" -> "$3 \\\\times 10^{8}\\\\ \\\\text{m/s}$"
      binary "10.011two" -> "$10.011_2$";  "<=" -> "$\\\\le$";  a lone variable like x -> "$x$".
    Use $$...$$ only for a large standalone display equation (rare here).
-8. EMPHASIS: this text has lost the booklet's original bold/italic styling, so do NOT guess it. Apply only these two safe conventions: when a stem refers to "the underlined word", italicise that word with _word_; bold genuine negation/emphasis words (NOT, EXCEPT, ALL, ONLY) with **WORD**.
+8. EMPHASIS: this text has lost the booklet's original bold/italic styling, so do NOT guess it and do NOT use underscores. The only allowed formatting is bolding genuine negation/emphasis words (NOT, EXCEPT, ALL, ONLY) with **WORD**.
 9. Reminder: a backslash inside a JSON string is written as two characters, e.g. "\\\\sqrt", "\\\\frac", "\\\\pi", "\\\\times".
 10. Return ONLY the JSON array — no markdown fences, no prose.
 

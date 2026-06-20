@@ -67,6 +67,16 @@ export default function ParticipantsPage() {
     }
   }
 
+  async function removeParticipant(participantId: string, label: string) {
+    if (!window.confirm(`Remove ${label}? This deletes their registration and all mock attempts. This cannot be undone.`)) return;
+    try {
+      await apiClient(`/api/admin/mock/${id}/participants/${participantId}`, { method: "DELETE" });
+      setParticipants((prev) => prev.filter((p) => p.id !== participantId));
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to remove participant");
+    }
+  }
+
   async function toggleApproval(participantId: string, current: boolean) {
     try {
       const updated = await apiClient<Participant>(`/api/admin/mock/${id}/participants/${participantId}/approve`, {
@@ -126,6 +136,7 @@ export default function ParticipantsPage() {
                       <th className="px-4 py-3">Phone</th>
                       <th className="px-4 py-3 text-center">Attempts</th>
                       <th className="px-4 py-3 text-center">Approved</th>
+                      <th className="px-4 py-3 text-center">Remove</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
@@ -150,6 +161,14 @@ export default function ParticipantsPage() {
                             {p.isApproved ? "Approved" : "Revoked"}
                           </button>
                         </td>
+                        <td className="px-4 py-3 text-center">
+                          <button
+                            onClick={() => removeParticipant(p.id, p.name ?? p.phone)}
+                            className="text-xs font-medium text-red-500 hover:text-red-600 hover:underline"
+                          >
+                            Remove
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -167,7 +186,15 @@ export default function ParticipantsPage() {
                   {pending.map((p) => (
                     <div key={p.id} className="flex items-center justify-between px-4 py-3">
                       <span className="font-mono text-sm text-slate-500">{p.phone}</span>
-                      <span className="text-xs text-slate-400">Not registered</span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-slate-400">Not registered</span>
+                        <button
+                          onClick={() => removeParticipant(p.id, p.phone)}
+                          className="text-xs font-medium text-red-500 hover:text-red-600 hover:underline"
+                        >
+                          Remove
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
