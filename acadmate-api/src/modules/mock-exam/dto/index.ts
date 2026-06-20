@@ -62,6 +62,9 @@ class UploadQuestionItemDto {
 
 export class UploadQuestionsDto {
   @IsArray() @ValidateNested({ each: true }) @Type(() => UploadQuestionItemDto) questions: UploadQuestionItemDto[];
+  // 'replace' (default) wipes existing questions; 'append' adds to them so a paper
+  // can be built up across several uploads.
+  @IsOptional() @IsIn(['replace', 'append']) mode?: 'replace' | 'append';
 }
 
 export class StartSessionDto {

@@ -274,14 +274,26 @@ export class MockExamService {
 
   async uploadQuestions(mockExamId: string, dto: UploadQuestionsDto) {
     await this.getMockExam(mockExamId);
+    const append = dto.mode === 'append';
     const activeSessions = await this.prisma.mockExamSession.count({
       where: { mockExamId, status: 'IN_PROGRESS' },
     });
     if (activeSessions > 0) {
-      throw new BadRequestException('Cannot replace questions while sessions are in progress');
+      throw new BadRequestException(
+        `Cannot ${append ? 'add' : 'replace'} questions while sessions are in progress`,
+      );
     }
     return this.prisma.$transaction(async (tx) => {
-      await tx.mockExamQuestion.deleteMany({ where: { mockExamId } });
+      if (!append) {
+        await tx.mockExamQuestion.deleteMany({ where: { mockExamId } });
+      }
+      // When appending, continue numbering after the current highest sortOrder.
+      const offset = append
+        ? ((await tx.mockExamQuestion.aggregate({
+            where: { mockExamId },
+            _max: { sortOrder: true },
+          }))._max.sortOrder ?? -1) + 1
+        : 0;
       const created = await tx.mockExamQuestion.createMany({
         data: dto.questions.map((q, i) => ({
           mockExamId,
@@ -290,7 +302,7 @@ export class MockExamService {
           options: q.options as unknown as object,
           subject: q.subject,
           explanation: q.explanation,
-          sortOrder: i,
+          sortOrder: offset + i,
         })),
       });
       return { count: created.count };

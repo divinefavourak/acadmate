@@ -29,6 +29,7 @@ export default function QuestionsPage() {
   const [jsonText, setJsonText] = useState("");
   const [uploading, setUploading] = useState(false);
   const [uploadResult, setUploadResult] = useState<{ count: number } | null>(null);
+  const [uploadMode, setUploadMode] = useState<"replace" | "append">("replace");
   const [parseError, setParseError] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
   const [subjectFilter, setSubjectFilter] = useState<string>("all");
@@ -95,7 +96,7 @@ export default function QuestionsPage() {
     try {
       const res = await apiClient<{ count: number }>(`/api/admin/mock/${id}/questions/upload`, {
         method: "POST",
-        body: JSON.stringify({ questions: parsed }),
+        body: JSON.stringify({ questions: parsed, mode: uploadMode }),
       });
       setUploadResult(res);
       setJsonText("");
@@ -131,8 +132,34 @@ export default function QuestionsPage() {
         <div>
           <h3 className="font-semibold">Upload Questions (JSON)</h3>
           <p className="text-xs text-slate-400 mt-0.5">
-            Paste an array of question objects. Uploading again will <strong>replace</strong> all existing questions.
+            Paste an array of question objects, then choose whether to add them to the existing set or replace everything.
           </p>
+        </div>
+
+        {/* Replace vs. append */}
+        <div className="flex flex-col sm:flex-row gap-2">
+          <label className={`flex-1 flex items-start gap-2 rounded-xl border px-3 py-2.5 cursor-pointer transition-colors ${
+            uploadMode === "append"
+              ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20"
+              : "border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/40"
+          }`}>
+            <input type="radio" name="uploadMode" className="mt-0.5 accent-indigo-600" checked={uploadMode === "append"} onChange={() => setUploadMode("append")} />
+            <span className="text-xs">
+              <span className="font-semibold block">Add to existing</span>
+              <span className="text-slate-400">Append these to the current questions. Build a paper across several uploads.</span>
+            </span>
+          </label>
+          <label className={`flex-1 flex items-start gap-2 rounded-xl border px-3 py-2.5 cursor-pointer transition-colors ${
+            uploadMode === "replace"
+              ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20"
+              : "border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/40"
+          }`}>
+            <input type="radio" name="uploadMode" className="mt-0.5 accent-indigo-600" checked={uploadMode === "replace"} onChange={() => setUploadMode("replace")} />
+            <span className="text-xs">
+              <span className="font-semibold block">Replace all</span>
+              <span className="text-slate-400">Delete every existing question first, then upload these.</span>
+            </span>
+          </label>
         </div>
         <details className="text-xs">
           <summary className="cursor-pointer text-indigo-500 font-medium">Show expected format</summary>
@@ -151,10 +178,12 @@ export default function QuestionsPage() {
         {parseError && <p className="text-sm text-red-500">{parseError}</p>}
         {error && <p className="text-sm text-red-500">{error}</p>}
         {uploadResult && (
-          <p className="text-sm text-emerald-500">Uploaded {uploadResult.count} questions successfully!</p>
+          <p className="text-sm text-emerald-500">
+            {uploadMode === "append" ? "Added" : "Uploaded"} {uploadResult.count} question{uploadResult.count !== 1 ? "s" : ""} successfully!
+          </p>
         )}
         <button type="submit" disabled={uploading} className="btn-primary disabled:opacity-60">
-          {uploading ? "Uploading…" : "Upload & Replace Questions"}
+          {uploading ? "Uploading…" : uploadMode === "append" ? "Upload & Add Questions" : "Upload & Replace Questions"}
         </button>
       </form>
 
