@@ -16,10 +16,10 @@ import { MockParticipantPayload } from './guards/mock-participant.guard';
 
 const MAX_ATTEMPTS = 2;
 
-// Max questions served per subject in a single attempt. The question pool can be
-// far larger (admins upload everything); each attempt randomly samples up to this
-// many per subject so candidates get a JAMB-sized paper, not the whole bank.
-const QUESTIONS_PER_SUBJECT = 40;
+// Total questions served in a single attempt, sampled across the candidate's
+// chosen subjects (English + GK + Maths + electives). The pool can be far larger
+// (admins upload everything); each attempt draws a balanced 40-question paper.
+const TOTAL_QUESTIONS_PER_ATTEMPT = 40;
 
 // Slugs share the /mock/:idOrSlug URL space with these subpaths/words, so they
 // can't be used as a slug.
@@ -606,18 +606,33 @@ export class MockExamService {
       throw new BadRequestException('No questions available for the selected subjects.');
     }
 
-    // Randomly sample up to QUESTIONS_PER_SUBJECT per subject. The selected set is
-    // persisted via the answer slots below and is what every read/score path uses,
-    // so a candidate gets a fixed, capped paper — not the entire question bank.
+    // Build a balanced TOTAL_QUESTIONS_PER_ATTEMPT paper across the chosen subjects.
+    // Shuffle each subject, then round-robin draft one at a time so the 40 are spread
+    // as evenly as the pool allows (and still reach 40 if a subject runs short). The
+    // selected set is persisted via the answer slots below and is what every
+    // read/score path uses, so a candidate gets a fixed 40, not the whole bank.
     const bySubject = new Map<string, typeof pool>();
     for (const q of pool) {
       const arr = bySubject.get(q.subject ?? '') ?? [];
       arr.push(q);
       bySubject.set(q.subject ?? '', arr);
     }
-    const questions = [...bySubject.values()].flatMap((arr) =>
-      seededShuffle(arr, Math.floor(Math.random() * 2 ** 31)).slice(0, QUESTIONS_PER_SUBJECT),
+    const queues = [...bySubject.values()].map((arr) =>
+      seededShuffle(arr, Math.floor(Math.random() * 2 ** 31)),
     );
+    const questions: typeof pool = [];
+    let progressed = true;
+    while (questions.length < TOTAL_QUESTIONS_PER_ATTEMPT && progressed) {
+      progressed = false;
+      for (const queue of queues) {
+        if (questions.length >= TOTAL_QUESTIONS_PER_ATTEMPT) break;
+        const next = queue.shift();
+        if (next) {
+          questions.push(next);
+          progressed = true;
+        }
+      }
+    }
 
     let session;
     try {
