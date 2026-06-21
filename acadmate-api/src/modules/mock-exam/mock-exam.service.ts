@@ -44,10 +44,12 @@ interface QuestionOption { label: string; text: string; isCorrect: boolean }
 const COMPULSORY_SUBJECT_PATTERNS: RegExp[] = [
   /english/i,
   /math/i,
-  /general\s*knowledge|^\s*gk\s*$/i,
+  /general\s*(knowledge|paper|studies)|^\s*gk\s*$/i,
 ];
 
 function isCompulsorySubject(subject: string): boolean {
+  // "Literature-in-English" contains "English" but is an elective, never compulsory.
+  if (/literature/i.test(subject)) return false;
   return COMPULSORY_SUBJECT_PATTERNS.some((re) => re.test(subject));
 }
 
