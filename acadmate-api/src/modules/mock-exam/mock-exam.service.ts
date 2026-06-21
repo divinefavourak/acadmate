@@ -269,6 +269,31 @@ export class MockExamService {
     await this.prisma.mockExamParticipant.delete({ where: { id: participantId } });
   }
 
+  /** Wipe a participant's attempts so they can sit the exam again from attempt 1. */
+  async resetParticipantAttempts(participantId: string) {
+    const p = await this.prisma.mockExamParticipant.findUnique({ where: { id: participantId } });
+    if (!p) throw new NotFoundException('Participant not found');
+    const { count } = await this.prisma.mockExamSession.deleteMany({ where: { participantId } });
+    return { deletedAttempts: count };
+  }
+
+  /**
+   * Clear a participant's registration (name, PIN, avatar) and their attempts,
+   * leaving only the approved phone — so they can register again from scratch.
+   */
+  async resetParticipantProfile(participantId: string) {
+    const p = await this.prisma.mockExamParticipant.findUnique({ where: { id: participantId } });
+    if (!p) throw new NotFoundException('Participant not found');
+    await this.prisma.$transaction([
+      this.prisma.mockExamSession.deleteMany({ where: { participantId } }),
+      this.prisma.mockExamParticipant.update({
+        where: { id: participantId },
+        data: { name: null, pinHash: null, avatarConfig: Prisma.DbNull, avatarUrl: null },
+      }),
+    ]);
+    return { ok: true };
+  }
+
   // ── Admin: questions ─────────────────────────────────────────────────────
 
   async listQuestions(mockExamId: string) {

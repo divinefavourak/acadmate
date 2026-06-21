@@ -77,6 +77,26 @@ export default function ParticipantsPage() {
     }
   }
 
+  async function resetAttempts(participantId: string, label: string) {
+    if (!window.confirm(`Reset attempts for ${label}? Their previous attempts are deleted and they can sit the exam again from attempt 1.`)) return;
+    try {
+      await apiClient(`/api/admin/mock/${id}/participants/${participantId}/reset-attempts`, { method: "POST" });
+      load();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to reset attempts");
+    }
+  }
+
+  async function resetProfile(participantId: string, label: string) {
+    if (!window.confirm(`Reset profile for ${label}? This clears their name, PIN, avatar and all attempts. They keep their approved phone but must register again.`)) return;
+    try {
+      await apiClient(`/api/admin/mock/${id}/participants/${participantId}/reset-profile`, { method: "POST" });
+      load();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to reset profile");
+    }
+  }
+
   async function toggleApproval(participantId: string, current: boolean) {
     try {
       const updated = await apiClient<Participant>(`/api/admin/mock/${id}/participants/${participantId}/approve`, {
@@ -136,7 +156,7 @@ export default function ParticipantsPage() {
                       <th className="px-4 py-3">Phone</th>
                       <th className="px-4 py-3 text-center">Attempts</th>
                       <th className="px-4 py-3 text-center">Approved</th>
-                      <th className="px-4 py-3 text-center">Remove</th>
+                      <th className="px-4 py-3 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
@@ -161,13 +181,27 @@ export default function ParticipantsPage() {
                             {p.isApproved ? "Approved" : "Revoked"}
                           </button>
                         </td>
-                        <td className="px-4 py-3 text-center">
-                          <button
-                            onClick={() => removeParticipant(p.id, p.name ?? p.phone)}
-                            className="text-xs font-medium text-red-500 hover:text-red-600 hover:underline"
-                          >
-                            Remove
-                          </button>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center justify-end gap-3 whitespace-nowrap">
+                            <button
+                              onClick={() => resetAttempts(p.id, p.name ?? p.phone)}
+                              className="text-xs font-medium text-indigo-500 hover:text-indigo-600 hover:underline"
+                            >
+                              Reset attempts
+                            </button>
+                            <button
+                              onClick={() => resetProfile(p.id, p.name ?? p.phone)}
+                              className="text-xs font-medium text-amber-500 hover:text-amber-600 hover:underline"
+                            >
+                              Reset profile
+                            </button>
+                            <button
+                              onClick={() => removeParticipant(p.id, p.name ?? p.phone)}
+                              className="text-xs font-medium text-red-500 hover:text-red-600 hover:underline"
+                            >
+                              Remove
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}

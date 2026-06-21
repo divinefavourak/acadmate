@@ -61,6 +61,16 @@ export class MockExamAdminController {
     return this.service.removeParticipant(participantId);
   }
 
+  @Post(':id/participants/:participantId/reset-attempts')
+  resetAttempts(@Param('participantId') participantId: string) {
+    return this.service.resetParticipantAttempts(participantId);
+  }
+
+  @Post(':id/participants/:participantId/reset-profile')
+  resetProfile(@Param('participantId') participantId: string) {
+    return this.service.resetParticipantProfile(participantId);
+  }
+
   // ── Questions ────────────────────────────────────────────────────────────
   @Get(':id/questions')
   listQuestions(@Param('id') id: string) { return this.service.listQuestions(id); }
