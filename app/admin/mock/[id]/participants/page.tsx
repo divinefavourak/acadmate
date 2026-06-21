@@ -4,6 +4,15 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { apiClient, ApiError } from "@/lib/api/client";
 import Loader from "@/app/components/Loader";
+import ConfirmModal from "@/app/components/ConfirmModal";
+
+interface PendingConfirm {
+  title: string;
+  message: string;
+  confirmLabel: string;
+  tone: "danger" | "default";
+  action: () => Promise<void>;
+}
 
 interface Participant {
   id: string;
@@ -20,6 +29,24 @@ export default function ParticipantsPage() {
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const [confirm, setConfirm] = useState<PendingConfirm | null>(null);
+  const [confirmLoading, setConfirmLoading] = useState(false);
+
+  async function runConfirm() {
+    if (!confirm) return;
+    setConfirmLoading(true);
+    setError("");
+    try {
+      await confirm.action();
+      setConfirm(null);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Action failed");
+      setConfirm(null);
+    } finally {
+      setConfirmLoading(false);
+    }
+  }
 
   // Add phone form
   const [phones, setPhones] = useState("");
@@ -67,34 +94,43 @@ export default function ParticipantsPage() {
     }
   }
 
-  async function removeParticipant(participantId: string, label: string) {
-    if (!window.confirm(`Remove ${label}? This deletes their registration and all mock attempts. This cannot be undone.`)) return;
-    try {
-      await apiClient(`/api/admin/mock/${id}/participants/${participantId}`, { method: "DELETE" });
-      setParticipants((prev) => prev.filter((p) => p.id !== participantId));
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Failed to remove participant");
-    }
+  function removeParticipant(participantId: string, label: string) {
+    setConfirm({
+      title: "Remove participant",
+      message: `Remove ${label}? This deletes their registration and all mock attempts. This cannot be undone.`,
+      confirmLabel: "Remove",
+      tone: "danger",
+      action: async () => {
+        await apiClient(`/api/admin/mock/${id}/participants/${participantId}`, { method: "DELETE" });
+        setParticipants((prev) => prev.filter((p) => p.id !== participantId));
+      },
+    });
   }
 
-  async function resetAttempts(participantId: string, label: string) {
-    if (!window.confirm(`Reset attempts for ${label}? Their previous attempts are deleted and they can sit the exam again from attempt 1.`)) return;
-    try {
-      await apiClient(`/api/admin/mock/${id}/participants/${participantId}/reset-attempts`, { method: "POST" });
-      load();
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Failed to reset attempts");
-    }
+  function resetAttempts(participantId: string, label: string) {
+    setConfirm({
+      title: "Reset attempts",
+      message: `Reset attempts for ${label}? Their previous attempts are deleted and they can sit the exam again from attempt 1.`,
+      confirmLabel: "Reset attempts",
+      tone: "default",
+      action: async () => {
+        await apiClient(`/api/admin/mock/${id}/participants/${participantId}/reset-attempts`, { method: "POST" });
+        load();
+      },
+    });
   }
 
-  async function resetProfile(participantId: string, label: string) {
-    if (!window.confirm(`Reset profile for ${label}? This clears their name, PIN, avatar and all attempts. They keep their approved phone but must register again.`)) return;
-    try {
-      await apiClient(`/api/admin/mock/${id}/participants/${participantId}/reset-profile`, { method: "POST" });
-      load();
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Failed to reset profile");
-    }
+  function resetProfile(participantId: string, label: string) {
+    setConfirm({
+      title: "Reset profile",
+      message: `Reset profile for ${label}? This clears their name, PIN, avatar and all attempts. They keep their approved phone but must register again.`,
+      confirmLabel: "Reset profile",
+      tone: "danger",
+      action: async () => {
+        await apiClient(`/api/admin/mock/${id}/participants/${participantId}/reset-profile`, { method: "POST" });
+        load();
+      },
+    });
   }
 
   async function toggleApproval(participantId: string, current: boolean) {
@@ -237,6 +273,17 @@ export default function ParticipantsPage() {
           )}
         </div>
       )}
+
+      <ConfirmModal
+        open={confirm !== null}
+        title={confirm?.title ?? ""}
+        message={confirm?.message}
+        confirmLabel={confirm?.confirmLabel}
+        tone={confirm?.tone}
+        loading={confirmLoading}
+        onConfirm={runConfirm}
+        onCancel={() => setConfirm(null)}
+      />
     </div>
   );
 }

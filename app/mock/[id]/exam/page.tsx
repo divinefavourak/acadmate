@@ -8,6 +8,7 @@ import { useExamGuard } from "@/app/exam/hooks/useExamGuard";
 import type { StrikeWarning } from "@/app/exam/hooks/useExamGuard";
 import Calculator from "@/app/exam/components/Calculator";
 import MathText from "@/app/components/MathText";
+import ConfirmModal from "@/app/components/ConfirmModal";
 import Image from "next/image";
 
 interface Option { label: string; text: string }
@@ -41,6 +42,7 @@ export default function MockExamPage() {
   const [showPanicModal, setShowPanicModal] = useState(false);
   const [panicSent, setPanicSent] = useState(false);
   const [showCalculator, setShowCalculator] = useState(false);
+  const [confirmSubmitCount, setConfirmSubmitCount] = useState<number | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const savingRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const hasSubmittedRef = useRef(false);
@@ -170,8 +172,15 @@ export default function MockExamPage() {
     if (!session) return;
     const unanswered = session.questions.filter((q) => !answers[q.id]).length;
     if (unanswered > 0) {
-      if (!window.confirm(`You have ${unanswered} unanswered question${unanswered > 1 ? "s" : ""}. Submit anyway?`)) return;
+      setConfirmSubmitCount(unanswered);
+      return;
     }
+    await doSubmit();
+  }
+
+  async function doSubmit() {
+    if (!session) return;
+    setConfirmSubmitCount(null);
     setSubmitting(true);
     await submitSession(session.sessionId, false);
   }
@@ -431,6 +440,17 @@ export default function MockExamPage() {
 
       {/* Strike warning modal */}
       {warning && <StrikeWarningModal warning={warning} onDismiss={dismissWarning} />}
+
+      <ConfirmModal
+        open={confirmSubmitCount !== null}
+        title="Submit exam?"
+        message={`You have ${confirmSubmitCount} unanswered question${confirmSubmitCount === 1 ? "" : "s"}. Submit anyway?`}
+        confirmLabel="Submit anyway"
+        tone="danger"
+        loading={submitting}
+        onConfirm={doSubmit}
+        onCancel={() => setConfirmSubmitCount(null)}
+      />
     </div>
   );
 }

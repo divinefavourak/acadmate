@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { apiClient, ApiError } from "@/lib/api/client";
 import Loader from "@/app/components/Loader";
 import MathText from "@/app/components/MathText";
+import ConfirmModal from "@/app/components/ConfirmModal";
 
 interface QuestionOption {
   label: string;
@@ -33,6 +34,8 @@ export default function QuestionsPage() {
   const [parseError, setParseError] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
   const [subjectFilter, setSubjectFilter] = useState<string>("all");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const UNCATEGORISED = "Uncategorised";
 
@@ -70,13 +73,19 @@ export default function QuestionsPage() {
       .finally(() => setLoading(false));
   }
 
-  async function handleDeleteQuestion(questionId: string) {
-    if (!window.confirm("Delete this question permanently? This cannot be undone.")) return;
+  async function handleDeleteQuestion() {
+    if (!deletingId) return;
+    setDeleteLoading(true);
+    setError("");
     try {
-      await apiClient(`/api/admin/mock/${id}/questions/${questionId}`, { method: "DELETE" });
-      setQuestions((prev) => prev.filter((q) => q.id !== questionId));
+      await apiClient(`/api/admin/mock/${id}/questions/${deletingId}`, { method: "DELETE" });
+      setQuestions((prev) => prev.filter((q) => q.id !== deletingId));
+      setDeletingId(null);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to delete question");
+      setDeletingId(null);
+    } finally {
+      setDeleteLoading(false);
     }
   }
 
@@ -258,7 +267,7 @@ export default function QuestionsPage() {
                     ))}
                     <div className="flex justify-end pt-1">
                       <button
-                        onClick={() => handleDeleteQuestion(q.id)}
+                        onClick={() => setDeletingId(q.id)}
                         className="text-xs font-medium text-red-500 hover:text-red-600 hover:underline"
                       >
                         Delete question
@@ -271,6 +280,17 @@ export default function QuestionsPage() {
           </div>
         )}
       </div>
+
+      <ConfirmModal
+        open={deletingId !== null}
+        title="Delete question"
+        message="Delete this question permanently? This cannot be undone."
+        confirmLabel="Delete"
+        tone="danger"
+        loading={deleteLoading}
+        onConfirm={handleDeleteQuestion}
+        onCancel={() => setDeletingId(null)}
+      />
     </div>
   );
 }
