@@ -3,9 +3,11 @@ import { PrismaService } from '../../prisma/prisma.service';
 
 // Post-UTME questions are institution past papers (examType = POST_UTME, tagged
 // with a school) and share subjects/topics with the general bank. Every UTME-side
-// and Live draw therefore excludes them with `examType IS DISTINCT FROM 'POST_UTME'`
-// (IS DISTINCT FROM so NULL/JAMB/WAEC questions still qualify); only buildPostUtme
-// pulls them in deliberately.
+// draw excludes them with `examType IS DISTINCT FROM 'POST_UTME'` (IS DISTINCT FROM
+// so NULL/JAMB/WAEC questions still qualify); only buildPostUtme pulls them in
+// deliberately. Live sessions exclude them only on the whole-bank fallback draw —
+// when an admin explicitly selects subjects, POST_UTME papers in those subjects
+// are included (see buildLive).
 
 // ─── UTME constants (preserved exactly) ──────────────────────────────────────
 const UTME_ENGLISH_QUESTIONS = 30;
@@ -137,6 +139,10 @@ export class ExamFactoryService {
       desiredCount,
     );
 
+    // When the admin explicitly picks subjects, honour that choice fully: draw
+    // from every published question in those subjects, INCLUDING POST_UTME past
+    // papers. The whole-bank fallback above still excludes POST_UTME so a
+    // no-subject Live draw never leaks school-specific papers unintentionally.
     const batches = await Promise.all(
       buckets.map(({ subjectId }) =>
         this.prisma.$queryRaw<{ id: string }[]>`
@@ -144,7 +150,6 @@ export class ExamFactoryService {
           WHERE q."subjectId" = ${subjectId}
             AND q."isPublished" = true
             AND q."isFlagged" = false
-            AND q."examType" IS DISTINCT FROM 'POST_UTME'::"ExamType"
             AND EXISTS (
               SELECT 1 FROM question_options qo
               WHERE qo."questionId" = q.id AND qo."isCorrect" = true
