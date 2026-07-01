@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Loader from "@/app/components/Loader";
 import { apiClient, ApiError } from "@/lib/api/client";
+import { ensureToken } from "@/lib/api/auth";
 
 type LiveStatus = "SCHEDULED" | "ACTIVE" | "ENDED";
 
@@ -71,6 +72,16 @@ export default function LiveJoinPage({
     setJoining(true);
     setError("");
     try {
+      // This page is public (no <UserProvider>), so the in-memory token is empty
+      // on a cold load. Rehydrate it from the first-party cookie before joining —
+      // otherwise browsers that block cross-site cookies (Brave, Safari) can't
+      // authenticate the cross-origin join call and the student is bounced to login.
+      const token = await ensureToken();
+      if (!token) {
+        router.push(`/login?callbackUrl=${encodeURIComponent(`/live/${code}`)}`);
+        return;
+      }
+
       const { examSessionId } = await apiClient<{ examSessionId: string }>(
         `/api/live-sessions/${code}/join`,
         { method: "POST", on401: "throw" },

@@ -17,6 +17,26 @@ export function removeToken(): void {
   _memoryToken = null;
 }
 
+// Restores the in-memory token from the frontend-domain HttpOnly cookie after a
+// cold page load. Essential for pages that make authenticated calls but don't
+// live under <UserProvider> (e.g. the public /live/[code] join page): without a
+// rehydrated Bearer token, browsers that block cross-site cookies (Brave, Safari
+// ITP) can't authenticate the cross-origin API request via credentials alone.
+// Resolves to the token if one is available, else null. Safe to call repeatedly.
+export async function ensureToken(): Promise<string | null> {
+  const existing = getToken();
+  if (existing) return existing;
+  try {
+    const res = await fetch('/api/auth/token');
+    if (!res.ok) return null;
+    const { token } = (await res.json()) as { token: string };
+    setToken(token);
+    return token;
+  } catch {
+    return null;
+  }
+}
+
 // Mirrors the JWT as an HttpOnly cookie on the frontend (Vercel) domain.
 // Must be called after every login/OAuth event so middleware can see the token.
 export class RelayError extends Error {
