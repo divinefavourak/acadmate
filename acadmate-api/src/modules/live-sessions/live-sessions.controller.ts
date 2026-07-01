@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -59,6 +60,16 @@ export class LiveSessionsController {
     @Body() dto: UpdateLiveSessionStatusDto,
   ) {
     return this.liveSessions.updateStatus(admin.id, code, dto.status);
+  }
+
+  @Delete(':code')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Delete a stale (scheduled/ended) live session' })
+  remove(@CurrentUser() admin: JwtUser, @Param('code') code: string) {
+    return this.liveSessions.remove(admin.id, code);
   }
 
   @Get(':code/results')

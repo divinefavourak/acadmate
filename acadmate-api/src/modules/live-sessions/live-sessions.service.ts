@@ -260,6 +260,30 @@ export class LiveSessionsService {
     }
   }
 
+  // ─── DELETE /live-sessions/:code (admin) ──────────────────────────────────
+  // Removes a stale session. Student papers survive: the ExamSession →
+  // LiveSession relation is onDelete: SetNull, so attempts detach (and stay in
+  // each student's history) rather than being destroyed. An ACTIVE session is
+  // never "stale" and yanking it mid-exam would break in-progress papers, so it
+  // must be ended first.
+  async remove(adminId: string, code: string) {
+    const session = await this.prisma.liveSession.findUnique({
+      where: { code },
+      select: { id: true, createdById: true, status: true },
+    });
+    if (!session) throw new NotFoundException('Live session not found');
+    if (session.createdById !== adminId) throw new ForbiddenException();
+
+    if (session.status === 'ACTIVE') {
+      throw new BadRequestException(
+        'End this live session before deleting it.',
+      );
+    }
+
+    await this.prisma.liveSession.delete({ where: { id: session.id } });
+    return { deleted: true };
+  }
+
   // ─── GET /live-sessions/:code/results (admin — polled ~10s) ───────────────
   async getResults(adminId: string, code: string) {
     const session = await this.prisma.liveSession.findUnique({

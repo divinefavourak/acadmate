@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Loader from "@/app/components/Loader";
+import ConfirmModal from "@/app/components/ConfirmModal";
 import { apiClient, ApiError } from "@/lib/api/client";
 
 type LiveStatus = "SCHEDULED" | "ACTIVE" | "ENDED";
@@ -70,6 +71,10 @@ export default function AdminLivePage() {
   const [busyCode, setBusyCode] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
 
+  // Session queued for deletion (drives the confirm modal).
+  const [pendingDelete, setPendingDelete] = useState<LiveSession | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
   useEffect(() => {
     Promise.allSettled([
       apiClient<{ subjects: Subject[] }>("/api/subjects"),
@@ -132,6 +137,22 @@ export default function AdminLivePage() {
       setError(err instanceof ApiError ? err.message : "Failed to update session.");
     } finally {
       setBusyCode(null);
+    }
+  }
+
+  async function handleDelete() {
+    if (!pendingDelete) return;
+    const { code } = pendingDelete;
+    setDeleting(true);
+    setError("");
+    try {
+      await apiClient(`/api/live-sessions/${code}`, { method: "DELETE" });
+      setSessions((prev) => prev.filter((s) => s.code !== code));
+      setPendingDelete(null);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to delete session.");
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -315,11 +336,32 @@ export default function AdminLivePage() {
                 onCopy={() => copyJoinLink(s.code)}
                 onActivate={() => changeStatus(s.code, "ACTIVE")}
                 onEnd={() => changeStatus(s.code, "ENDED")}
+                onDelete={() => setPendingDelete(s)}
               />
             ))}
           </div>
         )}
       </div>
+
+      <ConfirmModal
+        open={pendingDelete !== null}
+        title="Delete live session?"
+        message={
+          <>
+            <span className="font-semibold">
+              {pendingDelete?.title || "Untitled session"}
+            </span>{" "}
+            (code {pendingDelete?.code}) will be removed. Students who already
+            took it keep their results in their history — only the session is
+            deleted. This can’t be undone.
+          </>
+        }
+        confirmLabel="Delete"
+        tone="danger"
+        loading={deleting}
+        onConfirm={handleDelete}
+        onCancel={() => setPendingDelete(null)}
+      />
     </div>
   );
 }
@@ -331,6 +373,7 @@ function SessionCard({
   onCopy,
   onActivate,
   onEnd,
+  onDelete,
 }: {
   session: LiveSession;
   busy: boolean;
@@ -338,6 +381,7 @@ function SessionCard({
   onCopy: () => void;
   onActivate: () => void;
   onEnd: () => void;
+  onDelete: () => void;
 }) {
   return (
     <div className="glass-panel rounded-2xl p-5 flex flex-col gap-4">
@@ -410,6 +454,17 @@ function SessionCard({
             className="px-3 py-2 rounded-xl text-sm font-semibold text-red-600 dark:text-red-400 border border-red-500/40 hover:bg-red-500/10 disabled:opacity-50 transition-colors cursor-pointer"
           >
             {busy ? "…" : "End"}
+          </button>
+        )}
+        {s.status !== "ACTIVE" && (
+          <button
+            onClick={onDelete}
+            disabled={busy}
+            title="Delete session"
+            aria-label="Delete session"
+            className="px-3 py-2 rounded-xl text-sm font-semibold text-red-600 dark:text-red-400 border border-red-500/40 hover:bg-red-500/10 disabled:opacity-50 transition-colors cursor-pointer"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="14" y1="11" x2="14" y2="17" /></svg>
           </button>
         )}
       </div>
