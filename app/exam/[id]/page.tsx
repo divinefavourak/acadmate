@@ -161,6 +161,7 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
     setSubmitError("");
     try {
       const data = await apiClient<{ result: { id: string } }>(`/api/exams/${id}/submit`, { method: "POST" });
+      exitFullscreen();
       router.push(`/results/${data.result.id}`);
     } catch {
       setSubmitError("Failed to submit exam. Please try again.");
@@ -180,6 +181,7 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
   const handleExpire = async () => {
     try {
       const data = await apiClient<{ result: { id: string } }>(`/api/exams/${id}/submit`, { method: "POST" });
+      exitFullscreen();
       router.push(`/results/${data.result.id}?timeout=1`);
     } catch { /* session already expired */ }
   };
@@ -190,13 +192,17 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
     setSubmitting(true);
     try {
       const data = await apiClient<{ result: { id: string } }>(`/api/exams/${id}/submit`, { method: "POST" });
+      exitFullscreen();
       router.push(`/results/${data.result.id}?autosubmit=1`);
     } catch {
       setSubmitting(false);
     }
+    // exitFullscreen is a stable useCallback; the hook is declared after this
+    // memo so it can't be listed in deps without a TDZ error.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, router, submitting]);
 
-  const { strikes, warning, isFullscreen, dismissWarning, requestFullscreen } =
+  const { strikes, warning, isFullscreen, dismissWarning, requestFullscreen, exitFullscreen } =
     useExamGuard(session !== null && examStarted, handleAutoSubmit);
 
   if (loading) {

@@ -38,6 +38,25 @@ export function useExamGuard(
     document.documentElement.requestFullscreen().catch(() => {});
   }, []);
 
+  // Leaves fullscreen after the exam is over (e.g. on submit). Marks the guard
+  // done first so the resulting fullscreenchange doesn't count as a violation.
+  const exitFullscreen = useCallback(() => {
+    doneRef.current = true;
+    const doc = document as Document & {
+      webkitFullscreenElement?: Element;
+      webkitExitFullscreen?: () => void;
+    };
+    try {
+      if (document.exitFullscreen && document.fullscreenElement) {
+        document.exitFullscreen().catch(() => {});
+      } else if (doc.webkitExitFullscreen && doc.webkitFullscreenElement) {
+        doc.webkitExitFullscreen();
+      }
+    } catch {
+      // Fullscreen may already be gone — nothing to do.
+    }
+  }, []);
+
   const issueStrike = useCallback((type: ViolationType) => {
     if (!enabled || doneRef.current || dedupeRef.current) return;
     // Dedupe: simultaneous fullscreenchange + visibilitychange counts as one event
@@ -103,5 +122,5 @@ export function useExamGuard(
     if (requireFullscreen) requestFullscreen();
   }, [requestFullscreen, requireFullscreen]);
 
-  return { strikes, warning, isFullscreen, dismissWarning, requestFullscreen };
+  return { strikes, warning, isFullscreen, dismissWarning, requestFullscreen, exitFullscreen };
 }

@@ -46,6 +46,9 @@ export default function MockExamPage() {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const savingRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const hasSubmittedRef = useRef(false);
+  // Held in a ref so submitSession (memoized above useExamGuard) can leave
+  // fullscreen on submit without depending on the hook it's declared before.
+  const exitFullscreenRef = useRef<() => void>(() => {});
 
   const submitSession = useCallback(async (sessionId: string, timedOut = false) => {
     if (hasSubmittedRef.current) return;
@@ -58,8 +61,10 @@ export default function MockExamPage() {
     try {
       const endpoint = timedOut ? "timeout" : "submit";
       await mockFetch(`/api/mock/sessions/${sessionId}/${endpoint}`, id, { method: "POST" });
-      router.push(`/mock/${id}/result/${sessionId}`);
     } catch {
+      // Fall through to the result page regardless — the session is finished.
+    } finally {
+      exitFullscreenRef.current();
       router.push(`/mock/${id}/result/${sessionId}`);
     }
   }, [id, router]);
@@ -129,8 +134,9 @@ export default function MockExamPage() {
     if (session) submitSession(session.sessionId, true);
   }, [session, submitSession]);
 
-  const { strikes, warning, isFullscreen, dismissWarning, requestFullscreen } =
+  const { strikes, warning, isFullscreen, dismissWarning, requestFullscreen, exitFullscreen } =
     useExamGuard(session !== null, handleGuardAutoSubmit, { requireFullscreen });
+  useEffect(() => { exitFullscreenRef.current = exitFullscreen; }, [exitFullscreen]);
 
   // Disable copy, cut, and right-click while the exam is open
   useEffect(() => {
