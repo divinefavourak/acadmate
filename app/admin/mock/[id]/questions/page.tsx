@@ -19,6 +19,8 @@ interface MockQuestion {
   sortOrder: number;
   options: QuestionOption[];
   subject: string | null;
+  explanation?: string | null;
+  imageUrl?: string | null;
 }
 
 export default function QuestionsPage() {
@@ -87,6 +89,31 @@ export default function QuestionsPage() {
     } finally {
       setDeleteLoading(false);
     }
+  }
+
+  // Download all uploaded questions as one JSON file, in the same shape the
+  // upload box accepts (so an export can be re-uploaded or fed to the offline
+  // xlsx generator). Purely client-side — the full list is already loaded.
+  function handleExport() {
+    if (questions.length === 0) return;
+    const payload = [...questions]
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+      .map((q) => ({
+        text: q.text,
+        subject: q.subject,
+        options: q.options.map(({ label, text, isCorrect }) => ({ label, text, isCorrect })),
+        ...(q.explanation ? { explanation: q.explanation } : {}),
+        ...(q.imageUrl ? { imageUrl: q.imageUrl } : {}),
+      }));
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `mock-${id}-questions-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
   }
 
   async function handleUpload(e: React.FormEvent) {
@@ -198,9 +225,27 @@ export default function QuestionsPage() {
 
       {/* Question list */}
       <div>
-        <h3 className="font-semibold mb-3">
-          Questions ({visibleQuestions.length}{subjectFilter !== "all" ? ` of ${questions.length}` : ""})
-        </h3>
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <h3 className="font-semibold">
+            Questions ({visibleQuestions.length}{subjectFilter !== "all" ? ` of ${questions.length}` : ""})
+          </h3>
+          <button
+            onClick={handleExport}
+            disabled={questions.length === 0}
+            title="Download all uploaded questions as a JSON file"
+            className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+              fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            Export JSON
+          </button>
+        </div>
 
         {/* Subject filter */}
         {subjectCounts.length > 1 && (
