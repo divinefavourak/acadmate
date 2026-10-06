@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { apiClient } from "@/lib/api/client";
 import UserAvatar from "@/app/components/UserAvatar";
 import Loader from "@/app/components/Loader";
+import LeaderboardYearFilter, { useLeaderboardYears } from "@/app/components/LeaderboardYearFilter";
 
 interface LeaderboardEntry {
   rank: number;
@@ -16,23 +17,30 @@ interface LeaderboardEntry {
 }
 
 export default function AdminLeaderboardPage() {
-  const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { years, selection, setSelection, query, label } = useLeaderboardYears("UTME", "/api/admin/leaderboard");
+
+  // Entries are stored with the year filter they answer, so switching year
+  // shows the loader instead of the previous year's ranking.
+  const [loaded, setLoaded] = useState<{ query: string; entries: LeaderboardEntry[] } | null>(null);
+  const loading = loaded?.query !== query;
+  const entries = loading ? [] : loaded.entries;
 
   useEffect(() => {
-    setLoading(true);
-    apiClient<LeaderboardEntry[]>(`/api/admin/leaderboard?type=UTME&limit=100`)
-      .then(setEntries)
-      .catch(() => setEntries([]))
-      .finally(() => setLoading(false));
-  }, []);
+    let cancelled = false;
+    apiClient<LeaderboardEntry[]>(`/api/admin/leaderboard?type=UTME&limit=100${query}`)
+      .then((data) => { if (!cancelled) setLoaded({ query, entries: data }); })
+      .catch(() => { if (!cancelled) setLoaded({ query, entries: [] }); });
+    return () => { cancelled = true; };
+  }, [query]);
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold mb-1">JAMB / UTME Leaderboard</h1>
-        <p className="text-slate-400 text-sm">{entries.length} student{entries.length !== 1 ? "s" : ""} ranked by total points</p>
+        <p className="text-slate-400 text-sm">{entries.length} student{entries.length !== 1 ? "s" : ""} ranked by points earned {label}</p>
       </div>
+
+      <LeaderboardYearFilter years={years} selection={selection} onChange={setSelection} />
 
       {loading ? (
         <Loader className="h-80" />
