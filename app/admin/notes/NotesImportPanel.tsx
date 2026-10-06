@@ -9,12 +9,15 @@ interface ReportRow {
   topic: string;
   status: "ok" | "error";
   sections: number;
+  images: number;
   message?: string;
 }
 
 interface ImportResult {
   dryRun: boolean;
   imported: number;
+  topicsCreated?: number;
+  imagesUploaded?: number;
   errors: number;
   report: ReportRow[];
 }
@@ -39,6 +42,7 @@ export default function NotesImportPanel({ onImported }: { onImported: () => voi
   const [result, setResult] = useState<ImportResult | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [createTopics, setCreateTopics] = useState(false);
 
   async function send(list: unknown[], dryRun: boolean) {
     setBusy(true);
@@ -46,8 +50,9 @@ export default function NotesImportPanel({ onImported }: { onImported: () => voi
     try {
       const data = await apiClient<ImportResult>("/api/admin/notes/import", {
         method: "POST",
-        body: JSON.stringify({ items: list, dryRun }),
-        timeout: 60_000,
+        body: JSON.stringify({ items: list, dryRun, createMissingTopics: createTopics }),
+        // A real import uploads every embedded image first, which can take a while.
+        timeout: 300_000,
       });
       setResult(data);
       if (!data.dryRun) {
@@ -79,6 +84,7 @@ export default function NotesImportPanel({ onImported }: { onImported: () => voi
   }
 
   const totalSections = result?.report.reduce((n, r) => n + (r.status === "ok" ? r.sections : 0), 0) ?? 0;
+  const totalImages = result?.report.reduce((n, r) => n + (r.status === "ok" ? r.images : 0), 0) ?? 0;
 
   return (
     <div className="rounded-2xl bg-slate-900 border border-slate-800 p-5 space-y-4">
@@ -92,6 +98,19 @@ export default function NotesImportPanel({ onImported }: { onImported: () => voi
             Imported sections are saved as <span className="text-amber-300">drafts</span>, after any sections the
             topic already has. <code>access</code> is optional and sets the topic to Free or Premium.
           </p>
+          <p>
+            Pictures can be embedded in a section as <code>![alt](data:image/png;base64,…)</code>. They are uploaded
+            on import and replaced with normal image links (JPEG, PNG, WebP or GIF, up to 5 MB each).
+          </p>
+          <label className="flex items-center gap-2 text-slate-300 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={createTopics}
+              onChange={(e) => { setCreateTopics(e.target.checked); setResult(null); setItems(null); setFilename(""); }}
+              className="accent-indigo-500"
+            />
+            Create topics that don&apos;t exist yet
+          </label>
           <div className="flex items-center gap-3 flex-wrap">
             <button
               onClick={() => fileRef.current?.click()}
@@ -123,7 +142,10 @@ export default function NotesImportPanel({ onImported }: { onImported: () => voi
         <div className="space-y-3">
           {!result.dryRun ? (
             <p className="text-sm text-emerald-300">
-              Imported {result.imported} section{result.imported === 1 ? "" : "s"} as drafts. Open a topic to review and publish.
+              Imported {result.imported} section{result.imported === 1 ? "" : "s"} as drafts
+              {result.imagesUploaded ? `, uploaded ${result.imagesUploaded} image${result.imagesUploaded === 1 ? "" : "s"}` : ""}
+              {result.topicsCreated ? `, created ${result.topicsCreated} topic${result.topicsCreated === 1 ? "" : "s"}` : ""}.
+              Open a topic to review and publish.
             </p>
           ) : result.errors > 0 ? (
             <p className="text-sm text-red-300">
@@ -132,7 +154,8 @@ export default function NotesImportPanel({ onImported }: { onImported: () => voi
           ) : (
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <p className="text-sm text-slate-300">
-                File looks good: {totalSections} section{totalSections === 1 ? "" : "s"} across {result.report.length} entr{result.report.length === 1 ? "y" : "ies"}.
+                File looks good: {totalSections} section{totalSections === 1 ? "" : "s"} across {result.report.length} entr{result.report.length === 1 ? "y" : "ies"}
+                {totalImages > 0 ? `, with ${totalImages} image${totalImages === 1 ? "" : "s"} to upload` : ""}.
               </p>
               <button
                 onClick={() => items && send(items, false)}
@@ -152,6 +175,7 @@ export default function NotesImportPanel({ onImported }: { onImported: () => voi
                   <th className="px-3 py-2 font-medium">Subject</th>
                   <th className="px-3 py-2 font-medium">Topic</th>
                   <th className="px-3 py-2 font-medium">Sections</th>
+                  <th className="px-3 py-2 font-medium">Images</th>
                   <th className="px-3 py-2 font-medium">Result</th>
                 </tr>
               </thead>
@@ -162,8 +186,9 @@ export default function NotesImportPanel({ onImported }: { onImported: () => voi
                     <td className="px-3 py-2">{r.subject || "—"}</td>
                     <td className="px-3 py-2">{r.topic || "—"}</td>
                     <td className="px-3 py-2 tabular-nums">{r.sections}</td>
+                    <td className="px-3 py-2 tabular-nums">{r.images}</td>
                     <td className={`px-3 py-2 ${r.status === "ok" ? "text-emerald-400" : "text-red-400"}`}>
-                      {r.status === "ok" ? "OK" : r.message}
+                      {r.status === "ok" ? r.message ?? "OK" : r.message}
                     </td>
                   </tr>
                 ))}

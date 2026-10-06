@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { UploadService } from '../../upload/upload.service';
 
 // ─── Types (identical to lib/validation/admin.ts importRowSchema shape) ──────
 export type ImportRowError = { row: number; errors: string[] };
@@ -33,6 +34,8 @@ type ImportRow = {
   explanation?: string;
   year?: number;
   difficulty: 'EASY' | 'MEDIUM' | 'HARD';
+  /** An https link, or an image embedded as a base64 data URI (uploaded on import). */
+  imageUrl?: string;
 };
 
 function validateImportRow(raw: unknown, rowNum: number): { data: ImportRow; errors: null } | { data: null; errors: ImportRowError } {
@@ -54,6 +57,11 @@ function validateImportRow(raw: unknown, rowNum: number): { data: ImportRow; err
     errors.push('difficulty: Must be EASY, MEDIUM, or HARD');
   }
 
+  const imageUrl = typeof r.imageUrl === 'string' ? r.imageUrl.trim() : '';
+  if (r.imageUrl != null && r.imageUrl !== '' && !/^(https?:\/\/|data:image\/)/i.test(imageUrl)) {
+    errors.push('imageUrl: Must be an http(s) link or a data:image/…;base64 image');
+  }
+
   if (errors.length > 0) return { data: null, errors: { row: rowNum, errors } };
 
   return {
@@ -69,6 +77,7 @@ function validateImportRow(raw: unknown, rowNum: number): { data: ImportRow; err
       explanation: r.explanation as string | undefined,
       year: r.year ? Number(r.year) : undefined,
       difficulty: (difficulty as 'EASY' | 'MEDIUM' | 'HARD'),
+      imageUrl: imageUrl || undefined,
     },
     errors: null,
   };
@@ -76,7 +85,10 @@ function validateImportRow(raw: unknown, rowNum: number): { data: ImportRow; err
 
 @Injectable()
 export class ImportService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly upload: UploadService,
+  ) {}
 
   async processImport(params: ProcessImportParams): Promise<ProcessImportResult> {
     const { adminId, filename, rows, examType, school } = params;
@@ -105,19 +117,20 @@ export class ImportService {
     }
 
     // ── Resolve subjects (single query) ────────────────────────────────────
-    const subjectNames = [...new Set(validRows.map((r) => r.subject))];
-    const subjects = await this.prisma.subject.findMany({
-      where: { name: { in: subjectNames } },
-      select: { id: true, name: true },
-    });
-    const subjectMap = new Map(subjects.map((s) => [s.name.toLowerCase(), s.id]));
+    // Rows may name a subject by its name or its code ("Use of English" or "ENG"), in any case.
+    const subjects = await this.prisma.subject.findMany({ select: { id: true, name: true, code: true } });
+    const subjectMap = new Map<string, string>();
+    for (const s of subjects) {
+      subjectMap.set(s.name.toLowerCase(), s.id);
+      subjectMap.set(s.code.toLowerCase(), s.id);
+    }
 
     const resolvableRows: Array<ImportRow & { subjectId: string }> = [];
     const subjectErrors: ImportRowError[] = [];
 
     for (let i = 0; i < validRows.length; i++) {
       const row = validRows[i];
-      const subjectId = subjectMap.get(row.subject.toLowerCase());
+      const subjectId = subjectMap.get(row.subject.trim().toLowerCase());
       if (!subjectId) {
         subjectErrors.push({ row: i + 1, errors: [`Subject not found: "${row.subject}"`] });
       } else {
@@ -143,8 +156,28 @@ export class ImportService {
       }
     }
 
+    // ── Upload embedded images ─────────────────────────────────────────────
+    // A row whose image can't be used is reported and skipped; the rest still import.
+    const imageErrors: ImportRowError[] = [];
+    const importableRows: typeof resolvableRows = [];
+    const uploaded = new Map<string, string>();
+    for (const [i, row] of resolvableRows.entries()) {
+      if (row.imageUrl?.startsWith('data:')) {
+        try {
+          if (!uploaded.has(row.imageUrl)) {
+            uploaded.set(row.imageUrl, (await this.upload.uploadDataUri(row.imageUrl, 'questions')).url);
+          }
+          row.imageUrl = uploaded.get(row.imageUrl);
+        } catch (err) {
+          imageErrors.push({ row: i + 1, errors: [`imageUrl: ${(err as Error).message}`] });
+          continue;
+        }
+      }
+      importableRows.push(row);
+    }
+
     // ── Build question create operations ───────────────────────────────────
-    const questionCreates = resolvableRows.map((row) => {
+    const questionCreates = importableRows.map((row) => {
       const topicKey = row.topic ? `${row.subjectId}:${row.topic.toLowerCase()}` : null;
       const topicId = topicKey ? (topicMap.get(topicKey) ?? null) : null;
 
@@ -160,6 +193,7 @@ export class ImportService {
           subjectId: row.subjectId,
           topicId,
           text: row.text,
+          imageUrl: row.imageUrl ?? null,
           year: row.year ?? null,
           difficulty: row.difficulty,
           sourceType: 'IMPORTED',
@@ -181,7 +215,7 @@ export class ImportService {
       ? (await this.prisma.$transaction(questionCreates)).length
       : 0;
 
-    const allErrors = [...errorLog, ...subjectErrors];
+    const allErrors = [...errorLog, ...subjectErrors, ...imageErrors];
 
     await this.prisma.import.update({
       where: { id: importRecord.id },

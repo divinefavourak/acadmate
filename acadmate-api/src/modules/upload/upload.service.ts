@@ -27,10 +27,7 @@ export class UploadService {
     notes: 'acadmate/notes',
   };
 
-  async uploadImage(
-    file: UploadedMulterFile,
-    folderKey: string = 'questions',
-  ): Promise<{ url: string }> {
+  private assertAllowed(file: { mimetype: string; size: number }) {
     if (!this.allowedMimeTypes.includes(file.mimetype)) {
       throw new BadRequestException('Only JPEG, PNG, GIF, or WebP images are allowed');
     }
@@ -38,6 +35,33 @@ export class UploadService {
     if (file.size > this.maxSizeBytes) {
       throw new BadRequestException('Image must be under 5 MB');
     }
+  }
+
+  /**
+   * Decodes an image embedded as a `data:image/…;base64,…` URI (used by the
+   * bulk importers) and applies the same type and size rules as a file upload.
+   * Throws BadRequestException when it is not an acceptable image.
+   */
+  parseDataUri(dataUri: string): UploadedMulterFile {
+    const match = /^data:(image\/[a-z0-9.+-]+);base64,([A-Za-z0-9+/=\s]+)$/i.exec(dataUri.trim());
+    if (!match) throw new BadRequestException('Embedded image is not a valid base64 data URI');
+
+    const mimetype = match[1].toLowerCase();
+    const buffer = Buffer.from(match[2], 'base64');
+    const file = { buffer, mimetype, size: buffer.length, originalname: 'embedded' };
+    this.assertAllowed(file);
+    return file;
+  }
+
+  async uploadDataUri(dataUri: string, folderKey?: string): Promise<{ url: string }> {
+    return this.uploadImage(this.parseDataUri(dataUri), folderKey);
+  }
+
+  async uploadImage(
+    file: UploadedMulterFile,
+    folderKey: string = 'questions',
+  ): Promise<{ url: string }> {
+    this.assertAllowed(file);
 
     const folder = this.folderMap[folderKey] ?? this.folderMap.questions;
     const timestamp = Math.floor(Date.now() / 1000);

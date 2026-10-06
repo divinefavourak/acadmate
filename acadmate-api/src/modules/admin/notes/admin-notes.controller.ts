@@ -48,6 +48,8 @@ class ImportNotesDto {
   // Items are validated row by row in the service so the admin gets a report.
   @IsArray() @ArrayMaxSize(2000) items!: unknown[];
   @IsOptional() @IsBoolean() dryRun?: boolean;
+  // Create topics the file names that the subject does not have yet.
+  @IsOptional() @IsBoolean() createMissingTopics?: boolean;
 }
 
 @ApiTags('admin')
@@ -67,7 +69,7 @@ export class AdminNotesController {
   @Post('notes/import') @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Bulk import note sections as drafts (supports dry run)' })
   importNotes(@Body() dto: ImportNotesDto) {
-    return this.adminNotesService.importNotes(dto.items, dto.dryRun ?? false);
+    return this.adminNotesService.importNotes(dto.items, dto.dryRun ?? false, dto.createMissingTopics ?? false);
   }
 
   @Patch('notes/:id')

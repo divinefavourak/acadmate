@@ -58,3 +58,6 @@ next-env.d.ts
 # Only the scripts in question-bank/ are tracked.
 /question-bank/*
 !/question-bank/*.mjs
+
+# Rendered diagram previews from content/english/build.mjs --preview
+/content/english/dist/preview/
