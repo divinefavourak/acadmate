@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import MathText from "@/app/components/MathText";
 import ConfirmModal from "@/app/components/ConfirmModal";
 import { apiClient } from "@/lib/api/client";
@@ -73,6 +73,13 @@ export default function QuestionBuilder({
   // question (via `key`), so the snapshot always matches what was loaded.
   const [baseline] = useState(() => JSON.stringify(form));
   const dirty = JSON.stringify(form) !== baseline;
+  // The parent's form state is shared by every question, so an upload that
+  // finishes after the admin has moved on must not write into the next one.
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; };
+  }, []);
   // What the admin tried to do while there were unsaved edits.
   const [pending, setPending] = useState<(() => void) | null>(null);
 
@@ -87,7 +94,7 @@ export default function QuestionBuilder({
   const topicList = topics?.subjectId === form.subjectId ? topics.list : [];
 
   function guard(action: () => void) {
-    if (dirty) setPending(() => action);
+    if (dirty || uploading) setPending(() => action);
     else action();
   }
 
@@ -259,7 +266,13 @@ export default function QuestionBuilder({
                   disabled={uploading}
                   onChange={(e) => {
                     const file = e.target.files?.[0];
-                    if (file) onUploadImage(file, (url) => setForm((f) => ({ ...f, imageUrl: url })), setUploading);
+                    if (file) {
+                      onUploadImage(
+                        file,
+                        (url) => { if (mounted.current) setForm((f) => ({ ...f, imageUrl: url })); },
+                        setUploading,
+                      );
+                    }
                   }}
                 />
               </label>
@@ -369,7 +382,7 @@ export default function QuestionBuilder({
       <ConfirmModal
         open={pending !== null}
         title="Discard your changes?"
-        message="This question has edits that have not been saved."
+        message={uploading ? "An image is still uploading and will be lost." : "This question has edits that have not been saved."}
         confirmLabel="Discard"
         cancelLabel="Keep editing"
         tone="danger"

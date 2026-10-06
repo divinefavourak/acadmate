@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { CacheService } from '../../../cache/cache.service';
 import { Difficulty, ExamType } from '@prisma/client';
@@ -182,6 +182,13 @@ export class AdminQuestionsService {
 
       // Quick Fix sends only the label of the correct option.
       if (typeof correctOption === 'string' && correctOption) {
+        // Check the label first: clearing every option and then matching none
+        // would leave the question with no correct answer.
+        const target = await tx.questionOption.findFirst({
+          where: { questionId: id, label: correctOption },
+          select: { id: true },
+        });
+        if (!target) throw new BadRequestException(`This question has no option "${correctOption}".`);
         await tx.questionOption.updateMany({ where: { questionId: id }, data: { isCorrect: false } });
         await tx.questionOption.updateMany({
           where: { questionId: id, label: correctOption },

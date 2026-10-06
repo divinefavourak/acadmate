@@ -7,7 +7,7 @@ import MiniBarChart from "@/app/admin/components/MiniBarChart";
 import Folder from "@/app/admin/components/Folder";
 import { apiClient } from "@/lib/api/client";
 import { SCHOOLS } from "@/features/post-utme/constants";
-import QuestionBuilder, { emptyForm, OPTION_LABELS } from "./QuestionBuilder";
+import QuestionBuilder, { emptyForm, OPTION_LABELS, type QuestionForm } from "./QuestionBuilder";
 
 type ExamCategory = "JAMB" | "POST_UTME";
 
@@ -63,6 +63,26 @@ const SCHOOL_COLORS = [
   "#16A34A", "#2563EB", "#7C3AED", "#DC2626",
   "#D97706", "#0891B2",
 ];
+
+function validateForm(f: QuestionForm): string | null {
+  if (f.options.filter((o) => o.isCorrect).length !== 1) return "Select exactly one correct answer.";
+  if (f.options.some((o) => !o.text.trim())) return "All four option texts are required.";
+  return null;
+}
+
+/** The fields create and edit send the same way. */
+function basePayload(f: QuestionForm): Record<string, unknown> {
+  const payload: Record<string, unknown> = {
+    text: f.text.trim(),
+    difficulty: f.difficulty,
+    options: f.options.map((o, i) => ({ label: o.label, text: o.text.trim(), isCorrect: o.isCorrect, sortOrder: i })),
+  };
+  if (f.year) payload.year = Number(f.year);
+  if (f.examType) payload.examType = f.examType;
+  if (f.school) payload.school = f.school;
+  if (f.explanation.trim()) payload.explanation = f.explanation.trim();
+  return payload;
+}
 
 export default function QuestionsPageWrapper() {
   return (
@@ -449,6 +469,9 @@ function QuestionsPage() {
         explanation: q.explanation?.text ?? "",
       });
       setEditError("");
+      // Only now leave create mode: closing it before the fetch resolved made
+      // the builder vanish for a moment, and for good if the fetch failed.
+      setShowForm(false);
     } catch (err) {
       console.error("Failed to load question for edit", err);
       setFormError(err instanceof Error ? err.message : "Failed to load question for editing.");
@@ -473,22 +496,15 @@ function QuestionsPage() {
     if (!editQuestion) return;
     setEditError("");
 
-    const correctCount = editForm.options.filter((o) => o.isCorrect).length;
-    if (correctCount !== 1) { setEditError("Select exactly one correct answer."); return; }
-    if (editForm.options.some((o) => !o.text.trim())) { setEditError("All option texts are required."); return; }
+    setFormError("");
+    const issue = validateForm(editForm);
+    if (issue) { setEditError(issue); return; }
 
     setEditSaving(true);
-    const payload: Record<string, unknown> = {
-      text: editForm.text.trim(),
-      difficulty: editForm.difficulty,
-      options: editForm.options.map((o, i) => ({ label: o.label, text: o.text.trim(), isCorrect: o.isCorrect, sortOrder: i })),
-    };
-    if (editForm.topicId) payload.topicId = editForm.topicId;
-    if (editForm.year) payload.year = Number(editForm.year);
-    if (editForm.examType) payload.examType = editForm.examType;
-    if (editForm.school) payload.school = editForm.school;
+    const payload = basePayload(editForm);
+    // Sent even when empty, so choosing "No topic" or removing the image clears it.
+    payload.topicId = editForm.topicId || null;
     payload.imageUrl = editForm.imageUrl || "";
-    if (editForm.explanation.trim()) payload.explanation = editForm.explanation.trim();
 
     try {
       await apiClient(`/api/admin/questions/${editQuestion.id}`, {
@@ -509,24 +525,13 @@ function QuestionsPage() {
     e.preventDefault();
     setFormError("");
 
-    const correctCount = form.options.filter((o) => o.isCorrect).length;
-    if (correctCount !== 1) { setFormError("Please select exactly one correct answer."); return; }
-    if (form.options.some((o) => !o.text.trim())) { setFormError("All four option texts are required."); return; }
+    const issue = validateForm(form);
+    if (issue) { setFormError(issue); return; }
 
     setSaving(true);
-    const payload: Record<string, unknown> = {
-      subjectId: form.subjectId,
-      text: form.text.trim(),
-      difficulty: form.difficulty,
-      options: form.options.map((o, i) => ({ label: o.label, text: o.text.trim(), isCorrect: o.isCorrect, sortOrder: i })),
-      sourceType: "MANUAL",
-    };
+    const payload = { ...basePayload(form), subjectId: form.subjectId, sourceType: "MANUAL" } as Record<string, unknown>;
     if (form.topicId) payload.topicId = form.topicId;
-    if (form.year) payload.year = Number(form.year);
     if (form.imageUrl) payload.imageUrl = form.imageUrl;
-    if (form.explanation.trim()) payload.explanation = form.explanation.trim();
-    if (form.examType) payload.examType = form.examType;
-    if (form.school) payload.school = form.school;
 
     try {
       await apiClient("/api/admin/questions", { method: "POST", body: JSON.stringify(payload) });
@@ -665,7 +670,7 @@ function QuestionsPage() {
           setForm={editQuestion ? setEditForm : setForm}
           subjects={subjects}
           subjectName={editQuestion?.subject.name}
-          error={editQuestion ? editError : formError}
+          error={editQuestion ? editError || formError : formError}
           saving={editQuestion ? editSaving : saving}
           onSubmit={editQuestion ? handleSaveEdit : handleCreate}
           onClose={closeBuilder}
@@ -673,7 +678,7 @@ function QuestionsPage() {
           questions={activeTab === "flagged" ? flaggedQuestions : questions}
           activeId={editQuestion?.id ?? null}
           loadingId={loadingEdit}
-          onOpenQuestion={(id) => { setShowForm(false); void handleOpenEdit(id); }}
+          onOpenQuestion={(id) => void handleOpenEdit(id)}
           onNew={openNewQuestion}
         />
       )}
