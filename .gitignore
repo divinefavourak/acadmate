@@ -50,3 +50,11 @@ yarn-error.log*
 next-env.d.ts
 
 .vercel
+
+# Claude Code project settings here only hold machine-specific permission entries
+.claude/settings.json
+
+# Question-bank working data — DB exports, LLM batch output, generated spreadsheets.
+# Only the scripts in question-bank/ are tracked.
+/question-bank/*
+!/question-bank/*.mjs
