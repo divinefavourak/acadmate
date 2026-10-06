@@ -31,10 +31,12 @@ services:
     networks:
       - acadmate_net
 
+  # Built by the "Deploy Backend" workflow and pulled from GHCR. There is no
+  # `build:` here on purpose: the server does not have the memory to build.
+  # Set IMAGE_TAG in .env (for example sha-1a2b3c4) to pin a commit.
+  # To build from source instead, add `-f docker-compose.build.yml`.
   api:
-    build:
-      context: ./acadmate-api
-      dockerfile: Dockerfile
+    image: ghcr.io/divinefavourak/acadmate-api:${IMAGE_TAG:-latest}
     restart: unless-stopped
     # Deployment vars override anything in env_file
     environment:
