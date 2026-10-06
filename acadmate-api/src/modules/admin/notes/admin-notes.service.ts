@@ -1,6 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadGatewayException, BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { NotesAccess } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { CacheService } from '../../../cache/cache.service';
+import { UploadService } from '../../upload/upload.service';
 
 export type ImportRowReport = {
   row: number;
@@ -8,23 +10,35 @@ export type ImportRowReport = {
   topic: string;
   status: 'ok' | 'error';
   sections: number;
+  /** Embedded base64 images found in the row's sections. */
+  images: number;
   message?: string;
 };
 
 type ValidImportRow = {
-  topicId: string;
+  subjectId: string;
+  topicName: string;
+  /** null when the topic does not exist yet and will be created. */
+  topicId: string | null;
   access?: NotesAccess;
   sections: { title: string; body: string }[];
 };
 
 const text = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
 
+// A Markdown image whose source is a base64 data URI: ![alt](data:image/png;base64,…)
+const EMBEDDED_IMAGE = /!\[([^\]]*)\]\((data:image\/[^)\s]+)\)/g;
+
 // Same cap the single-section endpoints enforce through their DTOs.
 const TITLE_MAX = 160;
 
 @Injectable()
 export class AdminNotesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cache: CacheService,
+    private readonly upload: UploadService,
+  ) {}
 
   private async requireTopic(topicId: string) {
     const topic = await this.prisma.topic.findUnique({ where: { id: topicId }, select: { id: true } });
@@ -135,8 +149,12 @@ export class AdminNotesService {
    * validated one by one so the admin gets a report instead of one opaque 400.
    * Nothing is written on a dry run or when any row is invalid. Imported
    * sections are drafts, added after any sections the topic already has.
+   *
+   * A section body may embed images as Markdown data URIs,
+   * `![alt](data:image/png;base64,…)`. They are uploaded to Cloudinary and the
+   * body is saved with the resulting links, so no base64 reaches the database.
    */
-  async importNotes(items: unknown[], dryRun: boolean) {
+  async importNotes(items: unknown[], dryRun: boolean, createMissingTopics = false) {
     const subjects = await this.prisma.subject.findMany({
       select: { id: true, name: true, code: true, topics: { select: { id: true, name: true } } },
     });
@@ -154,14 +172,16 @@ export class AdminNotesService {
       const subjectName = text(item.subject);
       const topicName = text(item.topic);
       const sectionsRaw = Array.isArray(item.sections) ? item.sections : [];
-      const row = { row: i + 1, subject: subjectName, topic: topicName, sections: sectionsRaw.length };
+      const row = { row: i + 1, subject: subjectName, topic: topicName, sections: sectionsRaw.length, images: 0 };
       const fail = (message: string) => report.push({ ...row, status: 'error', message });
 
       if (!subjectName || !topicName) return fail('Each item needs a "subject" and a "topic".');
       const subject = subjectByKey.get(subjectName.toLowerCase());
       if (!subject) return fail(`Unknown subject "${subjectName}".`);
       const topic = subject.topics.find((t) => t.name.toLowerCase() === topicName.toLowerCase());
-      if (!topic) return fail(`No topic "${topicName}" in ${subject.name}. Create it under Subjects first.`);
+      if (!topic && !createMissingTopics) {
+        return fail(`No topic "${topicName}" in ${subject.name}. Create it under Subjects, or tick "Create missing topics".`);
+      }
 
       const access = text(item.access).toUpperCase();
       if (access && access !== 'FREE' && access !== 'PREMIUM') return fail('"access" must be FREE or PREMIUM.');
@@ -174,37 +194,88 @@ export class AdminNotesService {
         const body = text(s.body);
         if (!title || !body) return fail(`Section ${j + 1} needs a "title" and a "body".`);
         if (title.length > TITLE_MAX) return fail(`Section ${j + 1}'s title is over ${TITLE_MAX} characters.`);
+        // Check embedded images now, so a bad one is reported before anything is uploaded.
+        for (const [, , dataUri] of body.matchAll(EMBEDDED_IMAGE)) {
+          try {
+            this.upload.parseDataUri(dataUri);
+          } catch (err) {
+            return fail(`Section ${j + 1} has an embedded image that can't be used: ${(err as Error).message}.`);
+          }
+          row.images++;
+        }
         sections.push({ title, body });
       }
 
-      valid.push({ topicId: topic.id, access: (access || undefined) as NotesAccess | undefined, sections });
-      report.push({ ...row, status: 'ok' });
+      valid.push({
+        subjectId: subject.id,
+        topicName,
+        topicId: topic?.id ?? null,
+        access: (access || undefined) as NotesAccess | undefined,
+        sections,
+      });
+      report.push({ ...row, status: 'ok', ...(!topic && { message: 'Topic will be created.' }) });
     });
 
     const errors = report.filter((r) => r.status === 'error').length;
     if (dryRun || errors > 0) return { dryRun: true, imported: 0, errors, report };
 
+    // Upload embedded images before touching the database: if Cloudinary fails,
+    // nothing has been written. Identical images are uploaded once.
+    const uploaded = new Map<string, string>();
+    for (const row of valid) {
+      for (const section of row.sections) {
+        for (const [, , dataUri] of section.body.matchAll(EMBEDDED_IMAGE)) {
+          if (uploaded.has(dataUri)) continue;
+          try {
+            uploaded.set(dataUri, (await this.upload.uploadDataUri(dataUri, 'notes')).url);
+          } catch (err) {
+            throw new BadGatewayException(
+              `Could not upload an image for "${row.topicName}" ("${section.title}"). Nothing was imported. ${(err as Error).message}`,
+            );
+          }
+        }
+        section.body = section.body.replace(EMBEDDED_IMAGE, (_m, alt: string, dataUri: string) => `![${alt}](${uploaded.get(dataUri)})`);
+      }
+    }
+
     let imported = 0;
+    let topicsCreated = 0;
     await this.prisma.$transaction(async (tx) => {
-      // Several rows may target one topic, so track the next position per topic.
+      // Several rows may target one topic, so resolve each topic and track its next position once.
+      const topicIds = new Map<string, string>();
       const nextOrder = new Map<string, number>();
       for (const row of valid) {
-        if (!nextOrder.has(row.topicId)) {
-          const last = await tx.topicNote.aggregate({ where: { topicId: row.topicId }, _max: { sortOrder: true } });
-          nextOrder.set(row.topicId, (last._max.sortOrder ?? -1) + 1);
+        const key = `${row.subjectId}:${row.topicName.toLowerCase()}`;
+        let topicId = row.topicId ?? topicIds.get(key);
+        if (!topicId) {
+          const last = await tx.topic.aggregate({ where: { subjectId: row.subjectId }, _max: { sortOrder: true } });
+          const created = await tx.topic.create({
+            data: { subjectId: row.subjectId, name: row.topicName, sortOrder: (last._max.sortOrder ?? -1) + 1 },
+          });
+          topicId = created.id;
+          topicsCreated++;
         }
-        const start = nextOrder.get(row.topicId)!;
+        topicIds.set(key, topicId);
+
+        if (!nextOrder.has(topicId)) {
+          const last = await tx.topicNote.aggregate({ where: { topicId }, _max: { sortOrder: true } });
+          nextOrder.set(topicId, (last._max.sortOrder ?? -1) + 1);
+        }
+        const start = nextOrder.get(topicId)!;
         await tx.topicNote.createMany({
-          data: row.sections.map((s, k) => ({ topicId: row.topicId, title: s.title, body: s.body, sortOrder: start + k })),
+          data: row.sections.map((s, k) => ({ topicId: topicId!, title: s.title, body: s.body, sortOrder: start + k })),
         });
-        nextOrder.set(row.topicId, start + row.sections.length);
+        nextOrder.set(topicId, start + row.sections.length);
         if (row.access) {
-          await tx.topic.update({ where: { id: row.topicId }, data: { notesAccess: row.access } });
+          await tx.topic.update({ where: { id: topicId }, data: { notesAccess: row.access } });
         }
         imported += row.sections.length;
       }
     });
 
-    return { dryRun: false, imported, errors: 0, report };
+    // New topics change the cached subject/topic lists.
+    if (topicsCreated > 0) await this.cache.delByPrefix('subjects:');
+
+    return { dryRun: false, imported, topicsCreated, imagesUploaded: uploaded.size, errors: 0, report };
   }
 }

@@ -315,6 +315,8 @@ export default function ImportsPage() {
       const data = await apiClient<{ created: number; totalRows: number; errors?: string[] }>("/api/admin/imports", {
         method: "POST",
         body: JSON.stringify(body),
+        // Embedded images are uploaded during the import, so allow well past the default.
+        timeout: 300_000,
       });
 
       setPreviewRows(null);
@@ -416,14 +418,15 @@ export default function ImportsPage() {
         {mode === "STANDARD" ? (
           <div className="text-xs text-slate-400 space-y-1">
             <p>Required columns: <code className="bg-slate-700 px-1 rounded">subject, text, optionA, optionB, optionC, optionD, correctOption</code></p>
-            <p>Optional: <code className="bg-slate-700 px-1 rounded">topic, year, difficulty (EASY/MEDIUM/HARD), explanation</code></p>
+            <p>Optional: <code className="bg-slate-700 px-1 rounded">topic, year, difficulty (EASY/MEDIUM/HARD), explanation, imageUrl</code></p>
+            <p><code className="bg-slate-700 px-1 rounded">subject</code> can be the subject&apos;s name or its code (e.g. ENG). <code className="bg-slate-700 px-1 rounded">imageUrl</code> takes a link or an embedded <code className="bg-slate-700 px-1 rounded">data:image/…;base64</code> picture, which is uploaded on import.</p>
           </div>
         ) : (
           <div className="space-y-4">
             <div className="text-xs text-slate-400 space-y-1">
               <p>JSON format — same fields as JAMB. <code className="bg-slate-700 px-1 rounded">school</code> and <code className="bg-slate-700 px-1 rounded">examType</code> are set automatically from your selection below.</p>
               <p>Required fields: <code className="bg-slate-700 px-1 rounded">subject, text, optionA–D, correctOption</code></p>
-              <p>Optional: <code className="bg-slate-700 px-1 rounded">topic, year, difficulty, explanation</code></p>
+              <p>Optional: <code className="bg-slate-700 px-1 rounded">topic, year, difficulty, explanation, imageUrl</code></p>
             </div>
             <div className="max-w-xs">
               <label className="block text-xs font-medium text-slate-400 mb-1.5">School *</label>

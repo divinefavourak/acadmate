@@ -21,9 +21,10 @@ import { AdminNotesController } from './notes/admin-notes.controller';
 import { AdminNotesService } from './notes/admin-notes.service';
 import { BlogModule } from '../blog/blog.module';
 import { SettingsModule } from '../settings/settings.module';
+import { UploadModule } from '../upload/upload.module';
 
 @Module({
-  imports: [BlogModule, SettingsModule],
+  imports: [BlogModule, SettingsModule, UploadModule],
   controllers: [
     AdminQuestionsController,
     AdminImportsController,
