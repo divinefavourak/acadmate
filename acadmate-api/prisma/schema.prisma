@@ -420,6 +420,7 @@ model Result {
   examSession       ExamSession              @relation(fields: [examSessionId], references: [id], onDelete: Cascade)
   subjectBreakdowns ResultSubjectBreakdown[]
   topicBreakdowns   ResultTopicBreakdown[]
+  yearBreakdowns    ResultYearBreakdown[]
   subjectBreakdown  Json                     @default("{}")
   topicBreakdown    Json                     @default("{}")
 
@@ -463,6 +464,25 @@ model ResultTopicBreakdown {
   @@index([resultId])
   @@index([topicId])
   @@map("result_topic_breakdowns")
+}
+
+// Historical snapshot of per-paper-year performance for a single exam result.
+// Feeds the past-paper leaderboards. userId is denormalised so they can group
+// by student; there is no FK to Question, so it survives question deletion.
+model ResultYearBreakdown {
+  id       String @id @default(cuid())
+  resultId String
+  userId   String
+  year     Int
+  correct  Int
+  total    Int
+
+  result Result @relation(fields: [resultId], references: [id], onDelete: Cascade)
+
+  @@unique([resultId, year])
+  @@index([resultId])
+  @@index([year, userId])
+  @@map("result_year_breakdowns")
 }
 
 // ─── Course/Subject Combinations ─────────────────────────────────────────────

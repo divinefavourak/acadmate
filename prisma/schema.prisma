@@ -385,6 +385,7 @@ model Result {
   createdAt         DateTime                 @default(now())
   subjectBreakdowns ResultSubjectBreakdown[]
   topicBreakdowns   ResultTopicBreakdown[]
+  yearBreakdowns    ResultYearBreakdown[]
   examSession       ExamSession              @relation(fields: [examSessionId], references: [id], onDelete: Cascade)
 
   @@index([userId])
@@ -420,6 +421,21 @@ model ResultTopicBreakdown {
   @@index([resultId])
   @@index([topicId])
   @@map("result_topic_breakdowns")
+}
+
+model ResultYearBreakdown {
+  id       String @id @default(cuid())
+  resultId String
+  userId   String
+  year     Int
+  correct  Int
+  total    Int
+  result   Result @relation(fields: [resultId], references: [id], onDelete: Cascade)
+
+  @@unique([resultId, year])
+  @@index([resultId])
+  @@index([year, userId])
+  @@map("result_year_breakdowns")
 }
 
 model CourseSubjectCombination {

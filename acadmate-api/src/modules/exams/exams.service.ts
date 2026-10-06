@@ -356,6 +356,7 @@ export class ExamsService {
             select: {
               subjectId: true,
               topicId: true,
+              year: true,
               subject: { select: { id: true, name: true } },
               topic: { select: { id: true, name: true } },
             },
@@ -384,6 +385,16 @@ export class ExamsService {
 
     const { correct, incorrect, unanswered, score, subjectBreakdown, topicBreakdown } =
       this.scoring.computeScore(scorableAnswers, effectiveTotal);
+
+    // Per-paper-year tallies feed the past-paper leaderboards.
+    const yearTally = new Map<number, { correct: number; total: number }>();
+    for (const a of scorableAnswers) {
+      if (a.question.year == null) continue;
+      const tally = yearTally.get(a.question.year) ?? { correct: 0, total: 0 };
+      tally.total++;
+      if (a.isCorrect) tally.correct++;
+      yearTally.set(a.question.year, tally);
+    }
 
     // Interactive transaction: resultId needed for child rows
     const result = await this.prisma.$transaction(async (tx) => {
@@ -426,6 +437,16 @@ export class ExamsService {
               resultId: newResult.id,
               topicId: t.topicId,
               name: t.name,
+              correct: t.correct,
+              total: t.total,
+            })),
+          }),
+        yearTally.size > 0 &&
+          tx.resultYearBreakdown.createMany({
+            data: [...yearTally].map(([year, t]) => ({
+              resultId: newResult.id,
+              userId,
+              year,
               correct: t.correct,
               total: t.total,
             })),

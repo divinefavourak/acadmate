@@ -6,6 +6,7 @@ import { apiClient } from "@/lib/api/client";
 import UserAvatar from "@/app/components/UserAvatar";
 import Loader from "@/app/components/Loader";
 import { useUser } from "@/app/context/UserContext";
+import LeaderboardYearFilter, { useLeaderboardYears } from "@/app/components/LeaderboardYearFilter";
 
 interface LeaderboardEntry {
   rank: number;
@@ -187,21 +188,27 @@ export default function LeaderboardView({
   type: "UTME" | "POST_UTME";
   title: string;
 }) {
-  const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
-  const [loading, setLoading] = useState(true);
   const { user } = useUser();
+  const { years, selection, setSelection, query, label } = useLeaderboardYears(type);
+
+  // Entries are stored with the request they answer, so switching year shows
+  // the loader instead of the previous year's ranking.
+  const requestKey = `${type}${query}`;
+  const [loaded, setLoaded] = useState<{ key: string; entries: LeaderboardEntry[] } | null>(null);
+  const loading = loaded?.key !== requestKey;
+  const entries = loading ? [] : loaded.entries;
 
   useEffect(() => {
     let cancelled = false;
     function load() {
-      apiClient<LeaderboardEntry[]>(`/api/leaderboard?type=${type}`)
-        .then((data) => { if (!cancelled) { setEntries(data); setLoading(false); } })
-        .catch(() => { if (!cancelled) setLoading(false); });
+      apiClient<LeaderboardEntry[]>(`/api/leaderboard?type=${type}${query}`)
+        .then((data) => { if (!cancelled) setLoaded({ key: requestKey, entries: data }); })
+        .catch(() => { if (!cancelled) setLoaded((prev) => (prev?.key === requestKey ? prev : { key: requestKey, entries: [] })); });
     }
     load();
     const id = setInterval(load, 30_000);
     return () => { cancelled = true; clearInterval(id); };
-  }, [type]);
+  }, [type, query, requestKey]);
 
   const top3 = entries.slice(0, 3);
   const podiumEntries = PODIUM_IDX.map((i) => top3[i]).filter(Boolean) as LeaderboardEntry[];
@@ -214,15 +221,21 @@ export default function LeaderboardView({
     <div className="space-y-6 max-w-2xl mx-auto">
       <div>
         <h1 className="text-3xl font-bold tracking-tight mb-1">{title}</h1>
-        <p className="text-slate-400 text-sm">Top performers ranked by total points earned</p>
+        <p className="text-slate-400 text-sm">Top performers ranked by points earned {label}</p>
       </div>
+
+      <LeaderboardYearFilter years={years} selection={selection} onChange={setSelection} />
 
       {loading ? (
         <Loader className="h-80" />
       ) : entries.length === 0 ? (
         <div className="rounded-3xl p-12 text-center" style={{ background: "#120824" }}>
           <div className="text-5xl mb-4">🏆</div>
-          <p className="text-slate-400">No results yet. Complete an exam to appear here!</p>
+          <p className="text-slate-400">
+            {selection.year === null
+              ? "No results yet. Complete an exam to appear here!"
+              : `No results ${label} yet.`}
+          </p>
         </div>
       ) : (
         <div className="rounded-3xl overflow-hidden pb-4" style={{ background: "#120824" }}>
