@@ -98,6 +98,8 @@ Fill every field below. Do not change the field names. Do not add fields.
 1. Go to `/admin/blog` and click **New post**.
 2. Paste Title, Excerpt, Body, choose the Category, set the URL slug (or leave blank).
 3. Upload the cover image you sourced from the description above.
+   To add pictures inside the article, put the cursor where each one should go in the Body
+   and click **Insert image** (or paste / drag the picture in). Repeat for as many as you need.
 4. Click **Save draft**, switch to the **Preview** tab to check formatting.
 5. Click **Publish** when ready. (Heads-up: publishing emails Premium users once — it won't
    resend if you re-publish later.)
