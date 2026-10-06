@@ -8,10 +8,8 @@ import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
 import { apiClient, ApiError } from "@/lib/api/client";
+import { IMAGE_TYPES, MAX_IMAGE_BYTES } from "@/lib/uploadLimits";
 
-// Mirrors the limits enforced by the upload endpoint.
-const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
 function altFromFilename(name: string) {
   return name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ").replace(/[[\]]/g, "").trim() || "image";

@@ -162,6 +162,8 @@ export default function AdminNotesPage() {
     setDeleting(true);
     await run(() => apiClient(`/api/admin/notes/${toDelete.id}`, { method: "DELETE" }), "Could not delete the section.");
     setDeleting(false);
+    // Don't leave the editor open on a section that no longer exists.
+    if (draft?.id === toDelete.id) setDraft(null);
     setToDelete(null);
   }
 
@@ -315,7 +317,10 @@ export default function AdminNotesPage() {
                     />
                   </div>
 
+                  {/* Keyed per section so switching sections gets a fresh editor: an
+                      upload still in flight for the previous one can't leak into this one. */}
                   <MarkdownEditor
+                    key={draft.id ?? "new"}
                     label="Content (Markdown)"
                     value={draft.body}
                     onChange={(next) =>
