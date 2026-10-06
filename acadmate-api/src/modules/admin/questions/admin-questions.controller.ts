@@ -12,6 +12,12 @@ import { Roles } from '../../../common/decorators/roles.decorator';
 import { CurrentUser, JwtUser } from '../../../common/decorators/current-user.decorator';
 import { AdminQuestionsService } from './admin-questions.service';
 
+// Reads the raw query string. With implicit conversion on (see main.ts), the
+// `value` handed to @Transform for a boolean field has already been through
+// Boolean(), which turns both "true" and "false" into true.
+const queryBoolean = ({ obj, key }: { obj: Record<string, unknown>; key: string }) =>
+  obj[key] === true || obj[key] === 'true';
+
 class AdminQuestionQueryDto {
   @IsOptional() @IsString() subjectId?: string;
   @IsOptional() @IsString() topicId?: string;
@@ -21,8 +27,8 @@ class AdminQuestionQueryDto {
   @IsOptional() @IsInt() @Type(() => Number) year?: number;
   @IsOptional() @IsInt() @Min(1) @Max(500) @Type(() => Number) limit?: number = 20;
   @IsOptional() @IsInt() @Min(0) @Type(() => Number) offset?: number = 0;
-  @IsOptional() @Transform(({ value }) => value === 'true') @IsBoolean() flagged?: boolean;
-  @IsOptional() @Transform(({ value }) => value === 'true') @IsBoolean() isPublished?: boolean;
+  @IsOptional() @Transform(queryBoolean) @IsBoolean() flagged?: boolean;
+  @IsOptional() @Transform(queryBoolean) @IsBoolean() isPublished?: boolean;
 }
 
 class PublishDto {
