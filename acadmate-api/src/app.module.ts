@@ -14,6 +14,7 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { QuestionsModule } from './modules/questions/questions.module';
 import { SubjectsModule } from './modules/subjects/subjects.module';
 import { ProseModule } from './modules/prose/prose.module';
+import { StudyModule } from './modules/study/study.module';
 import { FlagsModule } from './modules/flags/flags.module';
 import { UploadModule } from './modules/upload/upload.module';
 import { SchedulerModule } from './modules/scheduler/scheduler.module';
@@ -50,6 +51,7 @@ import { CacheModule } from './cache/cache.module';
     QuestionsModule,
     SubjectsModule,
     ProseModule,
+    StudyModule,
     FlagsModule,
     UploadModule,
     SchedulerModule,

@@ -24,6 +24,7 @@ export class UploadService {
   private readonly folderMap: Record<string, string> = {
     questions: 'acadmate/questions',
     blog: 'acadmate/blog',
+    notes: 'acadmate/notes',
   };
 
   async uploadImage(

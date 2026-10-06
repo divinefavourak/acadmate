@@ -64,6 +64,7 @@ const ROUTES: [RegExp, string][] = [
   [/^\/admin\/subjects$/, "Subjects"],
   [/^\/admin\/imports$/, "Imports"],
   [/^\/admin\/prose$/, "Passages"],
+  [/^\/admin\/notes$/, "Topic Notes"],
   [/^\/admin\/notifications$/, "Notifications"],
   [/^\/admin\/tokens$/, "Access Tokens"],
   [/^\/admin\/settings$/, "Settings"],
