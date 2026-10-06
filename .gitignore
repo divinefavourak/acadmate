@@ -50,3 +50,18 @@ yarn-error.log*
 next-env.d.ts
 
 .vercel
+
+# Claude Code project settings here only hold machine-specific permission entries
+.claude/settings.json
+
+# Question-bank working data — DB exports, LLM batch output, generated spreadsheets
+/batch1-output*.json
+/flagged-questions.json
+/invalid-questions.json
+/mock-questions.md
+/mock-test-questions*.json
+/unilag*.json
+/economics.json
+/geography.json
+/government.json
+/combination-xlsx/
