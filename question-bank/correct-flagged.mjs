@@ -6,8 +6,8 @@
  * Processes in batches. Safe to re-run; already-processed entries are skipped.
  *
  * Usage:
- *   node correct-flagged.mjs                        # flagged-questions.json
- *   node correct-flagged.mjs invalid-questions.json # custom file
+ *   node question-bank/correct-flagged.mjs                        # flagged-questions.json
+ *   node question-bank/correct-flagged.mjs invalid-questions.json # custom file
  *
  * Set keys in acadmate-api/.env (or environment):
  *   GEMINI_API_KEY=...      ← preferred primary (1500 req/day, 1M TPM free)
@@ -16,9 +16,10 @@
  *   ANTHROPIC_API_KEY=...   ← optional
  */
 
+import { fileURLToPath } from 'url';
 import { readFileSync, writeFileSync } from 'fs';
 
-const FILE = process.argv[2] ?? 'flagged-questions.json';
+const FILE = process.argv[2] ?? fileURLToPath(new URL('flagged-questions.json', import.meta.url));
 
 // ── env ────────────────────────────────────────────────────────────────────────
 function loadEnv(path) {
@@ -36,7 +37,7 @@ function loadEnv(path) {
   } catch { return {}; }
 }
 
-const env = loadEnv('./acadmate-api/.env');
+const env = loadEnv(new URL('../acadmate-api/.env', import.meta.url));
 
 const GEMINI_KEY     = process.env.GEMINI_API_KEY     || env.GEMINI_API_KEY;
 const GROQ_KEY       = process.env.GROQ_API_KEY       || env.GROQ_API_KEY;
@@ -355,4 +356,4 @@ for (let i = 0; i < pending.length; i += BATCH_SIZE) {
 }
 
 console.log(`\nDone. processed=${processed}  errors=${errors}`);
-console.log(`Next: node seed-corrected.mjs ${FILE}`);
+console.log(`Next: node question-bank/seed-corrected.mjs ${FILE}`);

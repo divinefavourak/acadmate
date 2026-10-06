@@ -4,6 +4,7 @@
  * Usage: docker exec acadmate-api-1 node /app/check-flags.mjs
  */
 
+import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
 import { existsSync } from 'fs';
 
@@ -11,11 +12,11 @@ const inContainer = existsSync('/app/node_modules/@prisma/client');
 const require = createRequire(import.meta.url);
 const { PrismaClient } = inContainer
   ? require('/app/node_modules/@prisma/client')
-  : require('./acadmate-api/node_modules/@prisma/client');
+  : require('../acadmate-api/node_modules/@prisma/client');
 
 if (!inContainer) {
   const { config } = await import('dotenv');
-  config({ path: './acadmate-api/.env' });
+  config({ path: fileURLToPath(new URL('../acadmate-api/.env', import.meta.url)) });
 }
 
 const prisma = new PrismaClient();

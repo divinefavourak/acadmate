@@ -3,10 +3,11 @@
  * Pulls all flagged questions from the DB and saves them to flagged-questions.json.
  * Pass that file to an agent to correct, then run seed-corrected.mjs to write back.
  *
- * Usage: node export-flagged.mjs
+ * Usage: node question-bank/export-flagged.mjs
  */
 
 // Supports running from project root (local) or inside the Docker container (/app)
+import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
 import { writeFileSync } from 'fs';
 import { existsSync } from 'fs';
@@ -16,9 +17,9 @@ const inContainer = existsSync('/app/node_modules/@prisma/client');
 const require = createRequire(import.meta.url);
 const { PrismaClient } = inContainer
   ? require('/app/node_modules/@prisma/client')
-  : require('./acadmate-api/node_modules/@prisma/client');
+  : require('../acadmate-api/node_modules/@prisma/client');
 
-if (!inContainer) config({ path: './acadmate-api/.env' });
+if (!inContainer) config({ path: fileURLToPath(new URL('../acadmate-api/.env', import.meta.url)) });
 
 const prisma = new PrismaClient();
 
@@ -64,7 +65,7 @@ const output = questions.map(q => ({
   action: 'keep',              // 'keep' | 'fix' | 'delete'
 }));
 
-writeFileSync('flagged-questions.json', JSON.stringify(output, null, 2));
+writeFileSync(fileURLToPath(new URL('flagged-questions.json', import.meta.url)), JSON.stringify(output, null, 2));
 console.log(`Exported ${output.length} flagged questions → flagged-questions.json`);
 
 await prisma.$disconnect();

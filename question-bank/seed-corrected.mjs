@@ -7,9 +7,10 @@
  *   action: 'fix'    — apply correctedText / correctedOptions / correctedExplanation
  *   action: 'delete' — delete the question entirely
  *
- * Usage: node seed-corrected.mjs
+ * Usage: node question-bank/seed-corrected.mjs
  */
 
+import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
 import { readFileSync, existsSync } from 'fs';
 import { config } from 'dotenv';
@@ -18,12 +19,12 @@ const inContainer = existsSync('/app/node_modules/@prisma/client');
 const require = createRequire(import.meta.url);
 const { PrismaClient } = inContainer
   ? require('/app/node_modules/@prisma/client')
-  : require('./acadmate-api/node_modules/@prisma/client');
+  : require('../acadmate-api/node_modules/@prisma/client');
 
-if (!inContainer) config({ path: './acadmate-api/.env' });
+if (!inContainer) config({ path: fileURLToPath(new URL('../acadmate-api/.env', import.meta.url)) });
 
 const arg = process.argv[2];
-const dataFile = arg ?? (inContainer ? '/app/flagged-questions.json' : './flagged-questions.json');
+const dataFile = arg ?? (inContainer ? '/app/flagged-questions.json' : fileURLToPath(new URL('flagged-questions.json', import.meta.url)));
 
 const prisma = new PrismaClient();
 const questions = JSON.parse(readFileSync(dataFile, 'utf-8'));

@@ -4,10 +4,11 @@
  * or fewer than 4 options) — the same format as flagged-questions.json so
  * correct-flagged.mjs can process them.
  *
- * Usage (local):     node export-invalid.mjs
+ * Usage (local):     node question-bank/export-invalid.mjs
  * Usage (container): docker exec acadmate-api-1 node /app/export-invalid.mjs
  */
 
+import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
 import { writeFileSync, existsSync } from 'fs';
 
@@ -15,11 +16,11 @@ const inContainer = existsSync('/app/node_modules/@prisma/client');
 const require = createRequire(import.meta.url);
 const { PrismaClient } = inContainer
   ? require('/app/node_modules/@prisma/client')
-  : require('./acadmate-api/node_modules/@prisma/client');
+  : require('../acadmate-api/node_modules/@prisma/client');
 
 if (!inContainer) {
   const { config } = await import('dotenv');
-  config({ path: './acadmate-api/.env' });
+  config({ path: fileURLToPath(new URL('../acadmate-api/.env', import.meta.url)) });
 }
 
 const prisma = new PrismaClient();
@@ -96,7 +97,7 @@ const output = all.map(q => {
   };
 });
 
-const outFile = inContainer ? '/app/invalid-questions.json' : './invalid-questions.json';
+const outFile = inContainer ? '/app/invalid-questions.json' : fileURLToPath(new URL('invalid-questions.json', import.meta.url));
 writeFileSync(outFile, JSON.stringify(output, null, 2));
 
 console.log(`\nExported ${output.length} invalid questions → ${outFile}`);
