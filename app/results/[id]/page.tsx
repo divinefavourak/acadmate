@@ -75,6 +75,80 @@ function scoreColor(score: number) {
   return "text-red-500";
 }
 
+function verdict(score: number) {
+  if (score >= 80) return "Awesome!";
+  if (score >= 70) return "Great work!";
+  if (score >= 50) return "Good effort — keep going.";
+  return "Keep practising — you'll get there.";
+}
+
+function formatDuration(totalSeconds: number) {
+  const s = Math.round(totalSeconds);
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  if (h > 0) return `${h}h ${m}m`;
+  if (m > 0) return `${m}m ${s % 60}s`;
+  return `${s}s`;
+}
+
+// Three-quarter ring with the gap at the bottom.
+const GAUGE_SIZE = 200;
+const GAUGE_STROKE = 14;
+const GAUGE_RADIUS = (GAUGE_SIZE - GAUGE_STROKE) / 2;
+const GAUGE_ARC = 2 * Math.PI * GAUGE_RADIUS * 0.75;
+const GAUGE_GAP = 2 * Math.PI * GAUGE_RADIUS - GAUGE_ARC;
+
+function ScoreGauge({ pct }: { pct: number }) {
+  const stroke = pct >= 70 ? "stroke-emerald-500" : pct >= 50 ? "stroke-amber-500" : "stroke-red-500";
+  return (
+    <div className="relative" style={{ width: GAUGE_SIZE, height: GAUGE_SIZE * 0.88 }} role="img" aria-label={`Score: ${pct} percent`}>
+      <svg width={GAUGE_SIZE} height={GAUGE_SIZE} className="rotate-[135deg]" aria-hidden="true">
+        <circle
+          cx={GAUGE_SIZE / 2}
+          cy={GAUGE_SIZE / 2}
+          r={GAUGE_RADIUS}
+          fill="none"
+          strokeWidth={GAUGE_STROKE}
+          strokeLinecap="round"
+          strokeDasharray={`${GAUGE_ARC} ${GAUGE_GAP}`}
+          className="stroke-slate-200 dark:stroke-slate-800"
+        />
+        <circle
+          cx={GAUGE_SIZE / 2}
+          cy={GAUGE_SIZE / 2}
+          r={GAUGE_RADIUS}
+          fill="none"
+          strokeWidth={GAUGE_STROKE}
+          strokeLinecap="round"
+          strokeDasharray={`${(GAUGE_ARC * Math.min(Math.max(pct, 0), 100)) / 100} ${2 * Math.PI * GAUGE_RADIUS}`}
+          className={stroke}
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center pt-2">
+        <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Test Score</span>
+        <span className={`text-5xl font-extrabold tabular-nums ${scoreColor(pct)}`}>{pct}%</span>
+      </div>
+    </div>
+  );
+}
+
+/** Round tick / cross / dash used in the question review. */
+function StatusMark({ status, size = 28 }: { status: "correct" | "incorrect" | "none"; size?: number }) {
+  const cls =
+    status === "correct"
+      ? "bg-emerald-500 text-white"
+      : status === "incorrect"
+      ? "bg-red-500 text-white"
+      : "border-2 border-slate-300 dark:border-slate-600 text-slate-400";
+  return (
+    <span aria-hidden="true" className={`flex-shrink-0 rounded-full flex items-center justify-center ${cls}`} style={{ width: size, height: size }}>
+      <svg xmlns="http://www.w3.org/2000/svg" width={size * 0.5} height={size * 0.5} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+        {status === "correct" ? <path d="M20 6 9 17l-5-5" /> : status === "incorrect" ? <path d="M18 6 6 18M6 6l12 12" /> : <path d="M6 12h12" />}
+      </svg>
+    </span>
+  );
+}
+
 function ScoreBar({ val, color = "bg-indigo-500" }: { val: number; color?: string }) {
   return (
     <div className="w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
@@ -87,7 +161,7 @@ function ScoreBar({ val, color = "bg-indigo-500" }: { val: number; color?: strin
 
 function QuestionCard({ qa, index }: { qa: QuestionAnswer; index: number }) {
   const [open, setOpen] = useState(false);
-  const statusIcon = qa.isCorrect === true ? "✅" : qa.isCorrect === false ? "❌" : "⬜";
+  const status = qa.isCorrect === true ? "correct" : qa.isCorrect === false ? "incorrect" : "none";
   const statusLabel = qa.isCorrect === true ? "Correct" : qa.isCorrect === false ? "Incorrect" : "Unanswered";
   const statusColor =
     qa.isCorrect === true
@@ -102,7 +176,7 @@ function QuestionCard({ qa, index }: { qa: QuestionAnswer; index: number }) {
         onClick={() => setOpen((o) => !o)}
         className="w-full flex items-start gap-4 p-5 text-left"
       >
-        <span className="text-xl flex-shrink-0">{statusIcon}</span>
+        <StatusMark status={status} />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1 flex-wrap">
             <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
@@ -159,20 +233,15 @@ function QuestionCard({ qa, index }: { qa: QuestionAnswer; index: number }) {
               }
               return (
                 <div key={opt.id} className={cls}>
-                  <span
-                    className={`flex-shrink-0 w-7 h-7 rounded-full border-2 flex items-center justify-center font-bold text-xs ${
-                      isCorrectOpt
-                        ? "border-emerald-500 bg-emerald-500 text-white"
-                        : isStudentAnswer
-                        ? "border-red-500 bg-red-500 text-white"
-                        : "border-slate-300 dark:border-slate-600"
-                    }`}
-                  >
-                    {opt.label}
-                  </span>
-                  <span className="flex-1"><MathText text={opt.text} /></span>
-                  {isCorrectOpt && <span className="text-emerald-600 dark:text-emerald-400 font-semibold text-xs">✓ Correct</span>}
+                  <span className="flex-shrink-0 w-5 text-center font-bold text-xs">{opt.label}</span>
+                  <span className="flex-1 min-w-0"><MathText text={opt.text} /></span>
+                  {isCorrectOpt && (
+                    <span className="text-emerald-600 dark:text-emerald-400 font-semibold text-xs">
+                      {isStudentAnswer ? "Your answer" : "Correct answer"}
+                    </span>
+                  )}
                   {isStudentAnswer && !isCorrectOpt && <span className="text-red-600 dark:text-red-400 font-semibold text-xs">Your answer</span>}
+                  {(isCorrectOpt || isStudentAnswer) && <StatusMark status={isCorrectOpt ? "correct" : "incorrect"} size={24} />}
                 </div>
               );
             })}
@@ -284,6 +353,16 @@ export default function ResultDetailPage({ params }: { params: Promise<{ id: str
   });
 
   const pct = Math.round(result.score);
+  const answered = result.correct + result.incorrect;
+  // startedAt is when the session was created, so cap at the exam length to
+  // avoid counting time spent on the briefing screen as over-time.
+  const { startedAt, submittedAt, durationMinutes } = result.examSession;
+  const secondsTaken = submittedAt
+    ? Math.min(
+        Math.max((new Date(submittedAt).getTime() - new Date(startedAt).getTime()) / 1000, 0),
+        durationMinutes * 60,
+      )
+    : null;
 
   return (
     <div className="space-y-8">
@@ -311,12 +390,27 @@ export default function ResultDetailPage({ params }: { params: Promise<{ id: str
       </div>
 
       {/* Score hero */}
-      <div className="glass-panel p-8 rounded-3xl flex flex-col md:flex-row items-center gap-8">
-        <div className="flex-shrink-0 flex flex-col items-center">
-          <div className={`text-7xl font-extrabold ${scoreColor(pct)}`}>{pct}%</div>
-          <div className="text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">Overall Score</div>
+      <div className="glass-panel p-6 sm:p-8 rounded-3xl flex flex-col items-center gap-6">
+        <ScoreGauge pct={pct} />
+        <div className="text-center -mt-2">
+          <p className="text-xl font-bold">{verdict(pct)}</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+            You got {result.correct} of {result.totalQuestions} questions right.
+          </p>
         </div>
-        <div className="flex-1 w-full grid grid-cols-3 gap-4">
+        <div className="w-full grid grid-cols-3 gap-3">
+          {[
+            { label: "Answered", value: `${answered}/${result.totalQuestions}` },
+            { label: "Avg. per question", value: answered > 0 && secondsTaken !== null ? formatDuration(secondsTaken / answered) : "—" },
+            { label: "Time taken", value: secondsTaken !== null ? formatDuration(secondsTaken) : "—" },
+          ].map(({ label, value }) => (
+            <div key={label} className="rounded-2xl bg-slate-100/80 dark:bg-slate-800/60 px-2 py-3 text-center">
+              <div className="text-lg sm:text-xl font-bold tabular-nums">{value}</div>
+              <div className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">{label}</div>
+            </div>
+          ))}
+        </div>
+        <div className="w-full grid grid-cols-3 gap-4">
           {[
             { label: "Correct", value: result.correct, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-500" },
             { label: "Incorrect", value: result.incorrect, color: "text-red-600 dark:text-red-400", bg: "bg-red-500" },
@@ -403,7 +497,7 @@ export default function ResultDetailPage({ params }: { params: Promise<{ id: str
                     : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
                 }`}
               >
-                {f === "all" ? `All (${answers.length})` : f === "correct" ? `✅ Correct (${result.correct})` : f === "incorrect" ? `❌ Incorrect (${result.incorrect})` : `⬜ Skipped (${result.unanswered})`}
+                {f === "all" ? `All (${answers.length})` : f === "correct" ? `Correct (${result.correct})` : f === "incorrect" ? `Incorrect (${result.incorrect})` : `Skipped (${result.unanswered})`}
               </button>
             ))}
           </div>

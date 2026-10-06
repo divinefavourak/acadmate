@@ -4,10 +4,19 @@ import { useState, useEffect } from "react";
 
 interface TimerProps {
   initialMinutes?: number;
+  /** Full length of the exam; the ring shows time left as a share of this. */
+  totalMinutes?: number;
   onExpire?: () => void;
 }
 
-export default function Timer({ initialMinutes = 120, onExpire }: TimerProps) {
+const SIZE = 56;
+const STROKE = 5;
+const RADIUS = (SIZE - STROKE) / 2;
+const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
+
+const pad = (n: number) => n.toString().padStart(2, "0");
+
+export default function Timer({ initialMinutes = 120, totalMinutes, onExpire }: TimerProps) {
   const [timeLeft, setTimeLeft] = useState(initialMinutes * 60);
 
   useEffect(() => {
@@ -34,30 +43,50 @@ export default function Timer({ initialMinutes = 120, onExpire }: TimerProps) {
   const seconds = timeLeft % 60;
 
   const isWarning = timeLeft < 300; // < 5 minutes
+  const totalSeconds = Math.max((totalMinutes ?? initialMinutes) * 60, 1);
+  const fraction = Math.min(timeLeft / totalSeconds, 1);
 
   return (
     <div
-      className={`flex items-center gap-2 px-4 py-2 flex-shrink-0 rounded-full font-bold border transition-colors ${
-        isWarning
-          ? "bg-red-50 text-red-600 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800/50 animate-pulse"
-          : "bg-white dark:bg-black border-slate-200 dark:border-slate-800 shadow-sm"
+      role="timer"
+      aria-label={`Time left: ${hours > 0 ? `${hours} hours ` : ""}${minutes} minutes ${seconds} seconds`}
+      className={`relative flex-shrink-0 flex items-center justify-center font-bold tabular-nums ${
+        isWarning ? "text-red-600 dark:text-red-400 animate-pulse" : "text-slate-900 dark:text-slate-100"
       }`}
+      style={{ width: SIZE, height: SIZE }}
     >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="18"
-        height="18"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <circle cx="12" cy="12" r="10" />
-        <polyline points="12 6 12 12 16 14" />
+      <svg width={SIZE} height={SIZE} className="absolute inset-0 -rotate-90" aria-hidden="true">
+        <circle
+          cx={SIZE / 2}
+          cy={SIZE / 2}
+          r={RADIUS}
+          fill="none"
+          strokeWidth={STROKE}
+          className="stroke-slate-200 dark:stroke-slate-800"
+        />
+        <circle
+          cx={SIZE / 2}
+          cy={SIZE / 2}
+          r={RADIUS}
+          fill="none"
+          strokeWidth={STROKE}
+          strokeLinecap="round"
+          strokeDasharray={CIRCUMFERENCE}
+          strokeDashoffset={CIRCUMFERENCE * (1 - fraction)}
+          className={`transition-[stroke-dashoffset] duration-1000 ease-linear ${
+            isWarning ? "stroke-red-500" : "stroke-indigo-600 dark:stroke-indigo-400"
+          }`}
+        />
       </svg>
-      {hours.toString().padStart(2, "0")}:{minutes.toString().padStart(2, "0")}:{seconds.toString().padStart(2, "0")}
+      {/* Over an hour there is no room for H:MM:SS inside the ring, so seconds drop to a second line. */}
+      {hours > 0 ? (
+        <span className="relative flex flex-col items-center leading-none">
+          <span className="text-[13px]">{hours}:{pad(minutes)}</span>
+          <span className="text-[9px] font-semibold opacity-60 mt-0.5">{pad(seconds)}s</span>
+        </span>
+      ) : (
+        <span className="relative text-[13px]">{pad(minutes)}:{pad(seconds)}</span>
+      )}
     </div>
   );
 }

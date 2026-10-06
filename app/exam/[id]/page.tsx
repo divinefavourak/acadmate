@@ -312,25 +312,32 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
               <span className="font-bold tracking-tight hidden sm:block">Acadmate CBT</span>
             </div>
             <div className="h-5 w-px bg-slate-200 dark:bg-slate-800 hidden sm:block flex-shrink-0" />
-            {/* Tappable progress — opens mobile navigator */}
+            {/* Tappable counter — opens mobile navigator */}
             <button
               onClick={() => setShowMobileNav(true)}
-              className="flex items-center gap-2 min-w-0 lg:cursor-default lg:pointer-events-none"
+              aria-label={`Question ${currentIndex + 1} of ${questions.length}. Open question navigator`}
+              className="flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs sm:text-sm font-bold tabular-nums lg:cursor-default lg:pointer-events-none"
             >
-              <span className="font-semibold text-slate-700 dark:text-slate-300 truncate text-sm sm:text-base">
-                <span className="hidden sm:inline">
-                  {currentQ.subject.name} —{" "}
-                  {session.mode === "MOCK" ? "Mock Exam"
-                    : session.mode === "POST_UTME" ? "Post-UTME"
-                    : "Practice"}
-                </span>
-                <span className="sm:hidden">{currentIndex + 1}/{questions.length}</span>
-              </span>
-              <span className="lg:hidden text-xs text-indigo-500 flex-shrink-0">↑ Navigator</span>
+              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="lg:hidden"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+              {String(currentIndex + 1).padStart(2, "0")} of {questions.length}
             </button>
+            {/* How much of the paper has been answered */}
+            <div
+              role="progressbar"
+              aria-label="Questions answered"
+              aria-valuenow={answeredIndexes.length}
+              aria-valuemin={0}
+              aria-valuemax={questions.length}
+              className="flex-1 min-w-6 h-2 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden"
+            >
+              <div
+                className="h-full rounded-full bg-indigo-600 dark:bg-indigo-400 transition-[width] duration-300"
+                style={{ width: `${(answeredIndexes.length / questions.length) * 100}%` }}
+              />
+            </div>
           </div>
 
-          <Timer initialMinutes={minutesRemaining} onExpire={handleExpire} />
+          <Timer initialMinutes={minutesRemaining} totalMinutes={session.durationMinutes} onExpire={handleExpire} />
 
           {/* Fullscreen nudge + strike counter */}
           <div className="flex items-center gap-2 flex-shrink-0">
@@ -364,16 +371,8 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
         <div className="w-full max-w-3xl px-4 sm:px-6 flex flex-col flex-1 overflow-hidden min-h-0">
           {/* Scrollable question + options area */}
           <div className="flex-1 overflow-y-auto py-6 sm:py-10 min-h-0">
-            <div className="mb-6 sm:mb-8">
-              <div className="flex items-center gap-2 mb-3 sm:mb-4 flex-wrap">
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">
-                  Question {currentIndex + 1} of {questions.length}
-                </span>
-                {currentQ.topic && (
-                  <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
-                    {currentQ.topic.name}
-                  </span>
-                )}
+            <div className="mb-5 sm:mb-6 rounded-3xl bg-indigo-600 dark:bg-indigo-950/70 dark:border dark:border-indigo-500/30 text-white p-5 sm:p-8 shadow-lg shadow-indigo-600/15">
+              <div className="flex items-center gap-2 mb-4 flex-wrap">
                 <div className="ml-auto flex items-center gap-2">
                   {/* Bookmark — mark for review */}
                   <button
@@ -381,8 +380,8 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
                     title={isCurrentMarked ? "Remove bookmark" : "Bookmark for review"}
                     className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all border ${
                       isCurrentMarked
-                        ? "bg-amber-100 border-amber-400 text-amber-700 dark:bg-amber-900/30 dark:border-amber-600 dark:text-amber-400"
-                        : "bg-slate-100 border-slate-300 text-slate-500 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-400 hover:border-amber-400 hover:text-amber-600"
+                        ? "bg-amber-400 border-amber-400 text-amber-950"
+                        : "bg-white/10 border-white/25 text-white hover:bg-white/20"
                     }`}
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill={isCurrentMarked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -397,8 +396,8 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
                     title="Report an issue with this question"
                     className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all border ${
                       reportedQuestions.has(currentQ.id)
-                        ? "bg-red-100 border-red-300 text-red-500 dark:bg-red-900/30 dark:border-red-700 dark:text-red-400 opacity-70 cursor-not-allowed"
-                        : "bg-slate-100 border-slate-300 text-slate-500 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-400 hover:border-red-400 hover:text-red-500"
+                        ? "bg-white/10 border-white/25 text-white opacity-60 cursor-not-allowed"
+                        : "bg-white/10 border-white/25 text-white hover:bg-white/20"
                     }`}
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill={reportedQuestions.has(currentQ.id) ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -409,14 +408,24 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
                   </button>
                 </div>
               </div>
-              <h2 className="text-lg sm:text-2xl font-medium leading-relaxed text-slate-800 dark:text-slate-100">
+              <div className="text-center">
+                <p className="text-2xl sm:text-3xl font-bold tracking-tight">
+                  Question <span className="text-amber-300 tabular-nums">{String(currentIndex + 1).padStart(2, "0")}</span>
+                </p>
+                <p className="mt-1 text-sm text-indigo-100/80">
+                  {currentQ.subject.name}
+                  {currentQ.topic ? ` · ${currentQ.topic.name}` : ""}
+                </p>
+              </div>
+              <div className="my-4 sm:my-5 border-t border-dashed border-white/25" />
+              <h2 className="text-lg sm:text-xl font-medium leading-relaxed">
                 <MathText text={currentQ.text} />
               </h2>
               {currentQ.imageUrl && (
                 <img
                   src={currentQ.imageUrl}
                   alt="Question diagram"
-                  className="mt-4 max-h-64 rounded-xl border border-slate-200 dark:border-slate-800 object-contain"
+                  className="mt-4 max-h-64 rounded-xl bg-white object-contain"
                 />
               )}
             </div>
@@ -427,10 +436,10 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
                 return (
                   <label
                     key={option.id}
-                    className={`flex items-center p-3 sm:p-4 rounded-xl sm:rounded-2xl border-2 cursor-pointer transition-all ${
+                    className={`flex items-center gap-3 p-3.5 sm:p-4 rounded-2xl border-2 cursor-pointer transition-all focus-within:ring-2 focus-within:ring-indigo-500/50 ${
                       isSelected
-                        ? "border-indigo-600 bg-indigo-50/50 dark:bg-indigo-900/20"
-                        : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white/50 dark:bg-black/50"
+                        ? "border-indigo-600 dark:border-indigo-400 bg-indigo-50 dark:bg-indigo-900/25"
+                        : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white/70 dark:bg-slate-900/50"
                     }`}
                   >
                     <input
@@ -440,23 +449,29 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
                       checked={isSelected}
                       onChange={() => handleOptionSelect(option.id)}
                     />
-                    <span
-                      className={`flex-shrink-0 w-8 h-8 rounded-full border-2 flex items-center justify-center font-bold text-sm mr-3 sm:mr-4 transition-colors ${
-                        isSelected
-                          ? "border-indigo-600 bg-indigo-600 text-white"
-                          : "border-slate-300 dark:border-slate-700 text-slate-500"
-                      }`}
-                    >
+                    <span className={`flex-shrink-0 w-6 text-center font-bold text-sm ${isSelected ? "text-indigo-600 dark:text-indigo-300" : "text-slate-400"}`}>
                       {option.label}
                     </span>
                     <span
-                      className={`text-base sm:text-lg ${
+                      className={`flex-1 min-w-0 text-base sm:text-lg ${
                         isSelected
                           ? "font-medium text-indigo-900 dark:text-indigo-100"
                           : "text-slate-700 dark:text-slate-300"
                       }`}
                     >
                       <MathText text={option.text} />
+                    </span>
+                    <span
+                      aria-hidden="true"
+                      className={`flex-shrink-0 w-7 h-7 rounded-full border-2 flex items-center justify-center transition-colors ${
+                        isSelected
+                          ? "border-indigo-600 bg-indigo-600 dark:border-indigo-400 dark:bg-indigo-400 text-white dark:text-slate-950"
+                          : "border-slate-300 dark:border-slate-700"
+                      }`}
+                    >
+                      {isSelected && (
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                      )}
                     </span>
                   </label>
                 );
@@ -469,7 +484,7 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
             <button
               onClick={() => setCurrentIndex((i) => Math.max(0, i - 1))}
               disabled={currentIndex === 0}
-              className={`px-5 py-2.5 sm:px-6 sm:py-3 rounded-xl font-semibold flex items-center gap-2 transition-all text-sm sm:text-base ${
+              className={`px-5 py-2.5 sm:px-6 sm:py-3 rounded-full font-semibold flex items-center gap-2 transition-all text-sm sm:text-base ${
                 currentIndex === 0
                   ? "opacity-50 cursor-not-allowed bg-slate-100 dark:bg-slate-900 text-slate-400"
                   : "btn-secondary"
@@ -507,7 +522,7 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
             <button
               onClick={() => setCurrentIndex((i) => Math.min(questions.length - 1, i + 1))}
               disabled={currentIndex === questions.length - 1}
-              className={`px-5 py-2.5 sm:px-8 sm:py-3 rounded-xl font-semibold flex items-center gap-2 transition-all text-sm sm:text-base ${
+              className={`px-5 py-2.5 sm:px-8 sm:py-3 rounded-full font-semibold flex items-center gap-2 transition-all text-sm sm:text-base ${
                 currentIndex === questions.length - 1
                   ? "opacity-50 cursor-not-allowed bg-slate-100 dark:bg-slate-900 text-slate-400"
                   : "btn-primary"
