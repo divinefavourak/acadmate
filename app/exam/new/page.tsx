@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiClient, ApiError } from "@/lib/api/client";
@@ -79,6 +79,7 @@ export default function NewExamPage() {
   const [error, setError] = useState("");
   const [utmeComboCount, setUtmeComboCount] = useState<number | null>(null);
   const [availability, setAvailability] = useState<ExamAvailability | null>(null);
+  const preferredTopicRef = useRef<string | null>(null);
 
   useEffect(() => {
     Promise.allSettled([
@@ -92,6 +93,16 @@ export default function NewExamPage() {
       setSubjects(subjList);
       setProseTexts(proseList);
       if (subjList.length > 0) setSelectedSubject(subjList[0].id);
+      // Study hands off here with ?mode=TOPIC&subjectId=…&topicId=… to open a
+      // Topic Drill on the topic the student just read.
+      const handoff = new URLSearchParams(window.location.search);
+      const handoffSubject = subjList.find((s) => s.id === handoff.get("subjectId"));
+      const utmeOpen = availResult.status !== "fulfilled" || availResult.value.utme;
+      if (handoff.get("mode") === "TOPIC" && handoffSubject && utmeOpen) {
+        preferredTopicRef.current = handoff.get("topicId");
+        setMode("TOPIC");
+        setSelectedSubject(handoffSubject.id);
+      }
       if (meResult.status === "fulfilled") {
         // Count electives only — legacy combos may still include compulsory IDs.
         const compulsoryIds = new Set(
@@ -118,11 +129,13 @@ export default function NewExamPage() {
     if (mode !== "TOPIC" || !selectedSubject) return;
     setLoadingTopics(true);
     setSelectedTopic("");
-    apiClient<{ topics: Topic[] }>(`/api/topics?subjectId=${selectedSubject}`)
+    apiClient<{ topics: Topic[] }>(`/api/subjects/${selectedSubject}/topics`)
       .then((data) => {
         const list = data.topics ?? [];
         setTopics(list);
-        if (list.length > 0) setSelectedTopic(list[0].id);
+        const preferred = list.find((t) => t.id === preferredTopicRef.current);
+        preferredTopicRef.current = null;
+        if (list.length > 0) setSelectedTopic((preferred ?? list[0]).id);
       })
       .catch(() => setTopics([]))
       .finally(() => setLoadingTopics(false));
