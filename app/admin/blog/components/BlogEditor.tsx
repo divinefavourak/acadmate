@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
@@ -81,7 +82,12 @@ export default function BlogEditor({ mode, initial }: BlogEditorProps) {
         pendingCaret.current = caret > at ? caret + replacement.length - placeholder.length : caret;
       }
     }
-    setForm((f) => ({ ...f, body: f.body.replace(placeholder, () => replacement) }));
+    // Runs from an upload's promise, where React would queue the update. Commit
+    // it now so no keystroke, paste or drop can read the pre-swap body (or stale
+    // textarea offsets) and overwrite the swap.
+    flushSync(() => {
+      setForm((f) => ({ ...f, body: f.body.replace(placeholder, () => replacement) }));
+    });
   }
 
   async function insertImages(files: File[]) {
