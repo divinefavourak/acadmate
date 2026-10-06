@@ -7,6 +7,7 @@ import MiniBarChart from "@/app/admin/components/MiniBarChart";
 import Folder from "@/app/admin/components/Folder";
 import { apiClient } from "@/lib/api/client";
 import { SCHOOLS } from "@/features/post-utme/constants";
+import QuestionBuilder, { emptyForm, OPTION_LABELS } from "./QuestionBuilder";
 
 type ExamCategory = "JAMB" | "POST_UTME";
 
@@ -46,18 +47,11 @@ interface SubjectOption {
   _count?: { questions: number };
 }
 
-interface TopicOption {
-  id: string;
-  name: string;
-}
-
 const difficultyColors: Record<string, string> = {
   EASY: "text-emerald-400",
   MEDIUM: "text-amber-400",
   HARD: "text-red-400",
 };
-
-const OPTION_LABELS = ["A", "B", "C", "D"];
 
 const SUBJECT_COLORS = [
   "#4F46E5", "#7C3AED", "#2563EB", "#0891B2",
@@ -69,19 +63,6 @@ const SCHOOL_COLORS = [
   "#16A34A", "#2563EB", "#7C3AED", "#DC2626",
   "#D97706", "#0891B2",
 ];
-
-const emptyForm = {
-  subjectId: "",
-  topicId: "",
-  examType: "" as string,
-  school: "",
-  text: "",
-  imageUrl: "",
-  year: "",
-  difficulty: "MEDIUM",
-  options: OPTION_LABELS.map((label) => ({ label, text: "", isCorrect: false })),
-  explanation: "",
-};
 
 export default function QuestionsPageWrapper() {
   return (
@@ -101,7 +82,6 @@ function QuestionsPage() {
 
   const [showForm, setShowForm] = useState(false);
   const [subjects, setSubjects] = useState<SubjectOption[]>([]);
-  const [topics, setTopics] = useState<TopicOption[]>([]);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
 
@@ -151,8 +131,6 @@ function QuestionsPage() {
   const subjectIdParam = searchParams.get("subjectId");
   const highlightRef = useRef<HTMLDivElement | null>(null);
 
-  const [uploadingImage, setUploadingImage] = useState(false);
-  const [editUploadingImage, setEditUploadingImage] = useState(false);
 
   useEffect(() => {
     if (highlightId) setActiveTab("flagged");
@@ -272,13 +250,6 @@ function QuestionsPage() {
       .finally(() => setLoading(false));
   }, [page, publishedFilter, activeCategory, activeSubject, activeSchool, activeYear, subjectIdParam]);
 
-  // Load topics when form subject changes
-  useEffect(() => {
-    if (!form.subjectId) { setTopics([]); return; }
-    apiClient<{ topics: TopicOption[] }>(`/api/admin/topics?subjectId=${form.subjectId}`)
-      .then((data) => setTopics(data.topics ?? []))
-      .catch((err) => console.error("Failed to load topics", err));
-  }, [form.subjectId]);
 
   const totalPages = Math.ceil(total / limit);
 
@@ -457,16 +428,6 @@ function QuestionsPage() {
     }
   }
 
-  function setOption(idx: number, field: "text" | "isCorrect", value: string | boolean) {
-    setForm((prev) => ({
-      ...prev,
-      options: prev.options.map((opt, i) => {
-        if (field === "isCorrect") return { ...opt, isCorrect: i === idx };
-        return i === idx ? { ...opt, text: value as string } : opt;
-      }),
-    }));
-  }
-
   async function handleOpenEdit(id: string) {
     setLoadingEdit(id);
     try {
@@ -544,16 +505,6 @@ function QuestionsPage() {
     setPage(0);
   }
 
-  function setEditOption(idx: number, field: "text" | "isCorrect", value: string | boolean) {
-    setEditForm((prev) => ({
-      ...prev,
-      options: prev.options.map((opt, i) => {
-        if (field === "isCorrect") return { ...opt, isCorrect: i === idx };
-        return i === idx ? { ...opt, text: value as string } : opt;
-      }),
-    }));
-  }
-
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     setFormError("");
@@ -587,7 +538,6 @@ function QuestionsPage() {
     setSaving(false);
     setShowForm(false);
     setForm(emptyForm);
-    setTopics([]);
     setPage(0);
   }
 
@@ -600,6 +550,30 @@ function QuestionsPage() {
     !!subjectIdParam ||
     (activeCategory === "JAMB" && activeSubject && activeYear !== null) ||
     (activeCategory === "POST_UTME" && activeSchool && activeYear !== null);
+
+  // The builder replaces the page body while a question is being written or edited.
+  const builderOpen = showForm || editQuestion !== null;
+
+  function openNewQuestion() {
+    setEditQuestion(null);
+    setFormError("");
+    setForm({
+      ...emptyForm,
+      subjectId: activeCategory === "JAMB" && activeSubject ? activeSubject.id : "",
+      examType: activeCategory ?? "",
+      school: activeCategory === "POST_UTME" && activeSchool ? activeSchool : "",
+      year: activeYear !== "unknown" && activeYear !== null ? String(activeYear) : "",
+    });
+    setShowForm(true);
+  }
+
+  function closeBuilder() {
+    setShowForm(false);
+    setEditQuestion(null);
+    setForm(emptyForm);
+    setFormError("");
+    setEditError("");
+  }
 
   // ─── Render ───────────────────────────────────────────────────────────────
   return (
@@ -672,32 +646,40 @@ function QuestionsPage() {
               <option value="false">Unpublished</option>
             </select>
           )}
-          {activeTab === "questions" && (
+          {activeTab === "questions" && !builderOpen && (
             <button
-              onClick={() => {
-                const next = !showForm;
-                setShowForm(next);
-                setFormError("");
-                if (next) {
-                  setForm((f) => ({
-                    ...f,
-                    subjectId: activeCategory === "JAMB" && activeSubject ? activeSubject.id : f.subjectId,
-                    examType: activeCategory ?? "",
-                    school: activeCategory === "POST_UTME" && activeSchool ? activeSchool : "",
-                    year: activeYear !== "unknown" && activeYear !== null ? String(activeYear) : "",
-                  }));
-                }
-              }}
+              onClick={openNewQuestion}
               className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-colors"
             >
-              {showForm ? "Cancel" : "+ New Question"}
+              + New Question
             </button>
           )}
         </div>
       </div>
 
+      {builderOpen && (
+        <QuestionBuilder
+          key={editQuestion?.id ?? "new"}
+          mode={editQuestion ? "edit" : "create"}
+          form={editQuestion ? editForm : form}
+          setForm={editQuestion ? setEditForm : setForm}
+          subjects={subjects}
+          subjectName={editQuestion?.subject.name}
+          error={editQuestion ? editError : formError}
+          saving={editQuestion ? editSaving : saving}
+          onSubmit={editQuestion ? handleSaveEdit : handleCreate}
+          onClose={closeBuilder}
+          onUploadImage={handleImageUpload}
+          questions={activeTab === "flagged" ? flaggedQuestions : questions}
+          activeId={editQuestion?.id ?? null}
+          loadingId={loadingEdit}
+          onOpenQuestion={(id) => { setShowForm(false); void handleOpenEdit(id); }}
+          onNew={openNewQuestion}
+        />
+      )}
+
       {/* Tabs */}
-      <div className="flex gap-1 p-1 bg-slate-800/60 border border-slate-700 rounded-xl w-fit">
+      <div className={`flex gap-1 p-1 bg-slate-800/60 border border-slate-700 rounded-xl w-fit ${builderOpen ? "hidden" : ""}`}>
         {(["questions", "flagged", "analytics"] as const).map((t) => (
           <button
             key={t}
@@ -719,23 +701,7 @@ function QuestionsPage() {
       </div>
 
       {/* ── Questions tab ─────────────────────────────────── */}
-      {activeTab === "questions" && (showForm ? (
-        <CreateQuestionForm
-          form={form}
-          setForm={setForm}
-          subjects={subjects}
-          topics={topics}
-          formError={formError}
-          saving={saving}
-          uploadingImage={uploadingImage}
-          onSubmit={handleCreate}
-          onCancel={() => { setShowForm(false); setForm(emptyForm); setFormError(""); }}
-          setOption={setOption}
-          handleImageUpload={handleImageUpload}
-          setUploadingImage={setUploadingImage}
-          setFormError={setFormError}
-        />
-      ) : !activeCategory && !subjectIdParam ? (
+      {!builderOpen && activeTab === "questions" && (!activeCategory && !subjectIdParam ? (
         /* ── Category picker ─────────────────────────────── */
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-lg">
           <CategoryCard
@@ -1076,7 +1042,7 @@ function QuestionsPage() {
       ))}
 
       {/* ── Flagged tab ────────────────────────────────────── */}
-      {activeTab === "flagged" && (
+      {!builderOpen && activeTab === "flagged" && (
         <div className="space-y-6">
           {loadingFlagged ? (
             <p className="text-slate-400 text-sm py-8 text-center">Loading…</p>
@@ -1144,7 +1110,7 @@ function QuestionsPage() {
       )}
 
       {/* ── Analytics tab ──────────────────────────────────── */}
-      {activeTab === "analytics" && (
+      {!builderOpen && activeTab === "analytics" && (
         <div className="space-y-6">
           {loadingAnalytics ? (
             <p className="text-slate-400 text-sm py-8 text-center">Loading…</p>
@@ -1198,133 +1164,6 @@ function QuestionsPage() {
               </div>
             </>
           )}
-        </div>
-      )}
-
-      {/* Edit Modal */}
-      {editQuestion && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="p-5 border-b border-slate-700 flex justify-between items-center shrink-0">
-              <h3 className="text-lg font-bold text-white">Edit Question</h3>
-              <button onClick={() => setEditQuestion(null)} className="text-slate-400 hover:text-white transition-colors">✕</button>
-            </div>
-            <form onSubmit={handleSaveEdit} className="p-5 overflow-y-auto space-y-4">
-              {editError && (
-                <p className="text-red-400 text-sm bg-red-900/20 border border-red-800 rounded-lg px-4 py-2">{editError}</p>
-              )}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1">Exam Type</label>
-                  <select value={editForm.examType} onChange={(e) => setEditForm((f) => ({ ...f, examType: e.target.value, school: e.target.value !== "POST_UTME" ? "" : f.school }))}
-                    className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50">
-                    <option value="">Not set</option>
-                    <option value="JAMB">JAMB</option>
-                    <option value="POST_UTME">Post-UTME</option>
-                    <option value="WAEC">WAEC</option>
-                  </select>
-                </div>
-                {editForm.examType === "POST_UTME" && (
-                  <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1">School</label>
-                    <select value={editForm.school} onChange={(e) => setEditForm((f) => ({ ...f, school: e.target.value }))}
-                      className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50">
-                      <option value="">Select school…</option>
-                      {SCHOOLS.map((s) => <option key={s.id} value={s.id}>{s.abbr} — {s.name}</option>)}
-                    </select>
-                  </div>
-                )}
-                <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1">Difficulty</label>
-                  <select value={editForm.difficulty} onChange={(e) => setEditForm((f) => ({ ...f, difficulty: e.target.value }))}
-                    className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50">
-                    <option value="EASY">Easy</option>
-                    <option value="MEDIUM">Medium</option>
-                    <option value="HARD">Hard</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1">Year</label>
-                  <input type="number" min={1978} max={2030} placeholder="e.g. 2023" value={editForm.year}
-                    onChange={(e) => setEditForm((f) => ({ ...f, year: e.target.value }))}
-                    className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50" />
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Question Text *</label>
-                <textarea required rows={3} value={editForm.text} onChange={(e) => setEditForm((f) => ({ ...f, text: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 resize-none font-mono" />
-                {editForm.text.trim() && (
-                  <div className="mt-1.5 px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-slate-200 text-sm leading-relaxed">
-                    <MathText text={editForm.text} />
-                  </div>
-                )}
-              </div>
-              <div className="space-y-2">
-                <p className="text-xs font-medium text-slate-400">Options — select correct answer *</p>
-                {editForm.options.map((opt, i) => (
-                  <div key={opt.label} className="space-y-1">
-                    <div className="flex items-center gap-3">
-                      <label className="flex items-center gap-2 cursor-pointer shrink-0">
-                        <input type="radio" name="editCorrect" checked={opt.isCorrect} onChange={() => setEditOption(i, "isCorrect", true)} className="accent-indigo-500" />
-                        <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${opt.isCorrect ? "bg-indigo-600 text-white" : "bg-slate-700 text-slate-300"}`}>{opt.label}</span>
-                      </label>
-                      <input type="text" required placeholder={`Option ${opt.label}`} value={opt.text}
-                        onChange={(e) => setEditOption(i, "text", e.target.value)}
-                        className="flex-1 px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 font-mono" />
-                    </div>
-                    {opt.text.includes("$") && (
-                      <div className="ml-10 px-2.5 py-1.5 rounded bg-slate-950 border border-slate-800 text-xs text-slate-300">
-                        <MathText text={opt.text} />
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Explanation</label>
-                <textarea rows={2} value={editForm.explanation} onChange={(e) => setEditForm((f) => ({ ...f, explanation: e.target.value }))}
-                  placeholder="Why is the correct answer correct?"
-                  className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 resize-none font-mono" />
-                {editForm.explanation.includes("$") && (
-                  <div className="mt-1.5 px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-indigo-100 text-sm">
-                    <MathText text={editForm.explanation} />
-                  </div>
-                )}
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Image (optional)</label>
-                <div className="flex items-center gap-3">
-                  <label className="flex-1 flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-400 text-sm cursor-pointer hover:border-indigo-500/50 transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
-                    {editUploadingImage ? "Uploading…" : editForm.imageUrl ? "Change image" : "Upload image"}
-                    <input type="file" accept="image/*" className="hidden" disabled={editUploadingImage}
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) handleImageUpload(file, (url) => setEditForm((f) => ({ ...f, imageUrl: url })), setEditUploadingImage);
-                      }} />
-                  </label>
-                  {editForm.imageUrl && (
-                    <button type="button" onClick={() => setEditForm((f) => ({ ...f, imageUrl: "" }))}
-                      className="px-2 py-1 rounded text-xs text-red-400 hover:text-red-300 bg-red-900/20 hover:bg-red-900/30 transition-colors">Remove</button>
-                  )}
-                </div>
-                {editForm.imageUrl && (
-                  <img src={editForm.imageUrl} alt="Question image" className="mt-2 max-h-40 rounded-lg border border-slate-700 object-contain" />
-                )}
-              </div>
-              <div className="flex gap-3 pt-1">
-                <button type="submit" disabled={editSaving}
-                  className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-colors disabled:opacity-60">
-                  {editSaving ? "Saving…" : "Save Changes"}
-                </button>
-                <button type="button" onClick={() => setEditQuestion(null)}
-                  className="px-5 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium transition-colors">
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
         </div>
       )}
 
@@ -1451,181 +1290,5 @@ function CategoryCard({
         <p className="text-slate-400 text-xs mt-1">{description}</p>
       </div>
     </button>
-  );
-}
-
-// ─── Create question form ─────────────────────────────────────────────────────
-
-interface CreateFormProps {
-  form: typeof emptyForm;
-  setForm: React.Dispatch<React.SetStateAction<typeof emptyForm>>;
-  subjects: SubjectOption[];
-  topics: TopicOption[];
-  formError: string;
-  saving: boolean;
-  uploadingImage: boolean;
-  setUploadingImage: (v: boolean) => void;
-  setFormError: (v: string) => void;
-  onSubmit: (e: React.FormEvent) => void;
-  onCancel: () => void;
-  setOption: (idx: number, field: "text" | "isCorrect", value: string | boolean) => void;
-  handleImageUpload: (file: File, setter: (url: string) => void, setUploading: (v: boolean) => void) => void;
-}
-
-function CreateQuestionForm({
-  form, setForm, subjects, topics, formError, saving, uploadingImage,
-  setUploadingImage, setFormError, onSubmit, onCancel, setOption, handleImageUpload,
-}: CreateFormProps) {
-  return (
-    <form onSubmit={onSubmit} className="bg-slate-800/60 border border-slate-700 rounded-2xl p-6 space-y-5">
-      <h2 className="text-lg font-bold text-white">Create Question</h2>
-
-      {formError && (
-        <p className="text-red-400 text-sm bg-red-900/20 border border-red-800 rounded-lg px-4 py-2">{formError}</p>
-      )}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-xs font-medium text-slate-400 mb-1">Exam Type *</label>
-          <select
-            required
-            value={form.examType}
-            onChange={(e) => setForm((f) => ({ ...f, examType: e.target.value, school: e.target.value !== "POST_UTME" ? "" : f.school }))}
-            className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
-          >
-            <option value="">Select type…</option>
-            <option value="JAMB">JAMB</option>
-            <option value="POST_UTME">Post-UTME</option>
-            <option value="WAEC">WAEC</option>
-          </select>
-        </div>
-
-        {form.examType === "POST_UTME" && (
-          <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1">School *</label>
-            <select
-              required
-              value={form.school}
-              onChange={(e) => setForm((f) => ({ ...f, school: e.target.value }))}
-              className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
-            >
-              <option value="">Select school…</option>
-              {SCHOOLS.map((s) => <option key={s.id} value={s.id}>{s.abbr} — {s.name}</option>)}
-            </select>
-          </div>
-        )}
-
-        <div>
-          <label className="block text-xs font-medium text-slate-400 mb-1">Subject *</label>
-          <select
-            required
-            value={form.subjectId}
-            onChange={(e) => setForm((f) => ({ ...f, subjectId: e.target.value, topicId: "" }))}
-            className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
-          >
-            <option value="">Select subject…</option>
-            {subjects.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-xs font-medium text-slate-400 mb-1">Topic</label>
-          <select
-            value={form.topicId}
-            onChange={(e) => setForm((f) => ({ ...f, topicId: e.target.value }))}
-            disabled={!form.subjectId || topics.length === 0}
-            className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 disabled:opacity-40"
-          >
-            <option value="">No topic (optional)</option>
-            {topics.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-xs font-medium text-slate-400 mb-1">Difficulty *</label>
-          <select
-            required
-            value={form.difficulty}
-            onChange={(e) => setForm((f) => ({ ...f, difficulty: e.target.value }))}
-            className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
-          >
-            <option value="EASY">Easy</option>
-            <option value="MEDIUM">Medium</option>
-            <option value="HARD">Hard</option>
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-xs font-medium text-slate-400 mb-1">Year</label>
-          <input type="number" min={1990} max={2030} placeholder="e.g. 2023" value={form.year}
-            onChange={(e) => setForm((f) => ({ ...f, year: e.target.value }))}
-            className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50" />
-        </div>
-      </div>
-
-      <div>
-        <label className="block text-xs font-medium text-slate-400 mb-1">Question Text *</label>
-        <textarea required rows={3} value={form.text}
-          onChange={(e) => setForm((f) => ({ ...f, text: e.target.value }))}
-          placeholder="Enter the full question text…"
-          className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 resize-none" />
-      </div>
-
-      <div className="space-y-3">
-        <p className="text-xs font-medium text-slate-400">Options — select the correct answer *</p>
-        {form.options.map((opt, i) => (
-          <div key={opt.label} className="flex items-center gap-3">
-            <label className="flex items-center gap-2 cursor-pointer shrink-0">
-              <input type="radio" name="correctOption" checked={opt.isCorrect} onChange={() => setOption(i, "isCorrect", true)} className="accent-indigo-500" />
-              <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${opt.isCorrect ? "bg-indigo-600 text-white" : "bg-slate-700 text-slate-300"}`}>{opt.label}</span>
-            </label>
-            <input type="text" required placeholder={`Option ${opt.label}`} value={opt.text}
-              onChange={(e) => setOption(i, "text", e.target.value)}
-              className="flex-1 px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50" />
-          </div>
-        ))}
-      </div>
-
-      <div>
-        <label className="block text-xs font-medium text-slate-400 mb-1">Explanation (optional)</label>
-        <textarea rows={2} value={form.explanation}
-          onChange={(e) => setForm((f) => ({ ...f, explanation: e.target.value }))}
-          placeholder="Why is the correct answer correct?"
-          className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 resize-none" />
-      </div>
-
-      <div>
-        <label className="block text-xs font-medium text-slate-400 mb-1">Image (optional)</label>
-        <div className="flex items-center gap-3">
-          <label className="flex-1 flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-400 text-sm cursor-pointer hover:border-indigo-500/50 transition-colors">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
-            {uploadingImage ? "Uploading…" : form.imageUrl ? "Change image" : "Upload image"}
-            <input type="file" accept="image/*" className="hidden" disabled={uploadingImage}
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) handleImageUpload(file, (url) => setForm((f) => ({ ...f, imageUrl: url })), setUploadingImage);
-              }} />
-          </label>
-          {form.imageUrl && (
-            <button type="button" onClick={() => setForm((f) => ({ ...f, imageUrl: "" }))}
-              className="px-2 py-1 rounded text-xs text-red-400 hover:text-red-300 bg-red-900/20 hover:bg-red-900/30 transition-colors">Remove</button>
-          )}
-        </div>
-        {form.imageUrl && (
-          <img src={form.imageUrl} alt="Question image" className="mt-2 max-h-40 rounded-lg border border-slate-700 object-contain" />
-        )}
-      </div>
-
-      <div className="flex gap-3 pt-1">
-        <button type="submit" disabled={saving}
-          className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-colors disabled:opacity-60">
-          {saving ? "Saving…" : "Create Question"}
-        </button>
-        <button type="button" onClick={onCancel}
-          className="px-5 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium transition-colors">
-          Cancel
-        </button>
-      </div>
-    </form>
   );
 }

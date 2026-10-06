@@ -163,12 +163,47 @@ export class AdminQuestionsService {
 
   // PATCH /admin/questions/:id
   async updateQuestion(adminId: string, id: string, dto: any) {
-    const { options, explanation, aiAssistedExplanation, ...questionData } = dto;
+    const { options, explanation, aiAssistedExplanation, correctOption, ...questionData } = dto;
 
-    const question = await this.prisma.question.update({
-      where: { id },
-      data: questionData,
-      include: { options: true, explanation: true },
+    const question = await this.prisma.$transaction(async (tx) => {
+      await tx.question.update({ where: { id }, data: questionData });
+
+      // Options are matched by label and updated in place, so the rows that
+      // students' past answers point at are kept.
+      if (Array.isArray(options)) {
+        const existing = await tx.questionOption.findMany({ where: { questionId: id } });
+        for (const [idx, opt] of options.entries()) {
+          const data = { text: opt.text, isCorrect: !!opt.isCorrect, sortOrder: opt.sortOrder ?? idx };
+          const match = existing.find((e) => e.label === opt.label);
+          if (match) await tx.questionOption.update({ where: { id: match.id }, data });
+          else await tx.questionOption.create({ data: { questionId: id, label: opt.label, ...data } });
+        }
+      }
+
+      // Quick Fix sends only the label of the correct option.
+      if (typeof correctOption === 'string' && correctOption) {
+        await tx.questionOption.updateMany({ where: { questionId: id }, data: { isCorrect: false } });
+        await tx.questionOption.updateMany({
+          where: { questionId: id, label: correctOption },
+          data: { isCorrect: true },
+        });
+      }
+
+      if (typeof explanation === 'string' && explanation.trim()) {
+        await tx.explanation.upsert({
+          where: { questionId: id },
+          create: { questionId: id, text: explanation, aiAssisted: aiAssistedExplanation ?? false },
+          update: {
+            text: explanation,
+            ...(aiAssistedExplanation !== undefined && { aiAssisted: aiAssistedExplanation }),
+          },
+        });
+      }
+
+      return tx.question.findUniqueOrThrow({
+        where: { id },
+        include: { options: true, explanation: true },
+      });
     });
 
     try {
