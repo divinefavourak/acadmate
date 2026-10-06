@@ -32,6 +32,9 @@ const ROUTES: [RegExp, string][] = [
   [/^\/analytics$/, "Analytics"],
 
   // ── Reading & community ────────────────────────────────────────────
+  [/^\/study\/subject\/[^/]+$/, "Subject Topics"],
+  [/^\/study\/topic\/[^/]+$/, "Topic Notes"],
+  [/^\/study$/, "Study"],
   [/^\/prose\/[^/]+$/, "Passage"],
   [/^\/prose$/, "Comprehension Passages"],
   [/^\/forum\/[^/]+$/, "Discussion"],
