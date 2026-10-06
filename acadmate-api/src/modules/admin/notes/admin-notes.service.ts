@@ -19,6 +19,9 @@ type ValidImportRow = {
 
 const text = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
 
+// Same cap the single-section endpoints enforce through their DTOs.
+const TITLE_MAX = 160;
+
 @Injectable()
 export class AdminNotesService {
   constructor(private readonly prisma: PrismaService) {}
@@ -170,6 +173,7 @@ export class AdminNotesService {
         const title = text(s.title);
         const body = text(s.body);
         if (!title || !body) return fail(`Section ${j + 1} needs a "title" and a "body".`);
+        if (title.length > TITLE_MAX) return fail(`Section ${j + 1}'s title is over ${TITLE_MAX} characters.`);
         sections.push({ title, body });
       }
 

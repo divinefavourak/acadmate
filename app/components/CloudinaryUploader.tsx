@@ -2,10 +2,9 @@
 
 import { useRef, useState } from "react";
 import { getToken } from "@/lib/api/auth";
+import { IMAGE_TYPES, MAX_IMAGE_BYTES } from "@/lib/uploadLimits";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
-const ACCEPT = "image/jpeg,image/png,image/webp,image/gif";
-const MAX_BYTES = 5 * 1024 * 1024;
 
 type Folder = "questions" | "blog";
 
@@ -32,11 +31,11 @@ export default function CloudinaryUploader({
   async function handleFile(file: File) {
     setError("");
 
-    if (!ACCEPT.includes(file.type)) {
+    if (!IMAGE_TYPES.includes(file.type)) {
       setError("Only JPEG, PNG, WebP, or GIF images are allowed.");
       return;
     }
-    if (file.size > MAX_BYTES) {
+    if (file.size > MAX_IMAGE_BYTES) {
       setError("Image must be under 5 MB.");
       return;
     }
@@ -113,7 +112,7 @@ export default function CloudinaryUploader({
       <input
         ref={fileRef}
         type="file"
-        accept={ACCEPT}
+        accept={IMAGE_TYPES.join(",")}
         className="hidden"
         onChange={(e) => {
           const f = e.target.files?.[0];

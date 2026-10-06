@@ -6,6 +6,7 @@ import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import {
   ArrayMaxSize, IsArray, IsBoolean, IsIn, IsNotEmpty, IsOptional, IsString, MaxLength,
 } from 'class-validator';
+import { Transform } from 'class-transformer';
 import { NotesAccess } from '@prisma/client';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../common/guards/roles.guard';
@@ -14,18 +15,21 @@ import { AdminNotesService } from './admin-notes.service';
 
 const ACCESS: NotesAccess[] = ['FREE', 'PREMIUM'];
 
+// Trim before validating, so a title of only spaces is rejected rather than saved empty.
+const Trim = () => Transform(({ value }) => (typeof value === 'string' ? value.trim() : value));
+
 class OverviewQuery {
   @IsString() @IsNotEmpty() subjectId!: string;
 }
 
 class CreateNoteDto {
-  @IsString() @IsNotEmpty() @MaxLength(160) title!: string;
+  @Trim() @IsString() @IsNotEmpty() @MaxLength(160) title!: string;
   @IsString() @IsNotEmpty() body!: string;
   @IsOptional() @IsBoolean() isPublished?: boolean;
 }
 
 class UpdateNoteDto {
-  @IsOptional() @IsString() @IsNotEmpty() @MaxLength(160) title?: string;
+  @IsOptional() @Trim() @IsString() @IsNotEmpty() @MaxLength(160) title?: string;
   @IsOptional() @IsString() @IsNotEmpty() body?: string;
   @IsOptional() @IsBoolean() isPublished?: boolean;
 }
