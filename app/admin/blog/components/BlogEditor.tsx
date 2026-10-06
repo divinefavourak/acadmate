@@ -1,16 +1,11 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { flushSync } from "react-dom";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import remarkMath from "remark-math";
-import rehypeKatex from "rehype-katex";
-import "katex/dist/katex.min.css";
 import { apiClient, ApiError } from "@/lib/api/client";
 import CloudinaryUploader from "@/app/components/CloudinaryUploader";
+import MarkdownEditor from "@/app/components/MarkdownEditor";
 import { BLOG_CATEGORIES, categoryLabel, type BlogCategory } from "@/app/blog/categories";
 
 export interface BlogPostFormData {
@@ -36,110 +31,20 @@ const EMPTY: BlogPostFormData = {
   category: "GENERAL",
 };
 
-// Mirrors the limits enforced by the upload endpoint.
-const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
-
-function altFromFilename(name: string) {
-  return name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ").replace(/[[\]]/g, "").trim() || "image";
-}
-
 export default function BlogEditor({ mode, initial }: BlogEditorProps) {
   const router = useRouter();
   const [form, setForm] = useState<BlogPostFormData>({ ...EMPTY, ...initial } as BlogPostFormData);
   const [submitting, setSubmitting] = useState(false);
   const [publishing, setPublishing] = useState(false);
-  const [tab, setTab] = useState<"write" | "preview">("write");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const isPublished = !!initial?.publishedAt;
   const wasNotified = !!initial?.notifiedAt;
 
-  const bodyRef = useRef<HTMLTextAreaElement>(null);
-  const imageInputRef = useRef<HTMLInputElement>(null);
-  const uploadSeq = useRef(0);
-  const pendingCaret = useRef<number | null>(null);
   const [uploadingImages, setUploadingImages] = useState(0);
 
   function update<K extends keyof BlogPostFormData>(key: K, value: BlogPostFormData[K]) {
     setForm((f) => ({ ...f, [key]: value }));
-  }
-
-  // Changing the body from code sends the caret to the end of the textarea —
-  // put it back where the insert/swap left it.
-  useLayoutEffect(() => {
-    if (pendingCaret.current === null) return;
-    bodyRef.current?.setSelectionRange(pendingCaret.current, pendingCaret.current);
-    pendingCaret.current = null;
-  }, [form.body]);
-
-  function swapPlaceholder(placeholder: string, replacement: string) {
-    const el = bodyRef.current;
-    if (el) {
-      const at = el.value.indexOf(placeholder);
-      const caret = el.selectionStart;
-      if (at !== -1) {
-        pendingCaret.current = caret > at ? caret + replacement.length - placeholder.length : caret;
-      }
-    }
-    // Runs from an upload's promise, where React would queue the update. Commit
-    // it now so no keystroke, paste or drop can read the pre-swap body (or stale
-    // textarea offsets) and overwrite the swap.
-    flushSync(() => {
-      setForm((f) => ({ ...f, body: f.body.replace(placeholder, () => replacement) }));
-    });
-  }
-
-  async function insertImages(files: File[]) {
-    const accepted: File[] = [];
-    let issue = "";
-    for (const file of files) {
-      if (!IMAGE_TYPES.includes(file.type)) issue = "Only JPEG, PNG, WebP, or GIF images are allowed.";
-      else if (file.size > MAX_IMAGE_BYTES) issue = `"${file.name}" is over 5 MB.`;
-      else accepted.push(file);
-    }
-    setError(issue);
-    if (!accepted.length) return;
-
-    // Drop a placeholder per image at the cursor now, then swap each for its
-    // Markdown once the upload finishes — the position holds even if the
-    // author keeps typing meanwhile.
-    const slots = accepted.map((file) => ({
-      file,
-      placeholder: `[Uploading ${file.name}… #${++uploadSeq.current}]`,
-    }));
-    const el = bodyRef.current;
-    const body = form.body;
-    const before = body.slice(0, el?.selectionStart ?? body.length);
-    const after = body.slice(el?.selectionEnd ?? body.length);
-    // Images are block content — pad so each sits in its own paragraph.
-    const lead = !before || before.endsWith("\n\n") ? "" : before.endsWith("\n") ? "\n" : "\n\n";
-    const trail = after.startsWith("\n\n") ? "" : after.startsWith("\n") ? "\n" : "\n\n";
-    const inserted = before + lead + slots.map((s) => s.placeholder).join("\n\n") + trail;
-    pendingCaret.current = inserted.length;
-    update("body", inserted + after);
-    el?.focus();
-
-    setUploadingImages((n) => n + slots.length);
-    await Promise.all(
-      slots.map(async ({ file, placeholder }) => {
-        try {
-          const fd = new FormData();
-          fd.append("file", file);
-          const { url } = await apiClient<{ url: string }>("/api/upload?folder=blog", {
-            method: "POST",
-            body: fd,
-            timeout: 60_000,
-          });
-          swapPlaceholder(placeholder, `![${altFromFilename(file.name)}](${url})`);
-        } catch (err) {
-          swapPlaceholder(placeholder, "");
-          setError(err instanceof ApiError ? err.message : `Could not upload "${file.name}".`);
-        } finally {
-          setUploadingImages((n) => n - 1);
-        }
-      }),
-    );
   }
 
   function validate(): string | null {
@@ -324,91 +229,16 @@ export default function BlogEditor({ mode, initial }: BlogEditorProps) {
             />
           </div>
 
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-sm font-medium">Body (Markdown)</label>
-              <div className="flex items-center gap-2">
-                {tab === "write" && (
-                  <button
-                    type="button"
-                    onClick={() => imageInputRef.current?.click()}
-                    className="px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-700 text-slate-300 hover:bg-slate-800 transition-colors"
-                  >
-                    {uploadingImages > 0 ? `Uploading ${uploadingImages}…` : "Insert image"}
-                  </button>
-                )}
-                <div className="inline-flex rounded-lg border border-slate-700 overflow-hidden text-xs">
-                  <button
-                    type="button"
-                    onClick={() => setTab("write")}
-                    className={`px-3 py-1.5 font-medium transition-colors ${tab === "write" ? "bg-indigo-600 text-white" : "text-slate-400 hover:text-white"}`}
-                  >
-                    Write
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setTab("preview")}
-                    className={`px-3 py-1.5 font-medium transition-colors ${tab === "preview" ? "bg-indigo-600 text-white" : "text-slate-400 hover:text-white"}`}
-                  >
-                    Preview
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <input
-              ref={imageInputRef}
-              type="file"
-              accept={IMAGE_TYPES.join(",")}
-              multiple
-              className="hidden"
-              onChange={(e) => {
-                const files = Array.from(e.target.files ?? []);
-                e.target.value = "";
-                if (files.length) insertImages(files);
-              }}
-            />
-
-            {tab === "write" ? (
-              <>
-                <textarea
-                  ref={bodyRef}
-                  value={form.body}
-                  onChange={(e) => update("body", e.target.value)}
-                  onPaste={(e) => {
-                    // Word/Excel put an image copy of text on the clipboard too — only take over for pure image pastes.
-                    const files = Array.from(e.clipboardData.files);
-                    if (!files.length || e.clipboardData.getData("text/plain")) return;
-                    e.preventDefault();
-                    insertImages(files);
-                  }}
-                  onDragOver={(e) => {
-                    if (e.dataTransfer.types.includes("Files")) e.preventDefault();
-                  }}
-                  onDrop={(e) => {
-                    const files = Array.from(e.dataTransfer.files);
-                    if (!files.length) return;
-                    e.preventDefault();
-                    insertImages(files);
-                  }}
-                  placeholder={"# Heading\n\nWrite your post in **Markdown**. Use - for lists, [text](url) for links."}
-                  rows={20}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-900/60 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 font-mono text-sm leading-relaxed resize-y"
-                />
-                <p className="text-xs text-slate-500 mt-1">
-                  Put the cursor where a picture should go, then click Insert image — or paste or drag one in. You can add as many as you like.
-                </p>
-              </>
-            ) : (
-              <div className="prose prose-invert prose-sm max-w-none p-5 rounded-xl bg-slate-900/40 border border-slate-700 min-h-[400px]">
-                {form.body.trim() ? (
-                  <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>{form.body}</ReactMarkdown>
-                ) : (
-                  <p className="text-slate-500 italic">Nothing to preview yet — start writing.</p>
-                )}
-              </div>
-            )}
-          </div>
+          <MarkdownEditor
+            value={form.body}
+            onChange={(next) =>
+              setForm((f) => ({ ...f, body: typeof next === "function" ? next(f.body) : next }))
+            }
+            folder="blog"
+            placeholder={"# Heading\n\nWrite your post in **Markdown**. Use - for lists, [text](url) for links."}
+            onError={setError}
+            onUploadingChange={setUploadingImages}
+          />
         </div>
 
         <aside className="space-y-5">

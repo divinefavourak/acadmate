@@ -32,6 +32,7 @@ model User {
   generatedTokens        AccessToken[]       @relation("GeneratedTokens")
   redeemedToken          AccessToken?        @relation("RedeemedToken")
   authoredBlogPosts      BlogPost[]          @relation("AuthoredBlogPosts")
+  topicNoteReads         TopicNoteRead[]
   liveSessions           LiveSession[]       @relation("CreatedLiveSessions")
 
   @@index([email])
@@ -138,13 +139,56 @@ model Topic {
   sortOrder   Int        @default(0)
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
+  notesAccess NotesAccess @default(FREE)
   questions   Question[]
+  notes       TopicNote[]
   subject     Subject    @relation(fields: [subjectId], references: [id], onDelete: Cascade)
 
   @@unique([subjectId, name])
   @@index([subjectId])
   @@index([isActive])
   @@map("topics")
+}
+
+// ─── Topic notes ──────────────────────────────────────────────────────────────
+
+// Whether a topic's notes are open to everyone or need a Premium plan.
+enum NotesAccess {
+  FREE
+  PREMIUM
+}
+
+// One short reading section of a topic. A topic's notes are its sections in sortOrder.
+model TopicNote {
+  id          String   @id @default(cuid())
+  topicId     String
+  title       String
+  body        String   @db.Text // Markdown
+  sortOrder   Int      @default(0)
+  isPublished Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  topic Topic           @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  reads TopicNoteRead[]
+
+  @@index([topicId, sortOrder])
+  @@map("topic_notes")
+}
+
+// A student has read a section. Topic progress = read sections / published sections.
+model TopicNoteRead {
+  id     String   @id @default(cuid())
+  userId String
+  noteId String
+  readAt DateTime @default(now())
+
+  user User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  note TopicNote @relation(fields: [noteId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, noteId])
+  @@index([userId, readAt])
+  @@map("topic_note_reads")
 }
 
 model Question {

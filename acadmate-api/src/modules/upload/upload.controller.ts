@@ -30,7 +30,7 @@ export class UploadController {
   @Roles('ADMIN')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Upload image to Cloudinary (admin only)' })
-  @ApiQuery({ name: 'folder', required: false, enum: ['questions', 'blog'] })
+  @ApiQuery({ name: 'folder', required: false, enum: ['questions', 'blog', 'notes'] })
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(
     FileInterceptor('file', { storage: memoryStorage() }),
