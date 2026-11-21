@@ -13,6 +13,7 @@ import { EST_INPUT_TOKENS, EST_OUTPUT_TOKENS, MODELS, PDF_CHUNK_STRIDE, PDF_SOUR
 import { collect, estimateCost, fitBudget, inFlight, params, submit } from '../lib/batch.mjs';
 import { cropFromPdf, cropFromPhoto, prepPhoto, renderSvg, renderTable } from '../lib/figures.mjs';
 import { chunkRanges, loadPdf, sliceBase64 } from '../lib/pdf.mjs';
+import * as log from '../lib/log.mjs';
 import { loadRows, readJson, saveRows, writeJson } from '../lib/state.mjs';
 import { LETTERS, looseKey, shortHash } from '../lib/util.mjs';
 import { SUBJECTS } from '../syllabus.mjs';
@@ -48,7 +49,8 @@ export function registerPhotos({ dir, school, year, examType = 'POST_UTME' }) {
   const sources = photoSources().filter((s) => s.key !== key);
   sources.push({ kind: 'photos', key, dir: abs, files, subject: null, examType, school: school?.toUpperCase() ?? null, year: year ? Number(year) : null });
   writeJson('sources.json', sources);
-  console.log(`registered ${files.length} photos from ${abs} as ${key} (${examType}${school ? ` · ${school}` : ''}${year ? ` · ${year}` : ''})`);
+  log.ok(`Added ${files.length} photos from ${abs} (${examType === 'POST_UTME' ? 'Post-UTME' : examType}${school ? ` · ${school}` : ''}${year ? ` · ${year}` : ''}).`);
+  log.info(`Next: node content/pipeline/run.mjs extract --source ${key}`);
   return key;
 }
 
@@ -87,8 +89,9 @@ const SCHEMA = obj({
 
 const SYSTEM = `You transcribe Nigerian exam past-question booklets (JAMB UTME and university Post-UTME) into structured data for a CBT practice website. Accuracy matters more than speed: students learn from what you write.
 
-Extract the multiple-choice questions that START on the pages the user names (the excerpt may include one extra page after them, only so a question that runs over a page break can be read to its end).
-- Skip questions that start on that extra page, or that started before the first page: the neighbouring excerpt captures them.
+Extract the multiple-choice questions that START on the pages the user names. The excerpt may also include one context page BEFORE them (so you can see a passage, table or figure that those questions refer to) and one page AFTER them (so a question that runs over a page break can be read to its end).
+- Never extract questions that start on a context page: the neighbouring excerpts capture them.
+- If a question you extract depends on a passage or figure printed on the context page before, still include that passage in passages (and the figure, with its page) — the question must be answerable on its own.
 - number: the printed question number. year: the paper's year from the nearest heading ABOVE the question within this excerpt (e.g. "JAMB 2010", "UTME 2015"); null if no heading is visible above it here.
 - subject: the subject code the question belongs to. ${Object.entries(SUBJECTS).map(([c, n]) => `${c}=${n}`).join(', ')}. Use GEN for general paper / current affairs / general studies.
 - page: the 1-based page (or photo) within this excerpt where the question starts.
@@ -110,6 +113,15 @@ figure — set only when the question cannot be answered without a visual (in th
 // ── Requests ───────────────────────────────────────────────────────────────
 
 const doneChunks = (key) => readJson(`extract/${key}.json`, { chunks: {} }).chunks;
+
+/** First page sent for a chunk: one context page before it, except at the very start of the document. */
+const contextStart = (start) => Math.max(0, start - 1);
+
+/**
+ * Absolute 0-based page of a 1-based excerpt page. Chunk results record the first page they were sent
+ * (firstPage); results from before context pages existed don't, and began at their chunk start.
+ */
+const absPage = (chunk, start, excerptPage) => (chunk.firstPage ?? start) + excerptPage - 1;
 
 /** "300-694" → { from: 300, to: 694 } (1-based, inclusive). */
 function parsePages(spec) {
@@ -139,24 +151,32 @@ async function buildRequests(src, { limitChunks, pages: pageSpec }) {
   });
   const requests = [];
   for (const { start, end } of ranges.slice(0, limitChunks ?? ranges.length)) {
-    const pages = end - start;
+    // One context page before the chunk (a passage or figure on it may belong to the chunk's questions).
+    const first = contextStart(start);
+    const pages = end - first;
     const content =
       src.kind === 'pdf'
-        ? [{ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: await sliceBase64(doc, start, end) } }]
-        : src.files.slice(start, end).flatMap((f, i) => [
+        ? [{ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: await sliceBase64(doc, first, end) } }]
+        : src.files.slice(first, end).flatMap((f, i) => [
           { type: 'text', text: `Photo ${i + 1}:` },
           { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: prepPhoto(f) } },
         ]);
     const where = src.kind === 'pdf'
-      ? `Pages ${start + 1}–${end} of ${pageCount} of a ${SUBJECTS[src.subject]} JAMB past-question booklet.`
-      : `Photos ${start + 1}–${end} of ${pageCount} of a ${src.school ?? ''} ${src.examType === 'POST_UTME' ? 'Post-UTME' : ''} past-question booklet${src.year ? ` (${src.year})` : ''}. Treat each photo as a page.`;
-    // The last page overlaps the next chunk; only the final chunk owns all of its pages.
-    const owned = end === pageCount ? pages : Math.min(PDF_CHUNK_STRIDE, pages);
+      ? `Pages ${first + 1}–${end} of ${pageCount} of a ${SUBJECTS[src.subject]} JAMB past-question booklet.`
+      : `Photos ${first + 1}–${end} of ${pageCount} of a ${src.school ?? ''} ${src.examType === 'POST_UTME' ? 'Post-UTME' : ''} past-question booklet${src.year ? ` (${src.year})` : ''}. Treat each photo as a page.`;
+    // Owned pages: the chunk's stride. A context page before, and the overlap page after, are read-only.
+    const ctx = start - first;
+    const ownedCount = end === pageCount ? end - start : Math.min(PDF_CHUNK_STRIDE, end - start);
     const unit = src.kind === 'pdf' ? 'page' : 'photo';
-    const scope = owned === pages
-      ? `Extract the questions that start on any of these ${pages} ${unit}s.`
-      : `Extract the questions that start on ${unit}s 1–${owned} of this excerpt; ${unit} ${pages} is only there to finish them.`;
+    const from = ctx + 1;
+    const to = ctx + ownedCount;
+    const notes = [
+      ctx ? `${unit} 1 is context only` : '',
+      to < pages ? `${unit} ${pages} is only there to finish questions that run over` : '',
+    ].filter(Boolean);
+    const scope = `Extract the questions that start on ${unit}s ${from}–${to} of this excerpt${notes.length ? ` (${notes.join('; ')})` : ''}.`;
     content.push({ type: 'text', text: `${where} ${scope}` });
+    const owned = ownedCount;
 
     const figures = src.subject ? FIGURE_HEAVY.has(src.subject) : true;
     requests.push({
@@ -170,15 +190,15 @@ async function buildRequests(src, { limitChunks, pages: pageSpec }) {
 
 // ── Assembly: chunk results → rows ─────────────────────────────────────────
 
-function figureImage(src, q, chunkStart) {
+function figureImage(src, q, chunk, start) {
   const f = q.figure;
   try {
     if (f.kind === 'table' && f.html) return renderTable(f.html);
     if (f.kind === 'diagram' && f.svg) return renderSvg(f.svg);
-    const absPage = chunkStart + (f.page || q.page) - 1;
-    return src.kind === 'pdf' ? cropFromPdf(src.file, absPage, f.bbox) : cropFromPhoto(src.files[absPage], f.bbox);
+    const page = absPage(chunk, start, f.page || q.page);
+    return src.kind === 'pdf' ? cropFromPdf(src.file, page, f.bbox) : cropFromPhoto(src.files[page], f.bbox);
   } catch (err) {
-    console.warn(`  figure failed (${src.key} p${chunkStart + q.page}): ${err.message.split('\n')[0]}`);
+    log.warn(`A figure on page ${absPage(chunk, start, q.page) + 1} couldn't be drawn (${err.message.split('\n')[0]}); that question is marked "needs a human".`);
     return null;
   }
 }
@@ -193,11 +213,11 @@ function splitPapers(src, chunks) {
   const starts = Object.keys(chunks).map(Number).sort((a, b) => a - b);
   const papers = [];
   let paper = null;
-  const open = (year) => papers.push((paper = { year, maxNum: 0, entries: [], keys: new Map() }));
+  const open = (year, subject) => papers.push((paper = { year, subject, maxNum: 0, entries: [], keys: new Map() }));
   let prevStart = null;
 
   for (const start of starts) {
-    if (prevStart === null || start !== prevStart + PDF_CHUNK_STRIDE) open(src.year);
+    if (prevStart === null || start !== prevStart + PDF_CHUNK_STRIDE) open(src.year, src.subject);
     prevStart = start;
     const res = chunks[start];
     const passages = new Map(res.passages.map((p) => [p.id, p.text]));
@@ -205,20 +225,30 @@ function splitPapers(src, chunks) {
     for (const q of res.questions) {
       const headingChange = q.year != null && q.year !== paper.year;
       const numberingReset = q.number != null && paper.maxNum > 0 && q.number < paper.maxNum - 20;
-      if (paper.entries.length && (headingChange || numberingReset)) open(q.year ?? src.year);
-      else if (q.year != null) paper.year = q.year;
-      paper.entries.push({ q, start, passages });
+      // Post-UTME booklets run several subjects back to back, often with the same year heading.
+      const subjectChange = !src.subject && paper.subject != null && q.subject !== paper.subject;
+      if (paper.entries.length && (headingChange || numberingReset || subjectChange)) {
+        // Next subject of the same Post-UTME paper → same year. A numbering reset within one subject is a new
+        // paper whose year we can't assume (unless its heading is visible).
+        const carriedYear = subjectChange ? paper.year : src.year;
+        open(q.year ?? carriedYear, src.subject ?? q.subject);
+      } else {
+        if (q.year != null) paper.year = q.year;
+        paper.subject ??= src.subject ?? q.subject;
+      }
+      paper.entries.push({ q, start, chunk: res, passages });
       if (q.number != null) paper.maxNum = Math.max(paper.maxNum, q.number);
     }
 
     // A key block belongs to the most recent paper that's long enough to own it: when paper N's key shares a
-    // chunk with the first questions of paper N+1, N+1 is still too short, so the block goes back to N.
+    // chunk with the first questions of paper N+1, N+1 is still too short, so the block goes back to N. A
+    // printed year narrows the choice but never overrides the size check: two subjects can share a year.
     for (const [kYear, block] of Map.groupBy(res.answerKey, (k) => k.year ?? null)) {
       const maxKey = Math.max(...block.map((k) => k.number));
       let target = null;
       for (let i = papers.length - 1; i >= 0 && !target; i--) {
         const p = papers[i];
-        if (kYear != null ? p.year === kYear : p.maxNum >= maxKey * 0.8) target = p;
+        if ((kYear == null || p.year === kYear) && p.maxNum >= maxKey * 0.8) target = p;
       }
       target ??= paper;
       for (const k of block) if (!target.keys.has(k.number)) target.keys.set(k.number, k.answer);
@@ -234,10 +264,18 @@ function assemble(src) {
   const byScope = new Map(rows.map((r) => [scopeKey(r), r]));
   // Solve may repair a row's text/options, which changes its scopeKey; extractKey is the as-extracted one.
   const byExtract = new Map(rows.filter((r) => r.extractKey).map((r) => [r.extractKey, r]));
-  let added = 0, refreshed = 0, keysAttached = 0, reopened = 0, figs = 0, flagged = 0;
+  // Page + question number in this source: survives any change to how ids or keys are computed.
+  const byRef = new Map(rows.filter((r) => sourceKeyOf(r) === src.key && /-q\d+$/.test(r.sourceRef ?? '')).map((r) => [r.sourceRef, r]));
+  let added = 0, refreshed = 0, keysAttached = 0, reopened = 0, figs = 0, flagged = 0, figsRetried = 0;
 
-  /** Re-assembly corrects rows from earlier runs: their year, and keys printed on pages extracted since. */
-  const refresh = (row, year, key) => {
+  /** Re-assembly corrects rows from earlier runs: their year, figure, and keys printed on pages extracted since. */
+  const refresh = (row, year, key, entry) => {
+    const { q, chunk, start } = entry;
+    if (row.needsImage && !row.imageUrl && q.figure && !q.unreadable) {
+      // The figure failed to render last time (e.g. Chrome wasn't set up); try again.
+      const img = figureImage(src, q, chunk, start);
+      if (img) Object.assign(row, { imageUrl: img, needsImage: false }), figsRetried++;
+    }
     if (row.year !== year) { row.year = year; refreshed++; }
     if (!key || row.key) return;
     row.key = key;
@@ -255,33 +293,37 @@ function assemble(src) {
   };
 
   for (const paper of papers) {
-    for (const { q, start, passages } of paper.entries) {
+    for (const entry of paper.entries) {
+      const { q, start, chunk, passages } = entry;
       const subject = src.subject ?? q.subject;
       const passage = q.passageId ? passages.get(q.passageId) : null;
       const text = passage ? `PASSAGE:\n${passage}\n\nQUESTION: ${q.text}` : q.text;
       const options = q.options.map((o) => o.trim()).filter(Boolean);
       const key = q.answer ?? (q.number != null ? paper.keys.get(q.number) ?? null : null);
-      // Text-based id: stable however much of the booklet has been extracted (year and numbering aren't).
-      const id = `p-${src.key}-${shortHash(`${subject}:${looseKey(text)}`)}`;
+      // Content-based id (stem + options): stable however much of the booklet has been extracted, and two
+      // questions sharing a stem ("Which of these is a vector?") with different options stay distinct.
+      const id = `p-${src.key}-${shortHash(`${subject}:${looseKey(text)}|${options.map(looseKey).sort().join('|')}`)}`;
+      const sourceRef = `${path.basename(src.file ?? src.dir)}#${src.kind === 'pdf' ? 'p' : 'photo'}${absPage(chunk, start, q.page) + 1}${q.number != null ? `-q${q.number}` : ''}`;
 
-      if (byId.has(id)) { refresh(byId.get(id), paper.year, key); continue; }
+      if (byId.has(id)) { refresh(byId.get(id), paper.year, key, entry); continue; }
       const draft = makeRow({
-        id, origin: 'pdf', subject, examType: src.examType, school: src.school, year: paper.year, text, options, key,
-        sourceRef: `${path.basename(src.file ?? src.dir)}#${src.kind === 'pdf' ? 'p' : 'photo'}${start + q.page}${q.number != null ? `-q${q.number}` : ''}`,
+        id, origin: 'pdf', subject, examType: src.examType, school: src.school, year: paper.year, text, options, key, sourceRef,
       });
       draft.extractKey = scopeKey(draft);
-      // Rows from the first pilot used year:number ids and predate extractKey.
+      // Earlier runs: the first pilot used year:number ids, and later rows may carry an older extractKey.
       const legacyId = paper.year != null && q.number != null ? `p-${src.key}-${shortHash(`${subject}:${paper.year}:${q.number}`)}` : null;
-      const existing = byExtract.get(draft.extractKey) ?? (legacyId && byId.get(legacyId)) ?? byScope.get(draft.extractKey);
+      const existing =
+        byExtract.get(draft.extractKey) ?? (q.number != null && byRef.get(sourceRef)) ??
+        (legacyId && byId.get(legacyId)) ?? byScope.get(draft.extractKey);
       if (existing) {
-        // Same question already known: an earlier run of this source under an old id, or another source.
+        // Same question already known: an earlier run of this source, or another source.
         if (sourceKeyOf(existing) === src.key) {
-          existing.extractKey ??= draft.extractKey;
-          refresh(existing, paper.year, key);
+          existing.extractKey = draft.extractKey;
+          refresh(existing, paper.year, key, entry);
         }
         continue;
       }
-      draft.imageUrl = q.figure ? figureImage(src, q, start) : null;
+      draft.imageUrl = q.figure ? figureImage(src, q, chunk, start) : null;
       draft.needsImage = Boolean(q.figure && !draft.imageUrl) || q.unreadable;
       if (draft.imageUrl) figs++;
       if (draft.needsImage) flagged++;
@@ -294,11 +336,23 @@ function assemble(src) {
   }
   saveRows(rows);
 
-  const years = papers.map((p) => p.year ?? '?');
-  console.log(
-    `assembled ${src.key}: ${papers.length} paper(s) [${years.join(', ')}] · +${added} rows (${figs} figures, ${flagged} need attention)` +
-      (refreshed || keysAttached ? ` · updated ${refreshed} years, attached ${keysAttached} keys` : '') +
-      (reopened ? ` · ${reopened} Sonnet answers contradicted by the booklet → back to verify` : ''),
+  const state = readJson(`extract/${src.key}.json`, { chunks: {} });
+  const read = Object.keys(state.chunks).length;
+  const name = src.kind === 'pdf' ? `${SUBJECTS[src.subject]} booklet` : `Photos: ${path.basename(src.dir)}`;
+  const years = [...new Set(papers.map((p) => p.year).filter(Boolean))].sort();
+  const details = [
+    added && `${log.fmt.n(added)} new questions`,
+    figs && `${figs} figures drawn`,
+    flagged && `${flagged} need a human (figure unclear)`,
+    keysAttached && `${keysAttached} answers found in the booklet's key`,
+    refreshed && `${refreshed} years corrected`,
+    figsRetried && `${figsRetried} figures that failed before are now drawn`,
+    reopened && `${reopened} answers contradicted by the booklet → Opus will re-check`,
+  ].filter(Boolean);
+  log.info(
+    `📄 ${name.padEnd(36)} ${log.bar(read, state.totalChunks ?? read, 12)} ${read}/${state.totalChunks ?? '?'} parts read` +
+      `${years.length ? ` · years ${years[0]}${years.length > 1 ? `–${years.at(-1)}` : ''}` : ''}` +
+      `${details.length ? ` · ${details.join(' · ')}` : ''}`,
   );
 }
 
@@ -315,20 +369,24 @@ export function sourceComplete(key) {
 
 // ── Stage entry ────────────────────────────────────────────────────────────
 
-export async function runExtract({ subjects, sourceKeys, limitChunks, pages, budget, dryRun, wait = true }) {
+export async function runExtract({ subjects, sourceKeys, limitChunks, pages, budget, shownBudget, dryRun, wait = true }) {
   const sources = allSources().filter((s) =>
     sourceKeys ? sourceKeys.includes(s.key) : subjects ? (s.subject ? subjects.includes(s.subject) : false) : true);
+  log.stage('Claude reads the booklets (pages → questions, figures → images)');
   if (sources.length === 0) {
-    console.log('no matching sources (photo folders are selected with --source <key>; see `status`)');
+    log.info('No PDF booklets or photo folders for these subjects, so nothing to read.');
+    if (!subjects) log.hint('   Photo folders are picked with --source <key>; `status` lists them.');
     return;
   }
 
   // Ingest anything that finished while we were away before deciding what's left to send.
-  await collect(STAGE, ingest, { wait: false });
+  await collect(STAGE, ingest, { wait: false, dryRun }); // results that finished while we were away
 
   const requests = [];
   for (const src of sources) requests.push(...(await buildRequests(src, { limitChunks, pages })));
-  await submit(STAGE, fitBudget(requests, budget), { dryRun });
+  const pagesToRead = requests.length * PDF_CHUNK_STRIDE;
+  if (requests.length) log.info(`📖 About ${log.fmt.n(pagesToRead)} pages left to read across ${sources.length} booklet(s).`);
+  await submit(STAGE, fitBudget(requests, budget, { shownBudget: shownBudget ?? budget }), { dryRun });
 
   if (wait && !dryRun) await collect(STAGE, ingest);
   for (const src of sources) assemble(src);
@@ -346,10 +404,14 @@ function ingest(customId, outcome) {
     // Retry transient failures once more; after that (or for refusals/invalid requests) stop paying for it.
     f[customId] = { error: outcome.error, attempts, permanent: !outcome.retryable || attempts >= 2 };
     writeJson('extract/failures.json', f);
-    console.warn(`  ${customId} failed: ${outcome.error}${outcome.retryable ? ' (will retry on next run)' : ''}`);
+    log.warn(
+      `Couldn't read pages ${contextStart(start) + 1}–${start + PDF_CHUNK_STRIDE + 1} of ${key} (${outcome.error}). ` +
+        (f[customId].permanent ? 'Giving up on these pages.' : 'Will retry on the next run.'),
+    );
     return;
   }
   const state = readJson(`extract/${key}.json`, { chunks: {} });
-  state.chunks[start] = outcome.json;
+  // Page numbers in the result are relative to the first page sent (the context page, when there was one).
+  state.chunks[start] = { ...outcome.json, firstPage: contextStart(start) };
   writeJson(`extract/${key}.json`, state);
 }

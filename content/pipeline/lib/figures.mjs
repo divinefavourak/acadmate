@@ -19,14 +19,29 @@ const CHROME =
     '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
   ].find(fs.existsSync);
 
-const work = fs.mkdtempSync(path.join(os.tmpdir(), 'acadmate-figures-'));
+// Created on first use and removed when the process exits (each file's bytes are returned as a data URI,
+// so nothing in here is needed afterwards).
+let workDir = null;
+const work = () => {
+  if (!workDir) {
+    workDir = fs.mkdtempSync(path.join(os.tmpdir(), 'acadmate-figures-'));
+    process.once('exit', () => {
+      try {
+        fs.rmSync(workDir, { recursive: true, force: true });
+      } catch {
+        // Chrome can hold its profile briefly on Windows; the OS temp cleaner gets it later.
+      }
+    });
+  }
+  return workDir;
+};
 let n = 0;
 
 const toDataUri = (file) => `data:image/png;base64,${fs.readFileSync(file).toString('base64')}`;
 
 function screenshot(file, width, height) {
   if (!CHROME) throw new Error('Chrome not found; set CHROME to render tables and diagrams');
-  const raw = path.join(work, `shot-${++n}.png`);
+  const raw = path.join(work(), `shot-${++n}.png`);
   execFileSync(
     CHROME,
     [
@@ -34,14 +49,14 @@ function screenshot(file, width, height) {
       '--disable-gpu',
       '--hide-scrollbars',
       '--force-device-scale-factor=2',
-      `--user-data-dir=${path.join(work, 'profile')}`,
+      `--user-data-dir=${path.join(work(), 'profile')}`,
       `--window-size=${width},${height}`,
       `--screenshot=${raw}`,
       pathToFileURL(file).href,
     ],
     { stdio: 'ignore', timeout: 60_000 },
   );
-  const out = path.join(work, `fig-${n}.png`);
+  const out = path.join(work(), `fig-${n}.png`);
   execFileSync(PYTHON, ['-I', HELPER, 'trim', raw, out], { stdio: 'pipe' });
   return toDataUri(out);
 }
@@ -51,7 +66,7 @@ table{border-collapse:collapse}th,td{border:1.5px solid #333;padding:6px 12px;te
 th{background:#f1f1f1;font-weight:600}caption{font-weight:600;margin-bottom:6px}`;
 
 export function renderTable(html) {
-  const file = path.join(work, `table-${++n}.html`);
+  const file = path.join(work(), `table-${++n}.html`);
   fs.writeFileSync(file, `<!doctype html><meta charset="utf-8"><style>${TABLE_CSS}</style>${html}`);
   return screenshot(file, 1000, 1400);
 }
@@ -59,7 +74,7 @@ export function renderTable(html) {
 export function renderSvg(svg) {
   const w = Number(/\bwidth="(\d+(?:\.\d+)?)"/.exec(svg)?.[1] ?? 600);
   const h = Number(/\bheight="(\d+(?:\.\d+)?)"/.exec(svg)?.[1] ?? 400);
-  const file = path.join(work, `diagram-${++n}.html`);
+  const file = path.join(work(), `diagram-${++n}.html`);
   // Wrapped in HTML with a white background so transparent SVGs don't screenshot as black-on-nothing.
   fs.writeFileSync(file, `<!doctype html><meta charset="utf-8"><body style="margin:0;background:#fff">${svg}</body>`);
   return screenshot(file, Math.ceil(w) + 40, Math.ceil(h) + 40);
@@ -67,7 +82,7 @@ export function renderSvg(svg) {
 
 /** Crop a figure out of a booklet photo (full resolution, EXIF-rotated). bbox as in cropFromPdf. */
 export function cropFromPhoto(photoFile, bbox) {
-  const out = path.join(work, `crop-${++n}.png`);
+  const out = path.join(work(), `crop-${++n}.png`);
   execFileSync(PYTHON, ['-I', HELPER, 'cropimg', photoFile, bbox.x0, bbox.y0, bbox.x1, bbox.y1, out].map(String), {
     stdio: 'pipe',
   });
@@ -76,14 +91,14 @@ export function cropFromPhoto(photoFile, bbox) {
 
 /** Rotated + downsized JPEG of a phone photo, as base64, ready for an image content block. */
 export function prepPhoto(photoFile) {
-  const out = path.join(work, `prep-${++n}.jpg`);
+  const out = path.join(work(), `prep-${++n}.jpg`);
   execFileSync(PYTHON, ['-I', HELPER, 'prep', photoFile, out], { stdio: 'pipe' });
   return fs.readFileSync(out).toString('base64');
 }
 
 /** bbox is page fractions {x0,y0,x1,y1}, origin top-left. pageIndex is 0-based in the original PDF. */
 export function cropFromPdf(pdfFile, pageIndex, bbox) {
-  const out = path.join(work, `crop-${++n}.png`);
+  const out = path.join(work(), `crop-${++n}.png`);
   execFileSync(
     PYTHON,
     ['-I', HELPER, 'crop', pdfFile, String(pageIndex), bbox.x0, bbox.y0, bbox.x1, bbox.y1, out].map(String),

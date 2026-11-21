@@ -3,6 +3,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { DIST_DIR } from '../config.mjs';
+import * as log from '../lib/log.mjs';
 import { loadRows } from '../lib/state.mjs';
 import { LETTERS } from '../lib/util.mjs';
 import { SUBJECTS } from '../syllabus.mjs';
@@ -75,9 +76,26 @@ export function runEmit() {
     summary.push({ file: name, questions: list.length, withImage: list.filter((q) => q.imageUrl).length });
   }
   fs.writeFileSync(path.join(DIST_DIR, 'summary.json'), JSON.stringify(summary, null, 1));
-  console.table(summary);
-  if (skipped) console.warn(`${skipped} accepted rows skipped (not 4 or 5 options)`);
-  console.log(`wrote ${files.size} files to ${DIST_DIR}`);
-  console.log('Import each at /admin/imports (Post-UTME files in Post-UTME mode; "choose-school" files need a school picked).');
-  console.log(`Subjects: ${Object.entries(SUBJECTS).map(([c, n]) => `${c}=${n}`).join(', ')}`);
+
+  log.stage('Writing the files to import (free)');
+  if (!summary.length) {
+    log.info('No checked questions yet, so there is nothing to import.');
+    return;
+  }
+  const describe = (f) => {
+    const m = /^(needs-attention-)?(jamb|postutme-(choose-school|[a-z]+))-([a-z]+)(-practice)?\.json$/.exec(f);
+    if (!m) return f;
+    const [, attention, , school, code, practice] = m;
+    const where = school ? `Post-UTME · ${school === 'choose-school' ? 'school not set' : school.toUpperCase()}` : 'JAMB';
+    return `${SUBJECTS[code.toUpperCase()] ?? code} · ${where}${practice ? ' · AI practice' : ''}${attention ? ' · ⚠ needs a human' : ''}`;
+  };
+  log.table([
+    ['File', 'What', 'Questions', 'With picture'],
+    ...summary.map((s) => [s.file, describe(s.file), log.fmt.n(s.questions), s.withImage || '–']),
+  ]);
+  const total = summary.filter((s) => !s.file.startsWith('needs-attention-')).reduce((a, s) => a + s.questions, 0);
+  log.ok(`${log.fmt.n(total)} checked questions ready to import, in ${path.relative(process.cwd(), DIST_DIR) || DIST_DIR}`);
+  if (skipped) log.warn(`${skipped} checked questions couldn't be written (they don't have 4 or 5 options).`);
+  log.hint('   Import each file at /admin/imports. Post-UTME files go in Post-UTME mode with their school picked;');
+  log.hint('   "school not set" files need you to choose the school. "needs a human" files import as flagged drafts.');
 }

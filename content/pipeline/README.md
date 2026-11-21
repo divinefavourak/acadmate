@@ -26,7 +26,7 @@ This runs a slice of every stage and prints the real cost per accepted question.
 `wave` runs extract → solve → verify → emit for the subjects you name. It caps extraction at half of the remaining budget, so there's always money left to solve what was extracted. Run the waves in priority order. If the budget runs out, whatever is left stays queued, and a top-up later continues from there.
 
 ```powershell
-node content/pipeline/run.mjs wave --subjects MTH,GEO,GEN       # JSON-only subjects (no PDFs)
+node content/pipeline/run.mjs wave --subjects MTH,GEO,GEN       # Maths booklet + Geography/General Knowledge files
 node content/pipeline/run.mjs wave --subjects BIO,CHM,PHY
 node content/pipeline/run.mjs wave --subjects ENG               # 694 pages; add --pages 480-694 to do part of it first
 node content/pipeline/run.mjs wave --subjects ECO,LIT,CRK,COM,ACC

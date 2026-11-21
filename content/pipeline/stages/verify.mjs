@@ -5,6 +5,7 @@ import { applyKeylessPolicy } from './solve.mjs';
 import { collect, estimateCost, fitBudget, params, submit } from '../lib/batch.mjs';
 import { questionBlocks } from '../lib/blocks.mjs';
 import { groupId, rememberGroups, rowIdFor, rowsInFlight } from '../lib/groups.mjs';
+import * as log from '../lib/log.mjs';
 import { loadRows, saveRows } from '../lib/state.mjs';
 import { LETTERS, chunk } from '../lib/util.mjs';
 import { SUBJECTS } from '../syllabus.mjs';
@@ -39,16 +40,17 @@ For every question return one result with its id:
 - verdict "discard": no option is correct, more than one is defensibly correct, the question is ambiguous or garbled, or it depends on information that isn't given.`;
 
 export async function runVerify({ subjects, origin, limit, budget, dryRun, effort = VERIFY_EFFORT, wait = true, keyless = KEYLESS_POLICY }) {
-  await collect(STAGE, ingest, { wait: false });
+  log.stage('Opus double-checks disagreements and questions with no printed answer');
+  await collect(STAGE, ingest, { wait: false, dryRun }); // results that finished while we were away
 
   // Keyless rows the policy lets Sonnet answer never need Opus; settle them before building requests.
   const current = loadRows();
   const settled = applyKeylessPolicy(current, keyless);
   if (settled) {
     if (!dryRun) saveRows(current);
-    console.log(keyless === 'opus'
-      ? `keyless policy "opus": ${settled} answers Sonnet gave alone sent back for an Opus check`
-      : `keyless policy "${keyless}": accepted Sonnet's answer on ${settled} rows with no booklet key`);
+    log.info(keyless === 'opus'
+      ? `↩️  ${settled} answers that only Sonnet had checked go to Opus too.`
+      : `✔ Accepted Sonnet's answer on ${settled} questions with no printed answer (--keyless ${keyless}).`);
   }
 
   const flying = rowsInFlight(STAGE);
@@ -56,6 +58,7 @@ export async function runVerify({ subjects, origin, limit, budget, dryRun, effor
     r.status === 'needs_verify' && !flying.has(r.id) &&
     (!subjects || subjects.includes(r.subject)) && (!origin || r.origin === origin));
   const picked = limit ? rows.slice(0, Number(limit)) : rows;
+  if (picked.length) log.info(`⚖  ${log.fmt.n(picked.length)} questions for Opus to check.`);
 
   const requests = [];
   for (const [subject, group] of Map.groupBy(picked, (r) => r.subject)) {
@@ -77,14 +80,24 @@ export async function runVerify({ subjects, origin, limit, budget, dryRun, effor
   await submit(STAGE, fitted, { dryRun });
   if (wait && !dryRun) await collect(STAGE, ingest);
 
-  const all = loadRows();
-  const n = (s) => all.filter((r) => r.status === s).length;
-  console.log(`rows: ${n('needs_verify')} still need verify · ${n('accepted')} accepted · ${n('discarded')} discarded`);
+  const checked = tally.confirmed + tally.corrected + tally.rejected;
+  if (checked) {
+    log.ok(
+      `Opus checked ${log.fmt.n(checked)} questions:  ${log.fmt.n(tally.confirmed)} confirmed ✔ · ` +
+        `${log.fmt.n(tally.corrected)} corrected ✏️ · ${log.fmt.n(tally.rejected)} rejected ✖`,
+    );
+    log.hint('   (✏️ = the booklet or Sonnet had the wrong answer and Opus fixed it.  ✖ = no option is right, or the question is ambiguous.)');
+  }
+  if (tally.failed) log.warn(`${log.fmt.n(tally.failed)} checks didn't come back; they'll be retried on the next run.`);
+  Object.assign(tally, { confirmed: 0, corrected: 0, rejected: 0, failed: 0 });
 }
+
+// What Opus decided in this run, for the summary line.
+const tally = { confirmed: 0, corrected: 0, rejected: 0, failed: 0 };
 
 function ingest(customId, outcome) {
   if (!outcome.ok) {
-    console.warn(`  ${customId} failed: ${outcome.error} — rows stay "needs_verify" and are retried next run`);
+    tally.failed++;
     return;
   }
   const rows = loadRows();
@@ -97,8 +110,11 @@ function ingest(customId, outcome) {
     if (res.verdict === 'discard' || LETTERS.indexOf(res.answer) >= row.options.length) {
       row.status = 'discarded';
       row.discardReason = `verify: ${res.reason}`;
+      tally.rejected++;
       continue;
     }
+    if (res.verdict === 'keep' && res.answer === row.solve.answer) tally.confirmed++;
+    else tally.corrected++;
     row.answer = res.answer;
     // A changed answer needs a matching explanation; Sonnet's would argue for the wrong option.
     row.explanation = res.explanation ?? (res.answer === row.solve.answer ? row.solve.explanation : null);

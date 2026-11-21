@@ -49,11 +49,12 @@ export const GENERATE_PER_REQUEST = 10;
 export const EST_OUTPUT_TOKENS = { extractPage: 2500, solve: 350, verify: 700, generate: 450 };
 export const EST_INPUT_TOKENS = { pdfPage: 2200 };
 
-// JAMB past-question PDFs → subject code. MTH is off by default: jamb_mathematics.json already holds the
-// same papers as structured rows, so extracting the PDF again would pay for duplicates.
+// JAMB past-question PDFs → subject code.
 export const PDF_SOURCES = [
   { file: 'question_pdfs/Use-of-English-JAMB-Past-Questions-And-Answers.pdf', subject: 'ENG' },
-  { file: 'question_pdfs/MATHEMATICS-JAMB-Past-Questions.pdf', subject: 'MTH', enabled: false },
+  // Replaces jamb_mathematics*.json: same papers, but with figures and printed keys (the JSON lost both,
+  // and a third of its rows were unusable).
+  { file: 'question_pdfs/MATHEMATICS-JAMB-Past-Questions.pdf', subject: 'MTH' },
   { file: 'question_pdfs/JAMB-Biology-Past-Questions-and-Answers.pdf', subject: 'BIO' },
   { file: 'question_pdfs/CHEMISTRY-JAMB-Past-Questions.pdf', subject: 'CHM' },
   { file: 'question_pdfs/Physics-JAMB-Past-Questions.pdf', subject: 'PHY' },
@@ -71,8 +72,9 @@ export const PDF_SOURCES = [
 //   sourceType: AI_ASSISTED for files that are predictions/generated, never real papers
 //   keepYear:   false drops the year (a "2026" prediction is not a past paper)
 export const JSON_SOURCES = [
-  { file: 'jamb_mathematics_fixed.json', format: 'import', examType: 'JAMB' }, // LaTeX-cleaned subset: load first so it wins dedupe
-  { file: 'jamb_mathematics.json', format: 'import', examType: 'JAMB' },
+  // Old text extraction of the Maths PDF: figures lost, a third unusable. The PDF is extracted instead.
+  { file: 'jamb_mathematics_fixed.json', format: 'import', examType: 'JAMB', supersededBy: 'the Maths PDF' },
+  { file: 'jamb_mathematics.json', format: 'import', examType: 'JAMB', supersededBy: 'the Maths PDF' },
   { file: 'question-bank/batch1-output-repaired.json', format: 'import', examType: 'POST_UTME' },
   { file: 'question-bank/flagged-questions.json', format: 'options', examType: 'JAMB' },
   { file: 'question-bank/mock-test-questions.json', format: 'options', examType: 'JAMB', postUtmeSubjects: ['General Paper'] },

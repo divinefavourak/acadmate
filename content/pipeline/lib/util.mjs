@@ -1,18 +1,27 @@
 import { createHash } from 'node:crypto';
 
-/** Same normalisation as acadmate-api import.service.ts, so pipeline dedupe agrees with import dedupe. */
+/**
+ * Mirrors normaliseForIdentity in acadmate-api (question-identity.ts): case, whitespace, markup and curly
+ * quotes only. Decimal points, operators, brackets and signs are kept, so "1.5" ≠ "15".
+ */
 export function normalise(s) {
   return String(s ?? '')
     .toLowerCase()
     .replace(/<[^>]+>/g, ' ')
+    .replace(/[“”]/g, '"')
+    .replace(/[‘’`]/g, "'")
     .replace(/[\s ]+/g, ' ')
-    .replace(/[.,;:!?'"“”‘’`]/g, '')
-    .trim();
+    .trim()
+    .replace(/[\s.?!:;]+$/, '');
 }
 
-/** Looser key for spotting the same question across sources that format maths differently ($x^2$ vs x^2). */
+/**
+ * Key for spotting the same question across sources that only differ in LaTeX wrapping ($x^{2}$ vs x^2).
+ * Strips math delimiters, backslashes, braces and spaces; keeps operators and grouping, so
+ * "2*(3+4)" and "2*3+4" stay different.
+ */
 export function looseKey(text) {
-  return normalise(text).replace(/[$\\{}\s()^_*]/g, '');
+  return normalise(text).replace(/[$\\{}\s]/g, '');
 }
 
 export function shortHash(s) {

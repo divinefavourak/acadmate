@@ -42,7 +42,7 @@ function topicCounts(rows) {
 }
 
 export async function runGenerate({ subjects, minPerTopic = 15, maxRequests, budget, dryRun, wait = true }) {
-  await collect(STAGE, ingest, { wait: false });
+  await collect(STAGE, ingest, { wait: false, dryRun }); // results that finished while we were away
 
   const rows = loadRows();
   const counts = topicCounts(rows);
@@ -101,7 +101,8 @@ function ingest(customId, outcome) {
     const options = q.options.map((o) => o.trim()).filter(Boolean);
     if (options.length !== 4) continue;
     const row = makeRow({
-      id: `g-${shortHash(`${meta.subject}:${looseKey(q.text)}`)}`,
+      // Stem + options: two generated questions may share a stem with different options.
+      id: `g-${shortHash(`${meta.subject}:${looseKey(q.text)}|${options.map(looseKey).sort().join('|')}`)}`,
       origin: 'gen',
       sourceRef: `generated:${meta.topic}`,
       subject: meta.subject,

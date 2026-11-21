@@ -9,6 +9,7 @@ import { loadRows, saveRows } from '../lib/state.mjs';
 import { LETTERS, chunk } from '../lib/util.mjs';
 import { SUBJECTS, TOPICS } from '../syllabus.mjs';
 import { sourceComplete, sourceKeyOf } from './extract.mjs';
+import * as log from '../lib/log.mjs';
 
 const STAGE = 'solve';
 
@@ -49,7 +50,14 @@ For every question (q1, q2, …) return one result with its id:
 
 export async function runSolve({ subjects, origin, limit, budget, dryRun, wait = true, allowPartial = false, keyless = KEYLESS_POLICY }) {
   ingestPolicy = keyless;
-  await collect(STAGE, ingest, { wait: false });
+  log.stage("Claude answers each question (without seeing the booklet's answer)");
+  await collect(STAGE, ingest, { wait: false, dryRun }); // results that finished while we were away
+
+  // Apply the chosen keyless policy to rows already solved, not only to results arriving now.
+  if (!dryRun) {
+    const current = loadRows();
+    if (applyKeylessPolicy(current, keyless)) saveRows(current);
+  }
 
   const flying = rowsInFlight(STAGE);
   const complete = new Map();
@@ -67,9 +75,13 @@ export async function runSolve({ subjects, origin, limit, budget, dryRun, wait =
   const rows = candidates.filter(ready);
   const waiting = [...complete].filter(([, done]) => !done).map(([k]) => k);
   if (waiting.length) {
-    console.log(`holding ${candidates.length - rows.length} rows until extraction finishes for: ${waiting.join(', ')} (--allow-partial to solve now)`);
+    log.info(
+      `⏸  Holding ${log.fmt.n(candidates.length - rows.length)} questions until their booklet (${waiting.join(', ')}) is fully read: ` +
+        'answer keys are printed at the end of each paper.',
+    );
   }
   const picked = limit ? rows.slice(0, Number(limit)) : rows;
+  if (picked.length) log.info(`📝 ${log.fmt.n(picked.length)} questions to answer.`);
 
   const bySubject = Map.groupBy(picked, (r) => r.subject);
   const requests = [];
@@ -96,10 +108,13 @@ export async function runSolve({ subjects, origin, limit, budget, dryRun, wait =
   summarize();
 }
 
+// What happened to the questions answered in this run, for the summary line.
+const tally = { agreed: 0, toOpus: 0, rejected: 0, failed: 0 };
+
 function ingest(customId, outcome) {
   const ids = groupRows(customId);
   if (!outcome.ok) {
-    console.warn(`  ${customId} (${ids.length} rows) failed: ${outcome.error} — rows stay "new" and are retried next run`);
+    tally.failed += ids.length;
     return;
   }
   const rows = loadRows();
@@ -111,6 +126,7 @@ function ingest(customId, outcome) {
     if (res.quality === 'broken') {
       row.status = 'discarded';
       row.discardReason = `solve: ${res.brokenReason ?? 'broken'}`;
+      tally.rejected++;
       continue;
     }
     if (res.quality === 'fixed') {
@@ -120,6 +136,7 @@ function ingest(customId, outcome) {
     if (LETTERS.indexOf(res.answer) >= row.options.length) {
       row.status = 'discarded';
       row.discardReason = `solve: answer ${res.answer} is not one of the ${row.options.length} options`;
+      tally.rejected++;
       continue;
     }
     row.solve = { answer: res.answer, confidence: res.confidence, explanation: res.explanation };
@@ -130,6 +147,9 @@ function ingest(customId, outcome) {
     if (row.status === 'accepted') {
       row.answer = row.key;
       row.explanation = res.explanation;
+      tally.agreed++;
+    } else {
+      tally.toOpus++;
     }
   }
   applyKeylessPolicy(rows, ingestPolicy);
@@ -172,7 +192,14 @@ export function applyKeylessPolicy(rows, policy = KEYLESS_POLICY) {
 }
 
 function summarize() {
-  const rows = loadRows();
-  const count = (s) => rows.filter((r) => r.status === s).length;
-  console.log(`rows: ${count('new')} new · ${count('needs_verify')} need verify · ${count('accepted')} accepted · ${count('discarded')} discarded`);
+  const answered = tally.agreed + tally.toOpus + tally.rejected;
+  if (answered) {
+    log.ok(
+      `Answered ${log.fmt.n(answered)} questions:  ${log.fmt.n(tally.agreed)} agree with the booklet ✔ · ` +
+        `${log.fmt.n(tally.toOpus)} go to Opus for a second opinion ⚖ · ${log.fmt.n(tally.rejected)} rejected ✖`,
+    );
+    log.hint('   (⚖ = no printed answer, or Claude disagreed with the booklet.  ✖ = garbled text, missing options or missing figure.)');
+  }
+  if (tally.failed) log.warn(`${log.fmt.n(tally.failed)} questions didn't come back; they'll be retried on the next run.`);
+  Object.assign(tally, { agreed: 0, toOpus: 0, rejected: 0, failed: 0 });
 }
