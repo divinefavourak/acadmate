@@ -80,20 +80,21 @@ export async function runVerify({ subjects, origin, limit, budget, dryRun, effor
   await submit(STAGE, fitted, { dryRun });
   if (wait && !dryRun) await collect(STAGE, ingest);
 
-  const checked = tally.confirmed + tally.corrected + tally.rejected;
+  const checked = tally.confirmed + tally.answerFixed + tally.explanationFixed + tally.rejected;
   if (checked) {
     log.ok(
       `Opus checked ${log.fmt.n(checked)} questions:  ${log.fmt.n(tally.confirmed)} confirmed ✔ · ` +
-        `${log.fmt.n(tally.corrected)} corrected ✏️ · ${log.fmt.n(tally.rejected)} rejected ✖`,
+        `${log.fmt.n(tally.answerFixed)} answer corrected 🔁 · ${log.fmt.n(tally.explanationFixed)} explanation rewritten ✏️ · ` +
+        `${log.fmt.n(tally.rejected)} rejected ✖`,
     );
-    log.hint('   (✏️ = the booklet or Sonnet had the wrong answer and Opus fixed it.  ✖ = no option is right, or the question is ambiguous.)');
+    log.hint('   (🔁 = Sonnet picked the wrong option.  ✏️ = right answer, but the explanation was weak or wrong.  ✖ = no option is right, or the question is ambiguous.)');
   }
   if (tally.failed) log.warn(`${log.fmt.n(tally.failed)} checks didn't come back; they'll be retried on the next run.`);
-  Object.assign(tally, { confirmed: 0, corrected: 0, rejected: 0, failed: 0 });
+  Object.assign(tally, { confirmed: 0, answerFixed: 0, explanationFixed: 0, rejected: 0, failed: 0 });
 }
 
 // What Opus decided in this run, for the summary line.
-const tally = { confirmed: 0, corrected: 0, rejected: 0, failed: 0 };
+const tally = { confirmed: 0, answerFixed: 0, explanationFixed: 0, rejected: 0, failed: 0 };
 
 function ingest(customId, outcome) {
   if (!outcome.ok) {
@@ -113,8 +114,9 @@ function ingest(customId, outcome) {
       tally.rejected++;
       continue;
     }
-    if (res.verdict === 'keep' && res.answer === row.solve.answer) tally.confirmed++;
-    else tally.corrected++;
+    if (res.answer !== row.solve.answer) tally.answerFixed++;
+    else if (res.verdict === 'fix') tally.explanationFixed++;
+    else tally.confirmed++;
     row.answer = res.answer;
     // A changed answer needs a matching explanation; Sonnet's would argue for the wrong option.
     row.explanation = res.explanation ?? (res.answer === row.solve.answer ? row.solve.explanation : null);
