@@ -3,7 +3,7 @@ import {
   BadRequestException, NotFoundException, ConflictException,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
-import { IsString, IsArray, IsInt, IsOptional, Min, Max, IsEnum } from 'class-validator';
+import { IsString, IsArray, IsInt, IsOptional, Min, Max, IsEnum, IsBoolean } from 'class-validator';
 import { ExamType } from '@prisma/client';
 import { Type } from 'class-transformer';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
@@ -18,6 +18,7 @@ class ProcessImportDto {
   @IsArray() rows: unknown[];
   @IsOptional() @IsEnum(ExamType) examType?: ExamType;
   @IsOptional() @IsString() school?: string;
+  @IsOptional() @IsBoolean() createMissingTopics?: boolean;
 }
 
 class PaginationQuery {
@@ -54,6 +55,7 @@ export class AdminImportsController {
       rows: dto.rows,
       examType: dto.examType,
       school: dto.school,
+      createMissingTopics: dto.createMissingTopics,
     });
 
     this.prisma.adminActivityLog.create({
@@ -118,8 +120,10 @@ export class AdminImportsController {
       throw new ConflictException('Import must be in DONE status before publishing');
     }
 
+    // Flagged drafts (missing figure, duplicate options, placeholder answer) stay unpublished until someone fixes
+    // them in the Question Builder and publishes them individually.
     const result = await this.prisma.question.updateMany({
-      where: { importId: id, isPublished: false },
+      where: { importId: id, isPublished: false, isFlagged: false },
       data: { isPublished: true, reviewedAt: new Date(), reviewedById: user.id },
     });
 

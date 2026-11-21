@@ -237,6 +237,7 @@ export default function ImportsPage() {
   // Import mode
   const [mode, setMode] = useState<ImportMode>("STANDARD");
   const [selectedSchool, setSelectedSchool] = useState("");
+  const [createMissingTopics, setCreateMissingTopics] = useState(true);
 
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -310,9 +311,16 @@ export default function ImportsPage() {
         rows: previewRows,
         examType: mode === "POST_UTME" ? "POST_UTME" : "JAMB",
         ...(mode === "POST_UTME" && { school: selectedSchool }),
+        createMissingTopics,
       };
 
-      const data = await apiClient<{ created: number; totalRows: number; errors?: string[] }>("/api/admin/imports", {
+      const data = await apiClient<{
+        created: number;
+        totalRows: number;
+        duplicates?: number;
+        topicsCreated?: number;
+        errors?: { row: number; errors: string[] }[];
+      }>("/api/admin/imports", {
         method: "POST",
         body: JSON.stringify(body),
         // Embedded images are uploaded during the import, so allow well past the default.
@@ -320,10 +328,17 @@ export default function ImportsPage() {
       });
 
       setPreviewRows(null);
+      const notes = [
+        data.duplicates ? `${data.duplicates} duplicates skipped (already in the bank or repeated in the file).` : "",
+        data.topicsCreated ? `${data.topicsCreated} new topics created.` : "",
+        data.errors?.length
+          ? `${data.errors.length} rows had errors and were skipped (first: row ${data.errors[0].row}: ${data.errors[0].errors.join("; ")}).`
+          : "",
+      ].filter(Boolean);
       setUploadResult({
         success: true,
         message: `✅ Import complete: ${data.created} questions created from ${data.totalRows} rows.`,
-        details: (data.errors?.length ?? 0) > 0 ? `${data.errors!.length} rows had errors and were skipped.` : undefined,
+        details: notes.length ? notes.join(" ") : undefined,
       });
       if (fileRef.current) fileRef.current.value = "";
       setFileLabel("Click to choose CSV or JSON file");
@@ -418,7 +433,8 @@ export default function ImportsPage() {
         {mode === "STANDARD" ? (
           <div className="text-xs text-slate-400 space-y-1">
             <p>Required columns: <code className="bg-slate-700 px-1 rounded">subject, text, optionA, optionB, optionC, optionD, correctOption</code></p>
-            <p>Optional: <code className="bg-slate-700 px-1 rounded">topic, year, difficulty (EASY/MEDIUM/HARD), explanation, imageUrl</code></p>
+            <p>Optional: <code className="bg-slate-700 px-1 rounded">topic, year, difficulty (EASY/MEDIUM/HARD), explanation, imageUrl, examType, school, sourceType (IMPORTED/AI_ASSISTED), sourceRef</code></p>
+            <p>Questions already in the bank are skipped automatically, so re-uploading a file is safe.</p>
             <p><code className="bg-slate-700 px-1 rounded">subject</code> can be the subject&apos;s name or its code (e.g. ENG). <code className="bg-slate-700 px-1 rounded">imageUrl</code> takes a link or an embedded <code className="bg-slate-700 px-1 rounded">data:image/…;base64</code> picture, which is uploaded on import.</p>
           </div>
         ) : (
@@ -443,6 +459,17 @@ export default function ImportsPage() {
             </div>
           </div>
         )}
+
+        <label className="flex items-center gap-2 text-sm text-slate-300 select-none">
+          <input
+            type="checkbox"
+            checked={createMissingTopics}
+            onChange={(e) => setCreateMissingTopics(e.target.checked)}
+            className="h-4 w-4 rounded border-slate-600 bg-slate-900 accent-indigo-500"
+          />
+          Create topics that don&apos;t exist yet
+          <span className="text-xs text-slate-500">(otherwise the question imports without a topic)</span>
+        </label>
 
         <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
           <label className="flex-1 flex items-center gap-3 px-4 py-3 border-2 border-dashed border-slate-600 hover:border-indigo-500 rounded-xl cursor-pointer transition-colors min-h-[52px]">
