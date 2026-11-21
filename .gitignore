@@ -61,3 +61,7 @@ next-env.d.ts
 
 # Rendered diagram previews from content/english/build.mjs --preview
 /content/english/dist/preview/
+
+# Question pipeline: paid intermediate state and generated import files
+content/pipeline/state/
+content/pipeline/dist/
