@@ -62,7 +62,9 @@ export const hint = (msg) => line(`  ${C.dim}${msg}${C.reset}`);
 export function progress(label, done, total, extra = '') {
   const s = `  ${label} ${bar(done, total)}  ${fmt.n(done)}/${fmt.n(total)}${extra ? ` · ${extra}` : ''}`;
   if (tty) {
-    process.stdout.write(`\r${s.padEnd(100)}`);
+    // Fit the window exactly: a line longer than the console wraps, and \r then only rewinds the last row.
+    const width = Math.max(20, (process.stdout.columns || 80) - 1);
+    process.stdout.write(`\r${s.slice(0, width).padEnd(width)}`);
     liveLine = true;
   } else {
     console.log(s);
