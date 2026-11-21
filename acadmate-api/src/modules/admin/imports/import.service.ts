@@ -1,8 +1,8 @@
-import { createHash } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
 import type { ExamType, Prisma, SourceType } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { UploadService } from '../../upload/upload.service';
+import { isUniqueViolation, normaliseForIdentity, questionContentHash } from './question-identity';
 
 // ─── Types (identical to lib/validation/admin.ts importRowSchema shape) ──────
 export type ImportRowError = { row: number; errors: string[] };
@@ -137,30 +137,6 @@ function validateImportRow(
   };
 }
 
-/** Lowercase, strip markup/punctuation noise and collapse whitespace, so trivially different copies hash equal. */
-function normalise(s: string): string {
-  return s
-    .toLowerCase()
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/[\s ]+/g, ' ')
-    .replace(/[.,;:!?'"“”‘’`]/g, '')
-    .trim();
-}
-
-/**
- * Identity of a question within its exam scope. Option order is ignored, so a reshuffled copy is still a
- * duplicate; examType + school are included, so the same question can legitimately exist in UNILAG's and UI's
- * Post-UTME pools.
- */
-export function questionContentHash(q: {
-  text: string; options: string[]; examType?: string | null; school?: string | null;
-}): string {
-  const opts = q.options.map(normalise).sort().join('|');
-  return createHash('sha256')
-    .update(`${q.examType ?? ''}|${(q.school ?? '').toUpperCase()}|${normalise(q.text)}|${opts}`)
-    .digest('hex');
-}
-
 function chunk<T>(arr: T[], size: number): T[][] {
   const out: T[][] = [];
   for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
@@ -184,15 +160,16 @@ export class ImportService {
     for (;;) {
       const batch = await this.prisma.question.findMany({
         where: { contentHash: null, id: { notIn: [...this.unhashable] } },
-        select: { id: true, text: true, examType: true, school: true, options: { select: { text: true } } },
+        select: {
+          id: true, subjectId: true, text: true, examType: true, school: true, imageUrl: true,
+          options: { select: { text: true } },
+        },
         take: 500,
       });
       if (batch.length === 0) return;
 
       for (const q of batch) {
-        const hash = questionContentHash({
-          text: q.text, options: q.options.map((o) => o.text), examType: q.examType, school: q.school,
-        });
+        const hash = questionContentHash({ ...q, options: q.options.map((o) => o.text) });
         const clash = taken.has(hash) || (await this.prisma.question.count({ where: { contentHash: hash } })) > 0;
         if (clash) {
           this.unhashable.add(q.id);
@@ -208,7 +185,7 @@ export class ImportService {
   private readonly unhashable = new Set<string>();
 
   async processImport(params: ProcessImportParams): Promise<ProcessImportResult> {
-    const { adminId, filename, rows, examType, school, createMissingTopics = false } = params;
+    const { adminId, filename, rows } = params;
 
     await this.backfillMissingHashes();
 
@@ -221,6 +198,21 @@ export class ImportService {
         totalRows: rows.length,
       },
     });
+
+    // An import never stays PROCESSING: anything unexpected marks it FAILED with the reason, then rethrows.
+    // (Questions already saved stay; re-running the file skips them as duplicates.)
+    try {
+      return await this.runImport(importRecord.id, params);
+    } catch (err) {
+      await this.prisma.import
+        .update({ where: { id: importRecord.id }, data: { status: 'FAILED', errorLog: [{ row: 0, errors: [(err as Error).message] }] } })
+        .catch(() => {});
+      throw err;
+    }
+  }
+
+  private async runImport(importId: string, params: ProcessImportParams): Promise<ProcessImportResult> {
+    const { rows, examType, school, createMissingTopics = false } = params;
 
     // ── Validate all rows upfront ─────────────────────────────────────────
     const validRows: ImportRow[] = [];
@@ -250,11 +242,14 @@ export class ImportService {
         subjectErrors.push({ row: row.rowNum, errors: [`Subject not found: "${row.subject}"`] });
         continue;
       }
+      // Hashed before upload: an embedded image's fingerprint is its bytes, so re-importing a file matches.
       const contentHash = questionContentHash({
+        subjectId,
         text: row.text,
         options: [row.optionA, row.optionB, row.optionC, row.optionD],
         examType: row.examType,
         school: row.school,
+        imageUrl: row.imageUrl,
       });
       resolvableRows.push({ ...row, subjectId, contentHash });
     }
@@ -335,7 +330,7 @@ export class ImportService {
         return { label, text, isCorrect: row.correctOption === label, sortOrder: i };
       });
       // Two options that read the same make the question unanswerable: import it, but flag it for review.
-      const hasDuplicateOptions = new Set(optionTexts.map(normalise)).size < optionTexts.length;
+      const hasDuplicateOptions = new Set(optionTexts.map(normaliseForIdentity)).size < optionTexts.length;
 
       return {
         data: {
@@ -351,7 +346,7 @@ export class ImportService {
           contentHash: row.contentHash,
           isPublished: false,
           isFlagged: hasDuplicateOptions || row.flagged,
-          importId: importRecord.id,
+          importId,
           examType: row.examType ?? null,
           school: row.school ?? null,
           options: { create: options },
@@ -366,16 +361,32 @@ export class ImportService {
     };
 
     // ── Execute in chunked transactions ────────────────────────────────────
+    // If a chunk fails (e.g. another import created one of these questions a moment ago, so the unique hash
+    // collides), redo that chunk row by row: a collision counts as a duplicate, anything else as a row error.
     let created = 0;
+    let lateDuplicates = 0;
+    const writeErrors: ImportRowError[] = [];
     for (const part of chunk(importableRows, CHUNK_SIZE)) {
-      const results = await this.prisma.$transaction(part.map((row) => this.prisma.question.create(toCreate(row))));
-      created += results.length;
+      try {
+        const results = await this.prisma.$transaction(part.map((row) => this.prisma.question.create(toCreate(row))));
+        created += results.length;
+      } catch {
+        for (const row of part) {
+          try {
+            await this.prisma.question.create(toCreate(row));
+            created++;
+          } catch (err) {
+            if (isUniqueViolation(err)) lateDuplicates++;
+            else writeErrors.push({ row: row.rowNum, errors: [`save failed: ${(err as Error).message.split('\n').pop()}`] });
+          }
+        }
+      }
     }
 
-    const allErrors = [...errorLog, ...subjectErrors, ...imageErrors].sort((a, b) => a.row - b.row);
+    const allErrors = [...errorLog, ...subjectErrors, ...imageErrors, ...writeErrors].sort((a, b) => a.row - b.row);
 
     await this.prisma.import.update({
-      where: { id: importRecord.id },
+      where: { id: importId },
       data: {
         status: 'DONE',
         validRows: validRows.length,
@@ -386,12 +397,12 @@ export class ImportService {
     });
 
     return {
-      importId: importRecord.id,
+      importId,
       totalRows: rows.length,
       validRows: validRows.length,
       invalidRows: rows.length - validRows.length,
       created,
-      duplicates,
+      duplicates: duplicates + lateDuplicates,
       topicsCreated,
       errors: allErrors,
     };

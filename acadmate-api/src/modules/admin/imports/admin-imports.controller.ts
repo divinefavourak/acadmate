@@ -45,10 +45,8 @@ export class AdminImportsController {
       throw new BadRequestException('filename and rows[] are required');
     }
 
-    if (dto.examType === 'POST_UTME' && !dto.school) {
-      throw new BadRequestException('school is required for POST_UTME imports');
-    }
-
+    // No batch-level school check: rows may carry their own school. Row validation rejects any POST_UTME
+    // row that has neither its own school nor a batch default.
     const result = await this.importService.processImport({
       adminId: user.id,
       filename: dto.filename,
@@ -103,7 +101,28 @@ export class AdminImportsController {
       this.prisma.import.count(),
     ]);
 
-    return { imports, total, limit, offset };
+    // Completion is judged against what this import can actually publish (created and not flagged), not the
+    // validated row count, which includes duplicates and rows that were skipped.
+    const counts = await this.prisma.question.groupBy({
+      by: ['importId', 'isPublished', 'isFlagged'],
+      where: { importId: { in: imports.map((i) => i.id) } },
+      _count: { _all: true },
+    });
+    const tally = (id: string, pred: (c: (typeof counts)[number]) => boolean) =>
+      counts.filter((c) => c.importId === id && pred(c)).reduce((s, c) => s + c._count._all, 0);
+
+    return {
+      imports: imports.map((imp) => ({
+        ...imp,
+        createdQuestions: tally(imp.id, () => true),
+        publishedQuestions: tally(imp.id, (c) => c.isPublished),
+        publishableQuestions: tally(imp.id, (c) => !c.isFlagged || c.isPublished),
+        flaggedDrafts: tally(imp.id, (c) => c.isFlagged && !c.isPublished),
+      })),
+      total,
+      limit,
+      offset,
+    };
   }
 
   @Post(':id/publish')
@@ -127,9 +146,11 @@ export class AdminImportsController {
       data: { isPublished: true, reviewedAt: new Date(), reviewedById: user.id },
     });
 
+    // Store the import's total published count, so a repeat Publish doesn't overwrite it with 0.
+    const publishedTotal = await this.prisma.question.count({ where: { importId: id, isPublished: true } });
     await this.prisma.import.update({
       where: { id },
-      data: { publishedRows: result.count },
+      data: { publishedRows: publishedTotal },
     });
 
     this.prisma.adminActivityLog.create({

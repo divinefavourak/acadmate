@@ -15,6 +15,11 @@ interface ImportEntry {
   validRows: number;
   invalidRows: number;
   publishedRows: number;
+  /** Live counts from the question table (older API versions omit them). */
+  createdQuestions?: number;
+  publishedQuestions?: number;
+  publishableQuestions?: number;
+  flaggedDrafts?: number;
   createdAt: string;
   uploadedBy: { name: string | null; email: string };
 }
@@ -539,9 +544,14 @@ export default function ImportsPage() {
                 </thead>
                 <tbody>
                   {imports.map((imp, i) => {
-                    const isFullyPublished = imp.publishedRows >= imp.validRows && imp.validRows > 0;
+                    // Compare against what this import can publish: created, unflagged questions. Duplicates and
+                    // skipped rows never become questions, and flagged drafts are published one by one.
+                    const published = imp.publishedQuestions ?? imp.publishedRows;
+                    const publishable = imp.publishableQuestions ?? imp.validRows;
+                    const flagged = imp.flaggedDrafts ?? 0;
+                    const isFullyPublished = publishable > 0 && published >= publishable;
                     const isPublishing = publishingId === imp.id;
-                    const canPublish = imp.status === "DONE" && !isFullyPublished;
+                    const canPublish = imp.status === "DONE" && publishable > published;
                     const thisResult = publishResult?.id === imp.id ? publishResult : null;
                     return (
                       <tr key={imp.id}
@@ -560,12 +570,17 @@ export default function ImportsPage() {
                         <td className="py-3 text-emerald-400">{imp.validRows}</td>
                         <td className="py-3 text-red-400">{imp.invalidRows}</td>
                         <td className="py-3 text-slate-300">
-                          {imp.publishedRows > 0 ? (
+                          {published > 0 ? (
                             <span className={isFullyPublished ? "text-emerald-400" : "text-amber-400"}>
-                              {imp.publishedRows}/{imp.validRows}
+                              {published}/{publishable}
                             </span>
                           ) : (
                             <span className="text-slate-600">—</span>
+                          )}
+                          {flagged > 0 && (
+                            <span className="block text-xs text-amber-400" title="Fix these in the Question Builder and publish them individually">
+                              {flagged} flagged
+                            </span>
                           )}
                         </td>
                         <td className="py-3 text-right">

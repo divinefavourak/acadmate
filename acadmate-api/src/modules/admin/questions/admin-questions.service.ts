@@ -2,6 +2,10 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { PrismaService } from '../../../prisma/prisma.service';
 import { CacheService } from '../../../cache/cache.service';
 import { Difficulty, ExamType } from '@prisma/client';
+import { syncContentHash } from '../imports/question-identity';
+
+/** Fields that make up a question's identity (contentHash); editing any of them re-hashes it. */
+const IDENTITY_FIELDS = ['text', 'subjectId', 'examType', 'school', 'imageUrl', 'options'];
 
 @Injectable()
 export class AdminQuestionsService {
@@ -153,6 +157,7 @@ export class AdminQuestionsService {
       console.error('[AdminQuestionsService] Activity log failed after createQuestion', logErr);
     }
 
+    await syncContentHash(this.prisma, question.id); // so imports see hand-made questions as duplicates
     await this.autoValidateQuestion(question.id);
     await Promise.all([
       this.cache.delByPrefix('questions:browse:'),
@@ -221,6 +226,8 @@ export class AdminQuestionsService {
       console.error('[AdminQuestionsService] Activity log failed after updateQuestion', logErr);
     }
 
+    // A stale hash would block re-importing the old wording and let the new wording in as a duplicate.
+    if (IDENTITY_FIELDS.some((f) => dto[f] !== undefined)) await syncContentHash(this.prisma, id);
     await this.autoValidateQuestion(id);
     await Promise.all([
       this.cache.del(`questions:detail:${id}`),
