@@ -7,7 +7,7 @@ import { questionBlocks } from '../lib/blocks.mjs';
 import { groupId, rememberGroups, rowIdFor, rowsInFlight } from '../lib/groups.mjs';
 import * as log from '../lib/log.mjs';
 import { loadRows, saveRows } from '../lib/state.mjs';
-import { LETTERS, chunk } from '../lib/util.mjs';
+import { LETTERS, chunk, inExam } from '../lib/util.mjs';
 import { SUBJECTS } from '../syllabus.mjs';
 
 const STAGE = 'verify';
@@ -39,7 +39,7 @@ For every question return one result with its id:
 - verdict "fix": the correct answer differs from the candidate's, or the candidate's explanation is wrong or misleading. answer = the correct option; explanation = a corrected 40–80 word explanation in the same style (reasoning first, why the tempting wrong option fails, LaTeX in $...$).
 - verdict "discard": no option is correct, more than one is defensibly correct, the question is ambiguous or garbled, or it depends on information that isn't given.`;
 
-export async function runVerify({ subjects, origin, limit, budget, dryRun, effort = VERIFY_EFFORT, wait = true, keyless = KEYLESS_POLICY }) {
+export async function runVerify({ exam, subjects, origin, limit, budget, dryRun, effort = VERIFY_EFFORT, wait = true, keyless = KEYLESS_POLICY }) {
   log.stage('Opus double-checks disagreements and questions with no printed answer');
   await collect(STAGE, ingest, { wait: false, dryRun }); // results that finished while we were away
 
@@ -55,7 +55,7 @@ export async function runVerify({ subjects, origin, limit, budget, dryRun, effor
 
   const flying = rowsInFlight(STAGE);
   const rows = loadRows().filter((r) =>
-    r.status === 'needs_verify' && !flying.has(r.id) &&
+    r.status === 'needs_verify' && inExam(r, exam) && !flying.has(r.id) &&
     (!subjects || subjects.includes(r.subject)) && (!origin || r.origin === origin));
   const picked = limit ? rows.slice(0, Number(limit)) : rows;
   if (picked.length) log.info(`⚖  ${log.fmt.n(picked.length)} questions for Opus to check.`);

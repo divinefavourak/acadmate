@@ -36,6 +36,9 @@ export function chunk(arr, size) {
 
 export const LETTERS = ['A', 'B', 'C', 'D', 'E'];
 
+/** Is this row or source inside the --exam scope? */
+export const inExam = (item, exam) => exam === 'ALL' || item.examType === exam;
+
 export function parseArgs(argv) {
   const args = { _: [] };
   for (let i = 0; i < argv.length; i++) {

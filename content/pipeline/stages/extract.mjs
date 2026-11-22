@@ -15,7 +15,7 @@ import { cropFromPdf, cropFromPhoto, prepPhoto, renderSvg, renderTable } from '.
 import { chunkRanges, loadPdf, sliceBase64 } from '../lib/pdf.mjs';
 import * as log from '../lib/log.mjs';
 import { loadRows, readJson, saveRows, writeJson } from '../lib/state.mjs';
-import { LETTERS, looseKey, shortHash } from '../lib/util.mjs';
+import { LETTERS, inExam, looseKey, shortHash } from '../lib/util.mjs';
 import { SUBJECTS } from '../syllabus.mjs';
 import { makeRow, scopeKey } from './normalize.mjs';
 
@@ -377,9 +377,9 @@ export function sourceComplete(key) {
 
 // ── Stage entry ────────────────────────────────────────────────────────────
 
-export async function runExtract({ subjects, sourceKeys, limitChunks, pages, budget, shownBudget, dryRun, wait = true }) {
+export async function runExtract({ exam, subjects, sourceKeys, limitChunks, pages, budget, shownBudget, dryRun, wait = true }) {
   const sources = allSources().filter((s) =>
-    sourceKeys ? sourceKeys.includes(s.key) : subjects ? (s.subject ? subjects.includes(s.subject) : false) : true);
+    sourceKeys ? sourceKeys.includes(s.key) : !inExam(s, exam) ? false : subjects ? (s.subject ? subjects.includes(s.subject) : false) : true);
   log.stage('Claude reads the booklets (pages → questions, figures → images)');
   if (sources.length === 0) {
     log.info('No PDF booklets or photo folders for these subjects, so nothing to read.');

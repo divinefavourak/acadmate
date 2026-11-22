@@ -5,7 +5,7 @@ import path from 'node:path';
 import { DIST_DIR } from '../config.mjs';
 import * as log from '../lib/log.mjs';
 import { loadRows } from '../lib/state.mjs';
-import { LETTERS } from '../lib/util.mjs';
+import { LETTERS, inExam } from '../lib/util.mjs';
 import { SUBJECTS } from '../syllabus.mjs';
 
 /** The importer takes exactly 4 options. Older JAMB papers have 5: drop the last option that isn't the answer. */
@@ -50,7 +50,7 @@ const fileName = (r) => {
   return `${scope}-${r.subject.toLowerCase()}${kind}.json`;
 };
 
-export function runEmit() {
+export function runEmit({ exam }) {
   fs.rmSync(DIST_DIR, { recursive: true, force: true });
   fs.mkdirSync(DIST_DIR, { recursive: true });
   const rows = loadRows();
@@ -59,20 +59,23 @@ export function runEmit() {
   let skipped = 0;
 
   for (const r of rows) {
+    const folder = inExam(r, exam) ? '' : 'later/';
     if (r.status === 'accepted') {
       const out = toImportRow(r, r.answer, false);
-      if (out) add(fileName(r), out);
-      else skipped++;
+      if (out) add(folder + fileName(r), out);
+      else if (!folder) skipped++;
     } else if (r.needsImage && r.status === 'new') {
       // Unanswerable without its figure: import as a flagged draft so it surfaces first in the Question Builder.
       const out = toImportRow(r, r.key ?? 'A', true);
-      if (out) add(`needs-attention-${fileName(r)}`, out);
+      if (out) add(`${folder}needs-attention-${fileName(r)}`, out);
     }
   }
 
   const summary = [];
   for (const [name, list] of [...files].sort()) {
+    fs.mkdirSync(path.dirname(path.join(DIST_DIR, name)), { recursive: true });
     fs.writeFileSync(path.join(DIST_DIR, name), JSON.stringify(list, null, 1));
+    if (name.startsWith('later/')) continue;
     summary.push({ file: name, questions: list.length, withImage: list.filter((q) => q.imageUrl).length });
   }
   fs.writeFileSync(path.join(DIST_DIR, 'summary.json'), JSON.stringify(summary, null, 1));
@@ -96,6 +99,7 @@ export function runEmit() {
   const total = summary.filter((s) => !s.file.startsWith('needs-attention-')).reduce((a, s) => a + s.questions, 0);
   log.ok(`${log.fmt.n(total)} checked questions ready to import, in ${path.relative(process.cwd(), DIST_DIR) || DIST_DIR}`);
   if (skipped) log.warn(`${skipped} checked questions couldn't be written (they don't have 4 or 5 options).`);
-  log.hint('   Import each file at /admin/imports. Post-UTME files go in Post-UTME mode with their school picked;');
-  log.hint('   "school not set" files need you to choose the school. "needs a human" files import as flagged drafts.');
+  log.hint('   Import each file at /admin/imports. "needs a human" files import as flagged drafts.');
+  if (exam !== 'JAMB') log.hint('   Post-UTME files go in Post-UTME mode; "school not set" files need you to choose the school.');
+  if (exam !== 'ALL') log.hint('   Files for other exams are parked in the "later" folder.');
 }

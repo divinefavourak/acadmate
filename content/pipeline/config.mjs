@@ -38,6 +38,10 @@ export const KEYLESS_POLICY = 'opus';
 export const VERIFY_EFFORT = 'medium';
 export const SOLVE_EFFORT_MEDIUM = new Set(['MTH', 'PHY', 'CHM', 'ACC', 'ECO']);
 
+// Which exam the paid stages, dashboard and import files work on: JAMB, POST_UTME or ALL (--exam overrides).
+// JAMB first (user decision, 2026-11-22). Other exams' rows stay in state untouched until asked for.
+export const EXAM_FOCUS = 'JAMB';
+
 // Request sizing.
 export const PDF_PAGES_PER_CHUNK = 4; // pages sent per extraction request
 export const PDF_CHUNK_STRIDE = 3; // 1-page overlap so a question split across chunks is whole in one of them

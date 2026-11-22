@@ -6,7 +6,7 @@ import { collect, estimateCost, fitBudget, params, submit } from '../lib/batch.m
 import { questionBlocks } from '../lib/blocks.mjs';
 import { groupId, groupRows, rememberGroups, rowIdFor, rowsInFlight } from '../lib/groups.mjs';
 import { loadRows, saveRows } from '../lib/state.mjs';
-import { LETTERS, chunk } from '../lib/util.mjs';
+import { LETTERS, chunk, inExam } from '../lib/util.mjs';
 import { SUBJECTS, TOPICS } from '../syllabus.mjs';
 import { sourceComplete, sourceKeyOf } from './extract.mjs';
 import * as log from '../lib/log.mjs';
@@ -48,7 +48,7 @@ For every question (q1, q2, …) return one result with its id:
   "broken" — unusable: options missing or garbled beyond repair, needs a figure that isn't provided, no option is correct, or not a real question. Give brokenReason.
 - text and options are null unless quality is "fixed".`;
 
-export async function runSolve({ subjects, origin, limit, budget, dryRun, wait = true, allowPartial = false, keyless = KEYLESS_POLICY }) {
+export async function runSolve({ exam, subjects, origin, limit, budget, dryRun, wait = true, allowPartial = false, keyless = KEYLESS_POLICY }) {
   ingestPolicy = keyless;
   log.stage("Claude answers each question (without seeing the booklet's answer)");
   await collect(STAGE, ingest, { wait: false, dryRun }); // results that finished while we were away
@@ -70,7 +70,7 @@ export async function runSolve({ subjects, origin, limit, budget, dryRun, wait =
     return complete.get(key);
   };
   const candidates = loadRows().filter((r) =>
-    r.status === 'new' && !r.needsImage && !flying.has(r.id) &&
+    r.status === 'new' && inExam(r, exam) && !r.needsImage && !flying.has(r.id) &&
     (!subjects || subjects.includes(r.subject)) && (!origin || r.origin === origin));
   const rows = candidates.filter(ready);
   const waiting = [...complete].filter(([, done]) => !done).map(([k]) => k);
