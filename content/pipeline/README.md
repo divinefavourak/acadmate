@@ -93,6 +93,12 @@ For Post-UTME photos, add `--exam post_utme` to the `solve`, `verify` and `emit`
 
 Images are embedded as base64. The importer uploads them to Cloudinary.
 
+## Five-option questions
+
+Older papers have options A–E and the importer takes four. The export drops E (or D, when E is the answer, so E becomes D) only when nothing the student reads changes meaning. Otherwise the question is held: it is left out of the import file and listed with the reason in `dist/held/<file>.md`.
+
+Don't change which option gets dropped. It is part of the import fingerprint, so changing it would duplicate questions already imported.
+
 ## Importing
 
 - Upload each `dist/*.json` at **/admin/imports**.
