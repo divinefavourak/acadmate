@@ -15,7 +15,7 @@ import { cropFromPdf, cropFromPhoto, prepPhoto, renderSvg, renderTable } from '.
 import { chunkRanges, loadPdf, sliceBase64 } from '../lib/pdf.mjs';
 import * as log from '../lib/log.mjs';
 import { loadRows, readJson, saveRows, writeJson } from '../lib/state.mjs';
-import { LETTERS, looseKey, shortHash } from '../lib/util.mjs';
+import { LETTERS, inExam, looseKey, shortHash } from '../lib/util.mjs';
 import { SUBJECTS } from '../syllabus.mjs';
 import { makeRow, scopeKey } from './normalize.mjs';
 
@@ -259,6 +259,14 @@ function splitPapers(src, chunks) {
 
 function assemble(src) {
   const papers = splitPapers(src, doneChunks(src.key));
+  // Drawing figures is slow (one headless Chrome launch or page render each), so show a bar while it runs.
+  const figTotal = papers.reduce((s, p) => s + p.entries.filter((e) => e.q.figure).length, 0);
+  let figDone = 0;
+  const drawFigure = (q, chunk, start) => {
+    const img = figureImage(src, q, chunk, start);
+    log.progress('🎨 Drawing figures', ++figDone, figTotal, 'a few seconds each');
+    return img;
+  };
   const rows = loadRows();
   const byId = new Map(rows.map((r) => [r.id, r]));
   const byScope = new Map(rows.map((r) => [scopeKey(r), r]));
@@ -273,7 +281,7 @@ function assemble(src) {
     const { q, chunk, start } = entry;
     if (row.needsImage && !row.imageUrl && q.figure && !q.unreadable) {
       // The figure failed to render last time (e.g. Chrome wasn't set up); try again.
-      const img = figureImage(src, q, chunk, start);
+      const img = drawFigure(q, chunk, start);
       if (img) Object.assign(row, { imageUrl: img, needsImage: false }), figsRetried++;
     }
     if (row.year !== year) { row.year = year; refreshed++; }
@@ -323,7 +331,7 @@ function assemble(src) {
         }
         continue;
       }
-      draft.imageUrl = q.figure ? figureImage(src, q, chunk, start) : null;
+      draft.imageUrl = q.figure ? drawFigure(q, chunk, start) : null;
       draft.needsImage = Boolean(q.figure && !draft.imageUrl) || q.unreadable;
       if (draft.imageUrl) figs++;
       if (draft.needsImage) flagged++;
@@ -369,9 +377,9 @@ export function sourceComplete(key) {
 
 // ── Stage entry ────────────────────────────────────────────────────────────
 
-export async function runExtract({ subjects, sourceKeys, limitChunks, pages, budget, shownBudget, dryRun, wait = true }) {
+export async function runExtract({ exam, subjects, sourceKeys, limitChunks, pages, budget, shownBudget, dryRun, wait = true }) {
   const sources = allSources().filter((s) =>
-    sourceKeys ? sourceKeys.includes(s.key) : subjects ? (s.subject ? subjects.includes(s.subject) : false) : true);
+    sourceKeys ? sourceKeys.includes(s.key) : !inExam(s, exam) ? false : subjects ? (s.subject ? subjects.includes(s.subject) : false) : true);
   log.stage('Claude reads the booklets (pages → questions, figures → images)');
   if (sources.length === 0) {
     log.info('No PDF booklets or photo folders for these subjects, so nothing to read.');

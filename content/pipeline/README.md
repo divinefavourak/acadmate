@@ -21,6 +21,12 @@ node content/pipeline/run.mjs pilot
 
 This runs a slice of every stage and prints the real cost per accepted question. Open `content/pipeline/dist/*.json` and check about 20 answers and explanations, plus any figures, before you scale up.
 
+## Scope: JAMB first
+
+Every command works on JAMB only. Post-UTME questions stay in state, unprocessed, and their finished files are parked in `dist/later/`. Add `--exam post_utme` (or `--exam all`) when it's their turn.
+
+Don't start a booklet the budget can't finish: its questions are held unanswered until every page is read.
+
 ## Full run: one wave per subject group
 
 `wave` runs extract → solve → verify → emit for the subjects you name. It caps extraction at half of the remaining budget, so there's always money left to solve what was extracted. Run the waves in priority order. If the budget runs out, whatever is left stays queued, and a top-up later continues from there.
@@ -28,7 +34,7 @@ This runs a slice of every stage and prints the real cost per accepted question.
 ```powershell
 node content/pipeline/run.mjs wave --subjects MTH,GEO,GEN       # Maths booklet + Geography/General Knowledge files
 node content/pipeline/run.mjs wave --subjects BIO,CHM,PHY
-node content/pipeline/run.mjs wave --subjects ENG               # 694 pages; add --pages 480-694 to do part of it first
+node content/pipeline/run.mjs wave --subjects ENG               # 694 pages: top up first, then add --budget
 node content/pipeline/run.mjs wave --subjects ECO,LIT,CRK,COM,ACC
 node content/pipeline/run.mjs wave --subjects GOV
 node content/pipeline/run.mjs status                            # counts per subject, spend, anything in flight
@@ -74,6 +80,8 @@ Photo tips:
 - Name the files in page order (`page1.jpg`, `page2.jpg`, …). Sorting is numeric, so `page10` comes after `page9`.
 - Phone rotation is fixed automatically.
 
+For Post-UTME photos, add `--exam post_utme` to the `solve`, `verify` and `emit` commands above.
+
 ## Figures
 
 | Figure | What happens |
@@ -84,6 +92,12 @@ Photo tips:
 | Unclear (blur, glare, cut off) | The question goes to a `needs-attention-*.json` file and imports as a **flagged draft** |
 
 Images are embedded as base64. The importer uploads them to Cloudinary.
+
+## Five-option questions
+
+Older papers have options A–E and the importer takes four. The export drops E (or D, when E is the answer, so E becomes D) only when nothing the student reads changes meaning. Otherwise the question is held: it is left out of the import file and listed with the reason in `dist/held/<file>.md`.
+
+Don't change which option gets dropped. It is part of the import fingerprint, so changing it would duplicate questions already imported.
 
 ## Importing
 

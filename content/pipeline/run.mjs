@@ -12,12 +12,13 @@
 //   node content/pipeline/run.mjs generate [--subjects ...] [--min-per-topic 15] [--max-requests N]
 //   node content/pipeline/run.mjs emit                        write import files to content/pipeline/dist (free)
 //
+// Everything works on JAMB only unless given --exam post_utme or --exam all.
 // Every paid stage takes --budget <usd> (total cap across all runs, default 24), --dry-run, and --no-wait
 // (submit and exit; the next run of the same stage collects the results).
-import { DEFAULT_BUDGET_USD, KEYLESS_POLICY, MODELS, VERIFY_EFFORT } from './config.mjs';
+import { DEFAULT_BUDGET_USD, EXAM_FOCUS, KEYLESS_POLICY, MODELS, VERIFY_EFFORT } from './config.mjs';
 import * as log from './lib/log.mjs';
 import { loadBatches, loadRows, loadSpend, readJson } from './lib/state.mjs';
-import { csv, parseArgs, usd } from './lib/util.mjs';
+import { csv, inExam, parseArgs, usd } from './lib/util.mjs';
 import { SUBJECTS } from './syllabus.mjs';
 import { runEmit } from './stages/emit.mjs';
 import { registerPhotos, runExtract } from './stages/extract.mjs';
@@ -29,6 +30,7 @@ import { runVerify } from './stages/verify.mjs';
 const args = parseArgs(process.argv.slice(2));
 const [cmd] = args._;
 const common = {
+  exam: String(args.exam ?? EXAM_FOCUS).toUpperCase(),
   subjects: csv(args.subjects),
   budget: args.budget ? Number(args.budget) : DEFAULT_BUDGET_USD,
   dryRun: Boolean(args['dry-run']),
@@ -42,6 +44,11 @@ if (!Number.isFinite(common.budget) || common.budget < 0) {
   process.exit(1);
 }
 
+if (!['JAMB', 'POST_UTME', 'ALL'].includes(common.exam)) {
+  console.error(`--exam must be jamb, post_utme or all (got "${args.exam}")`);
+  process.exit(1);
+}
+
 const PAID = new Set(['extract', 'solve', 'verify', 'generate', 'pilot', 'wave']);
 if (PAID.has(cmd) && !common.dryRun && !process.env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_AUTH_TOKEN) {
   console.error('Set ANTHROPIC_API_KEY first (PowerShell: $env:ANTHROPIC_API_KEY="sk-ant-...")');
@@ -50,7 +57,7 @@ if (PAID.has(cmd) && !common.dryRun && !process.env.ANTHROPIC_API_KEY && !proces
 
 /** Plain-English dashboard: per subject, how many questions are ready, waiting, rejected. */
 function status() {
-  const rows = loadRows().filter((r) => !r.superseded && !/superseded/.test(r.discardReason ?? ''));
+  const rows = loadRows().filter((r) => inExam(r, common.exam) && !r.superseded && !/superseded/.test(r.discardReason ?? ''));
   const groups = new Map();
   for (const r of rows) {
     const name = `${SUBJECTS[r.subject] ?? r.subject}${r.examType === 'POST_UTME' ? ` · Post-UTME${r.school ? ` ${r.school}` : ''}` : ''}${r.sourceType === 'AI_ASSISTED' ? ' · AI practice' : ''}`;
@@ -61,7 +68,7 @@ function status() {
     else if (r.needsImage) g.human++;
     else g.answer++;
   }
-  log.stage('📊 Where things stand');
+  log.stage(`📊 Where things stand · ${{ JAMB: 'JAMB only', POST_UTME: 'Post-UTME only', ALL: 'all exams' }[common.exam]}`);
   const sorted = [...groups].sort(([a], [b]) => a.localeCompare(b));
   const sum = (k) => sorted.reduce((s, [, g]) => s + g[k], 0);
   const cell = (n) => (n ? log.fmt.n(n) : '·');
@@ -100,7 +107,7 @@ async function wave() {
   await runExtract({ ...common, budget: extractCap, shownBudget: common.budget, sourceKeys: null, pages: args.pages, limitChunks: undefined });
   await runSolve({ ...common, allowPartial: Boolean(args['allow-partial']) });
   await runVerify({ ...common, effort: args.effort ?? VERIFY_EFFORT });
-  runEmit();
+  runEmit(common);
   log.plan(0);
   status();
 }
@@ -115,7 +122,7 @@ async function pilot() {
   await runSolve({ ...common, budget, subjects: null, origin: 'pdf', allowPartial: true });
   await runSolve({ ...common, budget, subjects: null, origin: 'json', limit: 30 });
   await runVerify({ ...common, budget, subjects: null, limit: 40 });
-  runEmit();
+  runEmit(common);
   const rows = loadRows();
   const accepted = rows.filter((r) => r.status === 'accepted').length;
   const spent = loadSpend().totalUsd - before;
@@ -128,12 +135,12 @@ try {
   switch (cmd) {
     case 'status': status(); break;
     case 'normalize': runNormalize(); break;
-    case 'photos': registerPhotos({ dir: args.dir, school: args.school, year: args.year, examType: args.exam ?? 'POST_UTME' }); break;
+    case 'photos': registerPhotos({ dir: args.dir, school: args.school, year: args.year, examType: args.exam ? common.exam : 'POST_UTME' }); break;
     case 'extract': await runExtract({ ...common, sourceKeys: args.source ? String(args.source).split(',') : null, limitChunks: args['limit-chunks'] ? Number(args['limit-chunks']) : undefined, pages: args.pages }); break;
     case 'solve': await runSolve({ ...common, limit: args.limit, allowPartial: Boolean(args['allow-partial']) }); break;
     case 'verify': await runVerify({ ...common, limit: args.limit, effort: args.effort ?? VERIFY_EFFORT }); break;
     case 'generate': await runGenerate({ ...common, minPerTopic: args['min-per-topic'] ?? 15, maxRequests: args['max-requests'] }); break;
-    case 'emit': runEmit(); break;
+    case 'emit': runEmit(common); break;
     case 'pilot': await pilot(); break;
     case 'wave': await wave(); break;
     default:

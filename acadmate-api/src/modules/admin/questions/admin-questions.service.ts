@@ -3,6 +3,7 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { CacheService } from '../../../cache/cache.service';
 import { Difficulty, ExamType } from '@prisma/client';
 import { syncContentHash } from '../imports/question-identity';
+import { publishDecision } from '../imports/publish-rule';
 
 /** Fields that make up a question's identity (contentHash); editing any of them re-hashes it. */
 const IDENTITY_FIELDS = ['text', 'subjectId', 'examType', 'school', 'imageUrl', 'options'];
@@ -171,7 +172,13 @@ export class AdminQuestionsService {
     const { options, explanation, aiAssistedExplanation, correctOption, ...questionData } = dto;
 
     const question = await this.prisma.$transaction(async (tx) => {
-      await tx.question.update({ where: { id }, data: questionData });
+      await tx.question.update({
+        where: { id },
+        data: {
+          ...questionData,
+          ...(typeof questionData.isPublished === 'boolean' && publishDecision(adminId, questionData.isPublished)),
+        },
+      });
 
       // Options are matched by label and updated in place, so the rows that
       // students' past answers point at are kept.
@@ -259,7 +266,7 @@ export class AdminQuestionsService {
   async bulkPublish(adminId: string, ids: string[], isPublished: boolean) {
     const result = await this.prisma.question.updateMany({
       where: { id: { in: ids } },
-      data: { isPublished },
+      data: publishDecision(adminId, isPublished),
     });
     try {
       await this.prisma.adminActivityLog.create({
@@ -307,7 +314,7 @@ export class AdminQuestionsService {
   async togglePublish(adminId: string, id: string, isPublished: boolean) {
     const question = await this.prisma.question.update({
       where: { id },
-      data: { isPublished },
+      data: publishDecision(adminId, isPublished),
       select: { id: true, isPublished: true },
     });
     try {

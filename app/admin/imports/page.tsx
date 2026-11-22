@@ -19,6 +19,7 @@ interface ImportEntry {
   createdQuestions?: number;
   publishedQuestions?: number;
   publishableQuestions?: number;
+  unpublishedQuestions?: number;
   flaggedDrafts?: number;
   createdAt: string;
   uploadedBy: { name: string | null; email: string };
@@ -544,11 +545,12 @@ export default function ImportsPage() {
                 </thead>
                 <tbody>
                   {imports.map((imp, i) => {
-                    // Compare against what this import can publish: created, unflagged questions. Duplicates and
-                    // skipped rows never become questions, and flagged drafts are published one by one.
+                    // Compare against what this import's Publish covers. Duplicates and skipped rows never become
+                    // questions; flagged and unpublished ones are published one by one from Questions.
                     const published = imp.publishedQuestions ?? imp.publishedRows;
                     const publishable = imp.publishableQuestions ?? imp.validRows;
                     const flagged = imp.flaggedDrafts ?? 0;
+                    const unpublished = imp.unpublishedQuestions ?? 0;
                     const isFullyPublished = publishable > 0 && published >= publishable;
                     const isPublishing = publishingId === imp.id;
                     const canPublish = imp.status === "DONE" && publishable > published;
@@ -576,6 +578,11 @@ export default function ImportsPage() {
                             </span>
                           ) : (
                             <span className="text-slate-600">—</span>
+                          )}
+                          {unpublished > 0 && (
+                            <span className="block text-xs text-slate-400" title="Publish these from the Questions page">
+                              {unpublished} unpublished
+                            </span>
                           )}
                           {flagged > 0 && (
                             <span className="block text-xs text-amber-400" title="Fix these in the Question Builder and publish them individually">

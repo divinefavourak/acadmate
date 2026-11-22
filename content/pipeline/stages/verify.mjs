@@ -7,7 +7,7 @@ import { questionBlocks } from '../lib/blocks.mjs';
 import { groupId, rememberGroups, rowIdFor, rowsInFlight } from '../lib/groups.mjs';
 import * as log from '../lib/log.mjs';
 import { loadRows, saveRows } from '../lib/state.mjs';
-import { LETTERS, chunk } from '../lib/util.mjs';
+import { LETTERS, chunk, inExam } from '../lib/util.mjs';
 import { SUBJECTS } from '../syllabus.mjs';
 
 const STAGE = 'verify';
@@ -39,7 +39,7 @@ For every question return one result with its id:
 - verdict "fix": the correct answer differs from the candidate's, or the candidate's explanation is wrong or misleading. answer = the correct option; explanation = a corrected 40–80 word explanation in the same style (reasoning first, why the tempting wrong option fails, LaTeX in $...$).
 - verdict "discard": no option is correct, more than one is defensibly correct, the question is ambiguous or garbled, or it depends on information that isn't given.`;
 
-export async function runVerify({ subjects, origin, limit, budget, dryRun, effort = VERIFY_EFFORT, wait = true, keyless = KEYLESS_POLICY }) {
+export async function runVerify({ exam, subjects, origin, limit, budget, dryRun, effort = VERIFY_EFFORT, wait = true, keyless = KEYLESS_POLICY }) {
   log.stage('Opus double-checks disagreements and questions with no printed answer');
   await collect(STAGE, ingest, { wait: false, dryRun }); // results that finished while we were away
 
@@ -55,7 +55,7 @@ export async function runVerify({ subjects, origin, limit, budget, dryRun, effor
 
   const flying = rowsInFlight(STAGE);
   const rows = loadRows().filter((r) =>
-    r.status === 'needs_verify' && !flying.has(r.id) &&
+    r.status === 'needs_verify' && inExam(r, exam) && !flying.has(r.id) &&
     (!subjects || subjects.includes(r.subject)) && (!origin || r.origin === origin));
   const picked = limit ? rows.slice(0, Number(limit)) : rows;
   if (picked.length) log.info(`⚖  ${log.fmt.n(picked.length)} questions for Opus to check.`);
@@ -80,20 +80,21 @@ export async function runVerify({ subjects, origin, limit, budget, dryRun, effor
   await submit(STAGE, fitted, { dryRun });
   if (wait && !dryRun) await collect(STAGE, ingest);
 
-  const checked = tally.confirmed + tally.corrected + tally.rejected;
+  const checked = tally.confirmed + tally.answerFixed + tally.explanationFixed + tally.rejected;
   if (checked) {
     log.ok(
       `Opus checked ${log.fmt.n(checked)} questions:  ${log.fmt.n(tally.confirmed)} confirmed ✔ · ` +
-        `${log.fmt.n(tally.corrected)} corrected ✏️ · ${log.fmt.n(tally.rejected)} rejected ✖`,
+        `${log.fmt.n(tally.answerFixed)} answer corrected 🔁 · ${log.fmt.n(tally.explanationFixed)} explanation rewritten ✏️ · ` +
+        `${log.fmt.n(tally.rejected)} rejected ✖`,
     );
-    log.hint('   (✏️ = the booklet or Sonnet had the wrong answer and Opus fixed it.  ✖ = no option is right, or the question is ambiguous.)');
+    log.hint('   (🔁 = Sonnet picked the wrong option.  ✏️ = right answer, but the explanation was weak or wrong.  ✖ = no option is right, or the question is ambiguous.)');
   }
   if (tally.failed) log.warn(`${log.fmt.n(tally.failed)} checks didn't come back; they'll be retried on the next run.`);
-  Object.assign(tally, { confirmed: 0, corrected: 0, rejected: 0, failed: 0 });
+  Object.assign(tally, { confirmed: 0, answerFixed: 0, explanationFixed: 0, rejected: 0, failed: 0 });
 }
 
 // What Opus decided in this run, for the summary line.
-const tally = { confirmed: 0, corrected: 0, rejected: 0, failed: 0 };
+const tally = { confirmed: 0, answerFixed: 0, explanationFixed: 0, rejected: 0, failed: 0 };
 
 function ingest(customId, outcome) {
   if (!outcome.ok) {
@@ -113,8 +114,9 @@ function ingest(customId, outcome) {
       tally.rejected++;
       continue;
     }
-    if (res.verdict === 'keep' && res.answer === row.solve.answer) tally.confirmed++;
-    else tally.corrected++;
+    if (res.answer !== row.solve.answer) tally.answerFixed++;
+    else if (res.verdict === 'fix') tally.explanationFixed++;
+    else tally.confirmed++;
     row.answer = res.answer;
     // A changed answer needs a matching explanation; Sonnet's would argue for the wrong option.
     row.explanation = res.explanation ?? (res.answer === row.solve.answer ? row.solve.explanation : null);

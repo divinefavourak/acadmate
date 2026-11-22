@@ -11,6 +11,7 @@ import { RolesGuard } from '../../../common/guards/roles.guard';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { CurrentUser, JwtUser } from '../../../common/decorators/current-user.decorator';
 import { ImportService } from './import.service';
+import { AWAITING_RELEASE, publishDecision, releasedImportIds } from './publish-rule';
 import { PrismaService } from '../../../prisma/prisma.service';
 
 class ProcessImportDto {
@@ -101,13 +102,20 @@ export class AdminImportsController {
       this.prisma.import.count(),
     ]);
 
-    // Completion is judged against what this import can actually publish (created and not flagged), not the
-    // validated row count, which includes duplicates and rows that were skipped.
+    // Completion is judged against what Publish would actually release, not the validated row count (which
+    // includes duplicates and skipped rows) and not questions that were unpublished on purpose.
     const counts = await this.prisma.question.groupBy({
       by: ['importId', 'isPublished', 'isFlagged'],
       where: { importId: { in: imports.map((i) => i.id) } },
       _count: { _all: true },
     });
+    const released = await releasedImportIds(this.prisma, imports);
+    const awaiting = await this.prisma.question.groupBy({
+      by: ['importId'],
+      where: { importId: { in: imports.filter((i) => !released.has(i.id)).map((i) => i.id) }, ...AWAITING_RELEASE },
+      _count: { _all: true },
+    });
+    const awaitingById = new Map(awaiting.map((a) => [a.importId, a._count._all]));
     const tally = (id: string, pred: (c: (typeof counts)[number]) => boolean) =>
       counts.filter((c) => c.importId === id && pred(c)).reduce((s, c) => s + c._count._all, 0);
 
@@ -116,7 +124,8 @@ export class AdminImportsController {
         ...imp,
         createdQuestions: tally(imp.id, () => true),
         publishedQuestions: tally(imp.id, (c) => c.isPublished),
-        publishableQuestions: tally(imp.id, (c) => !c.isFlagged || c.isPublished),
+        publishableQuestions: tally(imp.id, (c) => c.isPublished) + (awaitingById.get(imp.id) ?? 0),
+        unpublishedQuestions: tally(imp.id, (c) => !c.isFlagged && !c.isPublished) - (awaitingById.get(imp.id) ?? 0),
         flaggedDrafts: tally(imp.id, (c) => c.isFlagged && !c.isPublished),
       })),
       total,
@@ -127,11 +136,11 @@ export class AdminImportsController {
 
   @Post(':id/publish')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Publish all valid questions from an import' })
+  @ApiOperation({ summary: 'First release of an import: publish its undecided, unflagged drafts' })
   async publishImport(@CurrentUser() user: JwtUser, @Param('id') id: string) {
     const importRecord = await this.prisma.import.findUnique({
       where: { id },
-      select: { id: true, status: true },
+      select: { id: true, status: true, publishedRows: true },
     });
 
     if (!importRecord) throw new NotFoundException('Import not found');
@@ -139,18 +148,23 @@ export class AdminImportsController {
       throw new ConflictException('Import must be in DONE status before publishing');
     }
 
+    if ((await releasedImportIds(this.prisma, [importRecord])).has(id)) {
+      throw new ConflictException(
+        'This import was already published. Publish its remaining questions from the Questions page.',
+      );
+    }
+
     // Flagged drafts (missing figure, duplicate options, placeholder answer) stay unpublished until someone fixes
     // them in the Question Builder and publishes them individually.
-    const result = await this.prisma.question.updateMany({
-      where: { importId: id, isPublished: false, isFlagged: false },
-      data: { isPublished: true, reviewedAt: new Date(), reviewedById: user.id },
-    });
-
-    // Store the import's total published count, so a repeat Publish doesn't overwrite it with 0.
-    const publishedTotal = await this.prisma.question.count({ where: { importId: id, isPublished: true } });
-    await this.prisma.import.update({
-      where: { id },
-      data: { publishedRows: publishedTotal },
+    // One transaction: a non-zero publishedRows is what marks the import as released.
+    const result = await this.prisma.$transaction(async (tx) => {
+      const updated = await tx.question.updateMany({
+        where: { importId: id, ...AWAITING_RELEASE },
+        data: publishDecision(user.id, true),
+      });
+      const publishedTotal = await tx.question.count({ where: { importId: id, isPublished: true } });
+      await tx.import.update({ where: { id }, data: { publishedRows: publishedTotal } });
+      return updated;
     });
 
     this.prisma.adminActivityLog.create({
