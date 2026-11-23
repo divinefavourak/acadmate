@@ -35,6 +35,10 @@ const ROUTE_POLICY = {
     "/terms",
     "/forum",
     "/api/forum",
+    // Public JAMB past-question pages (SEO): hub, subject and year pages, and
+    // one page per question. The CBT itself stays behind login.
+    "/past-questions",
+    "/question",
     // Student live-session landing — viewable without auth; the Join action
     // itself prompts login when needed.
     "/live",
@@ -96,16 +100,18 @@ export default async function middleware(req: NextRequest) {
   }
 
   // ── Protected route: require a valid JWT ──────────────────────────────
+  // The callback keeps the query string, so a handoff like
+  // /exam/new?mode=PRACTICE&subjectId=… survives the trip through login.
   if (!rawToken) {
     const loginUrl = new URL("/login", req.url);
-    loginUrl.searchParams.set("callbackUrl", pathname);
+    loginUrl.searchParams.set("callbackUrl", pathname + req.nextUrl.search);
     return NextResponse.redirect(loginUrl);
   }
 
   const payload = await getPayload(rawToken);
   if (!payload?.sub) {
     const loginUrl = new URL("/login", req.url);
-    loginUrl.searchParams.set("callbackUrl", pathname);
+    loginUrl.searchParams.set("callbackUrl", pathname + req.nextUrl.search);
     return NextResponse.redirect(loginUrl);
   }
 
@@ -119,6 +125,6 @@ export default async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|manifest.json|robots.txt|sitemap.xml|images/).*)",
+    "/((?!_next/static|_next/image|favicon.ico|manifest.json|robots.txt|sitemap|images/).*)",
   ],
 };

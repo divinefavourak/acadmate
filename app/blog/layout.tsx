@@ -30,6 +30,7 @@ export default function BlogLayout({ children }: { children: React.ReactNode }) 
 
           <nav className="hidden sm:flex items-center gap-6 text-sm font-medium text-slate-500 dark:text-slate-400">
             <Link href="/" className="hover:text-slate-900 dark:hover:text-white transition-colors">Home</Link>
+            <Link href="/past-questions" className="hover:text-slate-900 dark:hover:text-white transition-colors">Past questions</Link>
             <Link href="/blog" className="text-slate-900 dark:text-white">Blog</Link>
             <Link href="/forum" className="hover:text-slate-900 dark:hover:text-white transition-colors">Forum</Link>
             <Link href="/login" className="hover:text-slate-900 dark:hover:text-white transition-colors">Sign in</Link>

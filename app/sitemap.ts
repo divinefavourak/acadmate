@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/seo";
+import { HUB_PATH, YEAR_PAGE_SIZE, getHub, subjectPath, yearPath } from "@/lib/pastQuestions";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 const PAGE_SIZE = 500;
@@ -54,12 +55,43 @@ async function fetchPublicForumThreads(): Promise<ForumThreadSummary[]> {
   );
 }
 
+/**
+ * Hub, subject and year pages. Individual questions are in their own
+ * sitemaps (/sitemap-questions-N.xml, see app/question/sitemap.ts).
+ */
+async function pastQuestionRoutes(): Promise<MetadataRoute.Sitemap> {
+  let hub;
+  try {
+    hub = await getHub();
+  } catch {
+    return [];
+  }
+  const routes: MetadataRoute.Sitemap = [
+    { url: `${SITE_URL}${HUB_PATH}`, changeFrequency: "weekly", priority: 0.9 },
+  ];
+  for (const s of hub.subjects) {
+    routes.push({ url: `${SITE_URL}${subjectPath(s.slug)}`, changeFrequency: "weekly", priority: 0.8 });
+    for (const y of s.years) {
+      const pages = Math.ceil(y.count / YEAR_PAGE_SIZE);
+      for (let page = 1; page <= pages; page++) {
+        routes.push({
+          url: `${SITE_URL}${yearPath(s.slug, y.year, page)}`,
+          changeFrequency: "monthly",
+          priority: page === 1 ? 0.7 : 0.5,
+        });
+      }
+    }
+  }
+  return routes;
+}
+
 // ─── Sitemap ─────────────────────────────────────────────────────────────────
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [blogPosts, forumThreads] = await Promise.all([
+  const [blogPosts, forumThreads, pastQuestions] = await Promise.all([
     fetchPublishedBlogPosts(),
     fetchPublicForumThreads(),
+    pastQuestionRoutes(),
   ]);
 
   const staticRoutes: MetadataRoute.Sitemap = [
@@ -109,5 +141,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.5,
   }));
 
-  return [...staticRoutes, ...blogPostRoutes, ...forumThreadRoutes];
+  return [...staticRoutes, ...pastQuestions, ...blogPostRoutes, ...forumThreadRoutes];
 }
