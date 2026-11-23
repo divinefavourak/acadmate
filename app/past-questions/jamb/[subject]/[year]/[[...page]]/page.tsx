@@ -6,14 +6,13 @@ import {
   HUB_PATH,
   getYear,
   practicePath,
-  questionPath,
   subjectPath,
   truncate,
   yearPath,
   type YearData,
 } from "@/lib/pastQuestions";
 import { Breadcrumbs, breadcrumbJsonLd, type Crumb } from "../../../../components/Breadcrumbs";
-import { OptionList, QuestionStem } from "../../../../components/QuestionBody";
+import { PastQuestionCard } from "../../../../components/QuestionBody";
 import { PracticeCta } from "../../../../components/PracticeCta";
 
 export const revalidate = 3600;
@@ -87,39 +86,14 @@ export default async function YearPage({ params }: { params: Params }) {
         <p className="mt-3 text-slate-600 dark:text-slate-400 leading-relaxed">
           {total} {total === 1 ? "question" : "questions"} from the {year} paper
           {totalPages > 1 && <>, showing {questions[0]?.number}–{questions[questions.length - 1]?.number}</>}.
-          Try each one, then open the answer. Every question has its own page with a worked explanation.
+          Try each one, then open the solution for the answer and a worked explanation.
         </p>
       </header>
 
-      <ol className="space-y-6">
+      <ol className="space-y-5">
         {questions.map((q) => (
-          <li
-            key={q.slug}
-            id={`q${q.number}`}
-            className="scroll-mt-24 rounded-2xl border border-black/5 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.03] p-5 md:p-6"
-          >
-            <h2 className="mb-3 text-sm font-semibold text-slate-500 dark:text-slate-400">
-              <Link href={questionPath(q.slug)} className="hover:text-indigo-600 dark:hover:text-indigo-400">
-                Question {q.number}
-              </Link>
-              {q.topic && <span className="font-normal"> · {q.topic.name}</span>}
-            </h2>
-            <div className="mb-4 text-base md:text-lg leading-relaxed">
-              <QuestionStem question={q} />
-            </div>
-            <OptionList question={q} />
-            <details className="group mt-4">
-              <summary className="cursor-pointer select-none text-sm font-semibold text-indigo-600 dark:text-indigo-400 hover:underline">
-                Show answer
-              </summary>
-              <p className="mt-3 text-sm">
-                <span className="font-semibold text-emerald-600 dark:text-emerald-400">Answer: {q.answer}</span>
-                {" · "}
-                <Link href={questionPath(q.slug)} className="text-indigo-600 dark:text-indigo-400 hover:underline">
-                  See the explanation
-                </Link>
-              </p>
-            </details>
+          <li key={q.slug}>
+            <PastQuestionCard question={q} subject={s.name} />
           </li>
         ))}
       </ol>

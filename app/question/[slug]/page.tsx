@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import MathText from "@/app/components/MathText";
 import { buildMetadata, jsonLdHtml, quizSchema } from "@/lib/seo";
 import {
   EXAM_LABEL,
@@ -14,7 +13,7 @@ import {
   yearPath,
 } from "@/lib/pastQuestions";
 import { Breadcrumbs, breadcrumbJsonLd, type Crumb } from "@/app/past-questions/components/Breadcrumbs";
-import { OptionList, QuestionStem } from "@/app/past-questions/components/QuestionBody";
+import { PastQuestionCard } from "@/app/past-questions/components/QuestionBody";
 import { PracticeCta } from "@/app/past-questions/components/PracticeCta";
 
 export const revalidate = 3600;
@@ -50,7 +49,6 @@ export default async function QuestionPage({ params }: { params: Params }) {
   const { question: q, subject: s, prev, next, related, yearPage } = data;
   const path = questionPath(q.slug);
   const paperLink = `${yearPath(s.slug, q.year, yearPage)}#q${q.number}`;
-  const correct = q.options.find((o) => o.label === q.answer);
 
   const crumbs: Crumb[] = [
     { name: "Home", href: "/" },
@@ -79,40 +77,11 @@ export default async function QuestionPage({ params }: { params: Params }) {
       <script type="application/ld+json" dangerouslySetInnerHTML={jsonLdHtml(jsonLd)} />
       <Breadcrumbs items={crumbs} />
 
-      <article>
-        <header className="mb-5">
-          <h1 className="text-sm font-semibold uppercase tracking-[0.12em] text-indigo-600 dark:text-indigo-400">
-            {EXAM_LABEL} {s.name} {q.year}, Question {q.number}
-          </h1>
-          {q.topic && (
-            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Topic: {q.topic.name}</p>
-          )}
-        </header>
+      <h1 className="mb-4 text-2xl md:text-3xl font-bold tracking-tight">
+        {EXAM_LABEL} {s.name} {q.year}, Question {q.number}
+      </h1>
 
-        {/* A div, not a heading: the stem can hold a passage note, a figure and block math. */}
-        <div className="mb-6 text-xl md:text-2xl font-semibold leading-relaxed">
-          <QuestionStem question={q} />
-        </div>
-
-        <OptionList question={q} revealAnswer />
-
-        <section aria-labelledby="answer-heading" className="mt-8 rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-5 md:p-6">
-          <h2 id="answer-heading" className="text-lg font-bold">
-            Answer: {q.answer}
-          </h2>
-          {correct && (
-            <div className="mt-1 font-medium">
-              <MathText text={correct.text} />
-            </div>
-          )}
-          {q.explanation && (
-            <div className="mt-3 leading-relaxed text-slate-700 dark:text-slate-300">
-              <h3 className="sr-only">Explanation</h3>
-              <MathText text={q.explanation} />
-            </div>
-          )}
-        </section>
-      </article>
+      <PastQuestionCard question={q} subject={s.name} onOwnPage />
 
       <nav aria-label="Questions in this paper" className="mt-8 grid grid-cols-3 items-center gap-2 text-sm">
         <span>
