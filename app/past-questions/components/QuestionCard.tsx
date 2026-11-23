@@ -1,7 +1,11 @@
 "use client";
 
-import { useId, useState } from "react";
+import { createContext, useContext, useId, useState } from "react";
 import Link from "next/link";
+
+/** Whether the enclosing card's solution is open, for content that loads on demand. */
+const SolutionOpenContext = createContext(false);
+export const useSolutionOpen = () => useContext(SolutionOpenContext);
 
 /**
  * Card shell for one past question. The only client-side state is whether
@@ -73,7 +77,7 @@ export function QuestionCard({
       </div>
 
       <div id={panelId} hidden={!open} className="px-4 pb-4">
-        {solution}
+        <SolutionOpenContext.Provider value={open}>{solution}</SolutionOpenContext.Provider>
       </div>
     </article>
   );

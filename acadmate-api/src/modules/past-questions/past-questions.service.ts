@@ -51,7 +51,6 @@ const QUESTION_SELECT = {
   createdAt: true,
   topic: { select: { id: true, name: true } },
   proseText: { select: { title: true, author: true } },
-  explanation: { select: { text: true } },
   options: {
     select: { label: true, text: true, isCorrect: true },
     orderBy: [{ sortOrder: 'asc' }, { label: 'asc' }],
@@ -81,8 +80,6 @@ export interface PublicQuestion {
   proseText: { title: string; author: string | null } | null;
   options: { label: string; text: string; plainText: string }[];
   answer: string;
-  /** Worked explanation, shown when a student opens the solution on a year page or question page. */
-  explanation: string | null;
 }
 
 export interface HubResult {
@@ -246,16 +243,26 @@ export class PastQuestionsService implements OnApplicationBootstrap {
 
       return {
         subject,
-        question: {
-          ...this.toPublic(q, number),
-          explanationPlain: q.explanation ? toPlainText(q.explanation.text) : null,
-        },
+        question: this.toPublic(q, number),
         yearPage: Math.ceil(number / YEAR_PAGE_SIZE),
         prev: prev?.slug ?? null,
         next: next?.slug ?? null,
         related,
       };
     });
+  }
+
+  /**
+   * The worked explanation for one public question. Signed-in users only (the
+   * controller guards it); the public endpoints and pages never include it.
+   */
+  async getExplanation(slug: string) {
+    const q = await this.prisma.question.findFirst({
+      where: { ...PUBLIC_WHERE, slug },
+      select: { slug: true, explanation: { select: { text: true } } },
+    });
+    if (!q) throw new NotFoundException('Question not found');
+    return { slug, explanation: q.explanation?.text ?? null };
   }
 
   async getSitemapPage(page: number) {
@@ -406,7 +413,6 @@ export class PastQuestionsService implements OnApplicationBootstrap {
       proseText: q.proseText,
       options: q.options.map((o) => ({ label: o.label, text: o.text, plainText: toPlainText(o.text) })),
       answer: q.options.find((o) => o.isCorrect)?.label ?? '',
-      explanation: q.explanation?.text ?? null,
     };
   }
 

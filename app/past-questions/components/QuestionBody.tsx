@@ -1,6 +1,6 @@
-import Link from "next/link";
 import MathText from "@/app/components/MathText";
 import { questionPath, truncate, type PublicQuestion } from "@/lib/pastQuestions";
+import { ExplanationGate } from "./ExplanationGate";
 import { QuestionCard } from "./QuestionCard";
 
 const CHIP = "inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium";
@@ -83,8 +83,11 @@ export function OptionList({ question }: { question: PublicQuestion }) {
   );
 }
 
-/** Answer and worked explanation, inside the card's solution panel. */
-export function Solution({ question, linkToPage }: { question: PublicQuestion; linkToPage?: boolean }) {
+/**
+ * The card's solution panel: the answer (public, in the HTML) and the worked
+ * explanation (signed-in only, fetched when the panel opens).
+ */
+export function Solution({ question, anchor }: { question: PublicQuestion; anchor?: string }) {
   const correct = question.options.find((o) => o.label === question.answer);
   return (
     <div className="rounded-lg border border-emerald-500/30 bg-emerald-50/70 dark:bg-emerald-500/10 p-4 text-sm">
@@ -96,18 +99,7 @@ export function Solution({ question, linkToPage }: { question: PublicQuestion; l
           <MathText text={correct.text} />
         </div>
       )}
-      {question.explanation ? (
-        <div className="mt-3 leading-relaxed text-slate-700 dark:text-slate-300">
-          <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Explanation</p>
-          <MathText text={question.explanation} />
-        </div>
-      ) : (
-        linkToPage && (
-          <Link href={questionPath(question.slug)} className="mt-3 inline-block font-medium text-indigo-700 dark:text-indigo-300 hover:underline">
-            See the explanation →
-          </Link>
-        )
-      )}
+      <ExplanationGate slug={question.slug} anchor={anchor} />
     </div>
   );
 }
@@ -132,7 +124,7 @@ export function PastQuestionCard({
           <OptionList question={question} />
         </>
       }
-      solution={<Solution question={question} linkToPage={!onOwnPage} />}
+      solution={<Solution question={question} anchor={onOwnPage ? undefined : `q${question.number}`} />}
       href={onOwnPage ? undefined : questionPath(question.slug)}
       sharePath={questionPath(question.slug)}
       shareTitle={`JAMB ${subject} ${question.year}: ${truncate(question.plainText, 80)}`}

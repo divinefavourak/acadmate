@@ -35,8 +35,6 @@ export interface PublicQuestion {
   proseText: { title: string; author: string | null } | null;
   options: { label: string; text: string; plainText: string }[];
   answer: string;
-  /** Optional: year pages only get it from API versions that send it. */
-  explanation?: string | null;
 }
 
 export interface HubData {
@@ -62,7 +60,7 @@ export interface YearData {
 
 export interface QuestionData {
   subject: PublicSubjectSummary;
-  question: PublicQuestion & { explanation: string | null; explanationPlain: string | null };
+  question: PublicQuestion;
   yearPage: number;
   prev: string | null;
   next: string | null;
