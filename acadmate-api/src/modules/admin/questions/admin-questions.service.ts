@@ -1,12 +1,32 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { CacheService } from '../../../cache/cache.service';
-import { Difficulty, ExamType } from '@prisma/client';
+import { Difficulty, ExamType, Prisma } from '@prisma/client';
 import { syncContentHash } from '../imports/question-identity';
 import { publishDecision } from '../imports/publish-rule';
 
 /** Fields that make up a question's identity (contentHash); editing any of them re-hashes it. */
 const IDENTITY_FIELDS = ['text', 'subjectId', 'examType', 'school', 'imageUrl', 'options'];
+
+/**
+ * Admin search: every word typed must appear in the question or one of its options, in any order. Only letters
+ * and digits count as words, so pasted LaTeX (`$\mathrm{NaHSO_4}$`) still matches, and nothing typed can act as a
+ * LIKE wildcard or escape. A pasted question id also matches.
+ */
+function searchWhere(search?: string): Prisma.QuestionWhereInput {
+  const raw = search?.trim() ?? '';
+  const words = [...new Set(raw.match(/[\p{L}\p{N}]{2,}/gu) ?? [])].slice(0, 12);
+  if (words.length === 0) return raw ? { id: raw } : {};
+  const allWords: Prisma.QuestionWhereInput = {
+    AND: words.map((w) => ({
+      OR: [
+        { text: { contains: w, mode: 'insensitive' } },
+        { options: { some: { text: { contains: w, mode: 'insensitive' } } } },
+      ],
+    })),
+  };
+  return { OR: [{ id: raw }, allWords] };
+}
 
 @Injectable()
 export class AdminQuestionsService {
@@ -58,6 +78,7 @@ export class AdminQuestionsService {
     examType?: ExamType;
     school?: string;
     year?: number;
+    search?: string;
     limit?: number;
     offset?: number;
     flagged?: boolean;
@@ -75,6 +96,7 @@ export class AdminQuestionsService {
       ...(query.isPublished !== undefined && { isPublished: query.isPublished }),
       ...(query.flagged && { isFlagged: true }),
       ...(query.year !== undefined ? { year: query.year } : {}),
+      ...searchWhere(query.search),
     };
 
     const [questions, total] = await Promise.all([

@@ -3,7 +3,7 @@ import {
   HttpCode, HttpStatus,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
-import { IsOptional, IsString, IsEnum, IsInt, IsBoolean, IsArray, ArrayNotEmpty, ArrayMaxSize, Min, Max } from 'class-validator';
+import { IsOptional, IsString, IsEnum, IsInt, IsBoolean, IsArray, ArrayNotEmpty, ArrayMaxSize, Min, Max, MaxLength } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
 import { Difficulty, ExamType } from '@prisma/client';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
@@ -25,6 +25,7 @@ class AdminQuestionQueryDto {
   @IsOptional() @IsEnum(ExamType) examType?: ExamType;
   @IsOptional() @IsString() school?: string;
   @IsOptional() @IsInt() @Type(() => Number) year?: number;
+  @IsOptional() @IsString() @MaxLength(300) search?: string;
   @IsOptional() @IsInt() @Min(1) @Max(500) @Type(() => Number) limit?: number = 20;
   @IsOptional() @IsInt() @Min(0) @Type(() => Number) offset?: number = 0;
   @IsOptional() @Transform(queryBoolean) @IsBoolean() flagged?: boolean;
