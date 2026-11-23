@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import MobileNav from "@/app/components/layout/MobileNav";
+import V2Banner from "./V2Banner";
 import {
   ChatBubbleLeftRightIcon,
   GlobeAltIcon,
@@ -50,15 +51,17 @@ export default function HomeLandingContent({
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#09090b] text-white relative overflow-hidden">
+    // overflow-clip, not overflow-hidden: hidden makes this div a scroll container, which stops the sticky header sticking.
+    <div className="flex flex-col min-h-screen bg-[#09090b] text-white relative overflow-clip">
       {/* Subtle background gradient */}
       <div className="pointer-events-none fixed inset-0 z-0">
         <div className="absolute top-0 left-1/4 w-150 h-150 bg-indigo-600/10 rounded-full blur-[120px]" />
         <div className="absolute bottom-0 right-1/4 w-100 h-100 bg-purple-600/10 rounded-full blur-[100px]" />
       </div>
 
-      {/* Nav */}
+      {/* Nav, with the v2 announcement pinned above it */}
       <header className="sticky top-0 z-50 border-b border-white/5 bg-[#09090b]/80 backdrop-blur-xl">
+        <V2Banner />
         <div className="max-w-7xl mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5">
             <Image
