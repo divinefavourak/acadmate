@@ -6,15 +6,21 @@ import { buildQuestionSlug, slugify, snippet, toPlainText } from './question-slu
 
 /**
  * Public, unauthenticated past-question pages (SEO). Only real JAMB past
- * questions are served: published, not flagged, not AI-written, with a year,
+ * questions are served: published, not flagged, not AI-generated, with a year,
  * a slug and a marked answer, in an active subject. Post-UTME questions are
  * still published for the CBT, so the JAMB filter is what keeps them out.
+ *
+ * "AI-generated" is sourceType AI_ASSISTED, not the aiAssisted flag. The
+ * content pipeline sets aiAssisted on every row whose explanation AI wrote,
+ * which is every real booklet question too (content/pipeline/stages/emit.mjs).
  */
+const NOT_AI_GENERATED = { sourceType: { not: 'AI_ASSISTED' } } satisfies Prisma.QuestionWhereInput;
+
 const PUBLIC_WHERE = {
   isPublished: true,
   isFlagged: false,
   examType: 'JAMB',
-  aiAssisted: false,
+  ...NOT_AI_GENERATED,
   year: { not: null },
   slug: { not: null },
   subject: { isActive: true },
@@ -24,7 +30,7 @@ const PUBLIC_WHERE = {
 /** Questions that get a slug. Wider than PUBLIC_WHERE, so a slug is already in place when a question is published or unflagged. */
 const SLUGGABLE_WHERE = {
   examType: 'JAMB',
-  aiAssisted: false,
+  ...NOT_AI_GENERATED,
   year: { not: null },
 } satisfies Prisma.QuestionWhereInput;
 
