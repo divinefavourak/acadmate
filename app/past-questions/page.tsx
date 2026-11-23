@@ -21,9 +21,9 @@ export async function generateMetadata(): Promise<Metadata> {
   const metadata = buildMetadata({
     title: "JAMB Past Questions and Answers, Free with Explanations",
     description:
-      `Free JAMB past questions with answers and worked explanations: ` +
+      `Free JAMB past questions with answers: ` +
       `${hub.total.toLocaleString("en-NG")} questions in ${hub.subjects.length} subjects` +
-      `${allYears.length ? `, from ${yearRange(allYears)}` : ""}. No sign-up needed.`,
+      `${allYears.length ? `, from ${yearRange(allYears)}` : ""}. Sign in free for worked explanations.`,
     path: HUB_PATH,
   });
   // A layout's title template only reaches child segments, so this page (in
@@ -46,8 +46,8 @@ export default async function PastQuestionsHub() {
         </h1>
         <p className="mt-4 text-lg text-slate-600 dark:text-slate-400 leading-relaxed">
           {`${hub.total.toLocaleString("en-NG")} real JAMB questions from past papers, each with the ` +
-            "correct answer and a worked explanation. Pick a subject and a year to start. " +
-            "You don't need an account to read them."}
+            "correct answer. Pick a subject and a year to start; you don't need an account to read them. " +
+            "Sign in free to see the worked explanations."}
         </p>
       </header>
 

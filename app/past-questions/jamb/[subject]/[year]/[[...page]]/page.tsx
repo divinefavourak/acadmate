@@ -52,7 +52,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   return buildMetadata({
     title: `JAMB ${s.name} ${year} Past Questions and Answers${pageNote}`,
     description:
-      `All ${total} questions from the JAMB ${year} ${s.name} paper, with answers and worked explanations` +
+      `All ${total} questions from the JAMB ${year} ${s.name} paper, with answers` +
       `${page > 1 ? `, page ${page}` : ""}. ` +
       (first ? `Question ${first.number}: ${truncate(first.plainText, 70)}` : ""),
     path: yearPath(s.slug, year, page),
@@ -86,7 +86,7 @@ export default async function YearPage({ params }: { params: Params }) {
         <p className="mt-3 text-slate-600 dark:text-slate-400 leading-relaxed">
           {total} {total === 1 ? "question" : "questions"} from the {year} paper
           {totalPages > 1 && <>, showing {questions[0]?.number}–{questions[questions.length - 1]?.number}</>}.
-          Try each one, then open the solution for the answer and a worked explanation.
+          Try each one, then open the solution to check your answer. Sign in to see the worked explanations.
         </p>
       </header>
 

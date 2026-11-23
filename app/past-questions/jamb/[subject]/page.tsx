@@ -32,7 +32,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
     title: `JAMB ${s.name} Past Questions and Answers (${yearRange(s.years)})`,
     description:
       `${s.total.toLocaleString("en-NG")} JAMB ${s.name} past questions from ${s.years.length} ` +
-      `${s.years.length === 1 ? "paper" : "papers"} (${yearRange(s.years)}), with answers and worked explanations. Free, no sign-up.`,
+      `${s.years.length === 1 ? "paper" : "papers"} (${yearRange(s.years)}), with answers. Free to read; sign in for worked explanations.`,
     path: subjectPath(s.slug),
   });
 }
@@ -64,7 +64,7 @@ export default async function SubjectPage({ params }: { params: Params }) {
         <p className="mt-4 text-lg text-slate-600 dark:text-slate-400 leading-relaxed">
           {s.total.toLocaleString("en-NG")} questions from {s.years.length} JAMB {s.name}{" "}
           {s.years.length === 1 ? "paper" : "papers"} ({yearRange(s.years)}), each with the correct
-          answer and a worked explanation.
+          answer. Sign in free to see the worked explanations.
         </p>
       </header>
 

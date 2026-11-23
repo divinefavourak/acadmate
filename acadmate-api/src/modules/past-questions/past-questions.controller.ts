@@ -1,8 +1,9 @@
-import { Controller, Get, NotFoundException, Param, ParseIntPipe, Query } from '@nestjs/common';
-import { ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { Controller, Get, NotFoundException, Param, ParseIntPipe, Query, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { IsInt, IsOptional, Max, Min } from 'class-validator';
 import { Type } from 'class-transformer';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PastQuestionsService } from './past-questions.service';
 
 class PageQuery {
@@ -65,5 +66,24 @@ export class PastQuestionsController {
     @Query() query: PageQuery,
   ) {
     return this.service.getYear(checkSlug(subject), year, query.page ?? 1);
+  }
+}
+
+/**
+ * Signed-in only. Worked explanations are kept off the public (cached, crawled)
+ * pages; the browser fetches one when a signed-in student opens a solution.
+ * The global 100/min per-IP limit applies.
+ */
+@ApiTags('past-questions')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
+@Controller('past-questions')
+export class PastQuestionExplanationsController {
+  constructor(private readonly service: PastQuestionsService) {}
+
+  @Get('questions/:slug/explanation')
+  @ApiOperation({ summary: 'Worked explanation for one public past question (signed-in users)' })
+  explanation(@Param('slug') slug: string) {
+    return this.service.getExplanation(checkSlug(slug));
   }
 }

@@ -33,11 +33,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const label = `${EXAM_LABEL} ${s.name} ${q.year}`;
   return buildMetadata({
     title: `${truncate(q.plainText, 70)} | ${label}`,
-    description: truncate(
-      `${label}, question ${q.number}: ${q.plainText} Answer: ${q.answer}.` +
-        (q.explanationPlain ? ` ${q.explanationPlain}` : ""),
-      158,
-    ),
+    description: truncate(`${label}, question ${q.number}: ${q.plainText} Answer: ${q.answer}.`, 158),
     path: questionPath(q.slug),
   });
 }
@@ -67,7 +63,6 @@ export default async function QuestionPage({ params }: { params: Params }) {
       text: q.plainText,
       options: q.options,
       answer: q.answer,
-      explanation: q.explanationPlain,
     }),
     breadcrumbJsonLd(crumbs, path),
   ];
