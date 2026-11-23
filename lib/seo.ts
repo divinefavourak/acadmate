@@ -231,3 +231,69 @@ export function webPageSchema(opts: {
     inLanguage: "en-NG",
   };
 }
+
+/**
+ * One multiple-choice past question as a schema.org Quiz (Google's
+ * practice-problem shape). All text must already be plain, without LaTeX or markdown.
+ */
+export function quizSchema(q: {
+  path: string;
+  name: string;
+  subject: string;
+  topic?: string | null;
+  text: string;
+  options: { label: string; plainText: string }[];
+  answer: string;
+  explanation?: string | null;
+}) {
+  const answerText = (o: { label: string; plainText: string }) => `${o.label}. ${o.plainText}`;
+  const correct = q.options.find((o) => o.label === q.answer);
+  return {
+    "@context": "https://schema.org",
+    "@type": "Quiz",
+    "@id": canonicalUrl(q.path),
+    name: q.name,
+    url: canonicalUrl(q.path),
+    inLanguage: "en-NG",
+    about: { "@type": "Thing", name: q.topic ?? q.subject },
+    educationalLevel: "Senior secondary",
+    educationalAlignment: [
+      {
+        "@type": "AlignmentObject",
+        alignmentType: "educationalSubject",
+        targetName: q.subject,
+      },
+    ],
+    provider: { "@id": `${SITE_URL}/#organization` },
+    hasPart: [
+      {
+        "@type": "Question",
+        eduQuestionType: "Multiple choice",
+        learningResourceType: "Practice problem",
+        text: q.text,
+        ...(correct && {
+          acceptedAnswer: {
+            "@type": "Answer",
+            position: q.options.indexOf(correct),
+            text: answerText(correct),
+            ...(q.explanation && {
+              answerExplanation: { "@type": "Comment", text: q.explanation },
+            }),
+          },
+        }),
+        suggestedAnswer: q.options
+          .filter((o) => o !== correct)
+          .map((o) => ({
+            "@type": "Answer",
+            position: q.options.indexOf(o),
+            text: answerText(o),
+          })),
+      },
+    ],
+  };
+}
+
+/** Serialise JSON-LD for a <script> tag; escapes "<" so text can't close the tag. */
+export function jsonLdHtml(data: unknown): { __html: string } {
+  return { __html: JSON.stringify(data).replace(/</g, "\\u003c") };
+}

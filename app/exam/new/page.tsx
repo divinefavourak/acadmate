@@ -93,14 +93,17 @@ export default function NewExamPage() {
       setSubjects(subjList);
       setProseTexts(proseList);
       if (subjList.length > 0) setSelectedSubject(subjList[0].id);
-      // Study hands off here with ?mode=TOPIC&subjectId=…&topicId=… to open a
-      // Topic Drill on the topic the student just read.
+      // Study and the public past-question pages hand off here with
+      // ?mode=TOPIC&subjectId=…&topicId=… (Topic Drill) or ?mode=PRACTICE&subjectId=….
       const handoff = new URLSearchParams(window.location.search);
       const handoffSubject = subjList.find((s) => s.id === handoff.get("subjectId"));
       const utmeOpen = availResult.status !== "fulfilled" || availResult.value.utme;
       if (handoff.get("mode") === "TOPIC" && handoffSubject && utmeOpen) {
         preferredTopicRef.current = handoff.get("topicId");
         setMode("TOPIC");
+        setSelectedSubject(handoffSubject.id);
+      } else if (handoff.get("mode") === "PRACTICE" && handoffSubject && utmeOpen) {
+        setMode("PRACTICE");
         setSelectedSubject(handoffSubject.id);
       }
       if (meResult.status === "fulfilled") {
