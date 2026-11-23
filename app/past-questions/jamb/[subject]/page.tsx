@@ -9,6 +9,7 @@ import {
   subjectPath,
   yearPath,
   yearRange,
+  type SubjectData,
 } from "@/lib/pastQuestions";
 import { Breadcrumbs, breadcrumbJsonLd, type Crumb } from "../../components/Breadcrumbs";
 import { PracticeCta } from "../../components/PracticeCta";
@@ -86,37 +87,51 @@ export default async function SubjectPage({ params }: { params: Params }) {
         </ul>
       </section>
 
-      {topics.length > 0 && (
-        <section aria-labelledby="topics-heading" className="mt-12">
-          <h2 id="topics-heading" className="text-xl font-bold">Topics</h2>
-          <p className="mt-1 mb-4 text-sm text-slate-500 dark:text-slate-400">
-            How often each topic comes up in these papers. Drill one in CBT mode.
-          </p>
-          <ul className="divide-y divide-black/5 dark:divide-white/5 rounded-2xl border border-black/5 dark:border-white/10">
-            {topics.map((t) => (
-              <li key={t.id} className="flex items-center justify-between gap-4 px-4 py-3">
-                <span className="min-w-0">
-                  <span className="font-medium">{t.name}</span>{" "}
-                  <span className="text-sm text-slate-500 dark:text-slate-400">
-                    · {t.count} {t.count === 1 ? "question" : "questions"}
-                  </span>
-                </span>
-                <Link
-                  href={practicePath(s.id, t.id)}
-                  rel="nofollow"
-                  className="shrink-0 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:underline"
-                >
-                  Practise
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+      {topics.length > 0 && <TopicRanking subject={s} topics={topics} />}
 
       <div className="mt-12">
         <PracticeCta href={practicePath(s.id)} title={`Practise JAMB ${s.name} in CBT mode`} />
       </div>
     </div>
+  );
+}
+
+/** Topics ranked by how many questions they have in these papers, each with a Topic Drill link. */
+function TopicRanking({ subject: s, topics }: SubjectData) {
+  const max = Math.max(...topics.map((t) => t.count));
+  return (
+    <section aria-labelledby="topics-heading" className="mt-12 overflow-hidden rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-[#111114]">
+      <div className="bg-indigo-700 px-5 py-4 text-white">
+        <h2 id="topics-heading" className="text-lg font-bold">Most examined topics</h2>
+        <p className="text-sm text-indigo-100">In JAMB {s.name} past questions. Tap one to drill it in CBT mode.</p>
+      </div>
+      <ol className="grid sm:grid-cols-2">
+        {topics.map((t, i) => (
+          <li key={t.id} className="border-b border-black/5 dark:border-white/5 sm:odd:border-r">
+            <Link
+              href={practicePath(s.id, t.id)}
+              rel="nofollow"
+              className="flex items-center gap-4 px-5 py-3.5 hover:bg-indigo-50/60 dark:hover:bg-indigo-500/10 transition-colors"
+            >
+              <span className="w-6 shrink-0 text-sm font-semibold tabular-nums text-indigo-700 dark:text-indigo-300">
+                {String(i + 1).padStart(2, "0")}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="flex items-baseline justify-between gap-3">
+                  <span className="truncate text-sm font-medium">{t.name}</span>
+                  <span className="shrink-0 text-xs tabular-nums text-slate-500 dark:text-slate-400">
+                    {t.count} {t.count === 1 ? "question" : "questions"}
+                  </span>
+                </span>
+                <span className="mt-1.5 block h-1.5 rounded-full bg-indigo-100 dark:bg-indigo-500/15" aria-hidden>
+                  <span className="block h-full rounded-full bg-indigo-600 dark:bg-indigo-400" style={{ width: `${Math.max(4, (t.count / max) * 100)}%` }} />
+                </span>
+              </span>
+              <span className="shrink-0 text-slate-400" aria-hidden>→</span>
+            </Link>
+          </li>
+        ))}
+      </ol>
+    </section>
   );
 }
