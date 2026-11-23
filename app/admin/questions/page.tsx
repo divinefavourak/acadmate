@@ -64,6 +64,14 @@ const SCHOOL_COLORS = [
   "#D97706", "#0891B2",
 ];
 
+/** Where a question lives, e.g. "JAMB · Chemistry · 1983", for search results that span folders. */
+function questionPlace(q: QuestionEntry): string {
+  const exam = q.examType === "POST_UTME"
+    ? `Post-UTME${q.school ? ` ${SCHOOLS.find((s) => s.id === q.school)?.abbr ?? q.school}` : ""}`
+    : q.examType ?? "No exam";
+  return [exam, q.subject.name, q.year ?? "No year"].join(" · ");
+}
+
 function validateForm(f: QuestionForm): string | null {
   if (f.options.filter((o) => o.isCorrect).length !== 1) return "Select exactly one correct answer.";
   if (f.options.some((o) => !o.text.trim())) return "All four option texts are required.";
@@ -98,6 +106,8 @@ function QuestionsPage() {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const [publishedFilter, setPublishedFilter] = useState<string>("");
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
   const limit = 20;
 
   const [showForm, setShowForm] = useState(false);
@@ -219,6 +229,15 @@ function QuestionsPage() {
       .catch((err) => console.error("Failed to load years", err));
   }, [activeCategory, activeSchool]);
 
+  // Search once typing pauses, not on every keystroke.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setSearch(searchInput.trim());
+      setPage(0);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
   // Load questions
   useEffect(() => {
     setSelectedIds(new Set());
@@ -231,6 +250,7 @@ function QuestionsPage() {
       const params = new URLSearchParams({ limit: String(limit), offset: String(page * limit) });
       params.set("subjectId", subjectIdParam);
       if (publishedFilter !== "") params.set("isPublished", publishedFilter);
+      if (search) params.set("search", search);
       apiClient<{ questions: QuestionEntry[]; total: number }>(`/api/admin/questions?${params}`)
         .then((data) => { setQuestions(data.questions ?? []); setTotal(data.total ?? 0); })
         .catch((err) => { console.error("Failed to load questions", err); setFetchError("Could not load questions. Please refresh."); })
@@ -242,7 +262,8 @@ function QuestionsPage() {
       (activeCategory === "JAMB" && activeSubject && activeYear !== null) ||
       (activeCategory === "POST_UTME" && activeSchool && activeYear !== null);
 
-    if (!hasContext) {
+    // A search runs in whatever is open (all questions, an exam, a subject, a year) without picking a year first.
+    if (!hasContext && !search) {
       setQuestions([]);
       setTotal(0);
       setLoading(false);
@@ -251,15 +272,13 @@ function QuestionsPage() {
 
     setLoading(true);
     setFetchError(null);
-    const params = new URLSearchParams({
-      limit: String(limit),
-      offset: String(page * limit),
-      examType: activeCategory!,
-    });
+    const params = new URLSearchParams({ limit: String(limit), offset: String(page * limit) });
+    if (activeCategory) params.set("examType", activeCategory);
     if (activeCategory === "JAMB" && activeSubject) params.set("subjectId", activeSubject.id);
     if (activeCategory === "POST_UTME" && activeSchool) params.set("school", activeSchool);
-    if (activeYear !== "unknown") params.set("year", String(activeYear));
+    if (typeof activeYear === "number") params.set("year", String(activeYear));
     if (publishedFilter !== "") params.set("isPublished", publishedFilter);
+    if (search) params.set("search", search);
 
     apiClient<{ questions: QuestionEntry[]; total: number }>(`/api/admin/questions?${params}`)
       .then((data) => {
@@ -268,7 +287,7 @@ function QuestionsPage() {
       })
       .catch((err) => { console.error("Failed to load questions", err); setFetchError("Could not load questions. Please refresh."); })
       .finally(() => setLoading(false));
-  }, [page, publishedFilter, activeCategory, activeSubject, activeSchool, activeYear, subjectIdParam]);
+  }, [page, publishedFilter, search, activeCategory, activeSubject, activeSchool, activeYear, subjectIdParam]);
 
 
   const totalPages = Math.ceil(total / limit);
@@ -551,7 +570,15 @@ function QuestionsPage() {
     ? (SCHOOLS.find((s) => s.id === activeSchool)?.name ?? activeSchool)
     : null;
 
+  const searching = search !== "";
+  const searchScope = [
+    activeCategory === "JAMB" ? "JAMB" : activeCategory === "POST_UTME" ? "Post-UTME" : null,
+    activeCategory === "JAMB" ? activeSubject?.name : schoolLabel,
+    typeof activeYear === "number" ? String(activeYear) : null,
+  ].filter(Boolean).join(" / ");
+
   const canShowQuestions =
+    searching ||
     !!subjectIdParam ||
     (activeCategory === "JAMB" && activeSubject && activeYear !== null) ||
     (activeCategory === "POST_UTME" && activeSchool && activeYear !== null);
@@ -639,7 +666,29 @@ function QuestionsPage() {
             </div>
           )}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          {activeTab === "questions" && !builderOpen && (
+            <div className="relative">
+              <input
+                type="search"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Escape") setSearchInput(""); }}
+                placeholder="Search question or answer text…"
+                aria-label="Search questions"
+                className="w-72 max-w-full pl-3 pr-8 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 text-sm placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+              />
+              {searchInput && (
+                <button
+                  onClick={() => setSearchInput("")}
+                  aria-label="Clear search"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 px-1 text-slate-400 hover:text-white"
+                >
+                  ×
+                </button>
+              )}
+            </div>
+          )}
           {activeTab === "questions" && canShowQuestions && (
             <select
               value={publishedFilter}
@@ -706,7 +755,7 @@ function QuestionsPage() {
       </div>
 
       {/* ── Questions tab ─────────────────────────────────── */}
-      {!builderOpen && activeTab === "questions" && (!activeCategory && !subjectIdParam ? (
+      {!builderOpen && activeTab === "questions" && (!searching && !activeCategory && !subjectIdParam ? (
         /* ── Category picker ─────────────────────────────── */
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-lg">
           <CategoryCard
@@ -722,7 +771,7 @@ function QuestionsPage() {
             onClick={() => setActiveCategory("POST_UTME")}
           />
         </div>
-      ) : activeCategory === "JAMB" && !activeSubject ? (
+      ) : !searching && activeCategory === "JAMB" && !activeSubject ? (
         /* ── JAMB subject picker ─────────────────────────── */
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-8">
           {subjects.map((sub, i) => (
@@ -742,7 +791,7 @@ function QuestionsPage() {
             </div>
           ))}
         </div>
-      ) : activeCategory === "POST_UTME" && !activeSchool ? (
+      ) : !searching && activeCategory === "POST_UTME" && !activeSchool ? (
         /* ── School picker ───────────────────────────────── */
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-8">
           {SCHOOLS.map((s, i) => {
@@ -766,7 +815,7 @@ function QuestionsPage() {
             );
           })}
         </div>
-      ) : activeYear === null && !subjectIdParam ? (
+      ) : !searching && activeYear === null && !subjectIdParam ? (
         /* ── Year picker ─────────────────────────────────── */
         <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 flex flex-col items-center justify-center min-h-[300px]">
           <h2 className="text-lg font-medium text-white mb-6">
@@ -793,6 +842,19 @@ function QuestionsPage() {
       ) : (
         /* ── Questions list ──────────────────────────────── */
         <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6">
+          {searching && (
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-4 text-sm text-slate-400">
+              <span>
+                {loading ? "Searching" : `${total} ${total === 1 ? "match" : "matches"}`} for{" "}
+                <span className="text-white">“{search}”</span> in {searchScope || "all questions"}
+              </span>
+              {searchScope && (
+                <button onClick={resetNavigation} className="text-indigo-400 hover:text-indigo-300">
+                  Search all questions
+                </button>
+              )}
+            </div>
+          )}
           {fetchError && (
             <p className="text-red-400 text-sm mb-4 bg-red-900/20 border border-red-800 rounded-lg px-4 py-2">{fetchError}</p>
           )}
@@ -876,6 +938,7 @@ function QuestionsPage() {
                 {questions.map((q) => (
                   <div key={q.id} className="py-3 space-y-2">
                     <p className="text-white text-sm line-clamp-2">{q.text}</p>
+                    {searching && <p className="text-xs text-slate-500">{questionPlace(q)}</p>}
                     <div className="flex items-center gap-2 flex-wrap text-xs">
                       <span className={`font-medium ${difficultyColors[q.difficulty] ?? "text-slate-400"}`}>{q.difficulty}</span>
                       <span className="text-slate-500">{q.year ?? "No year"}</span>
@@ -938,7 +1001,10 @@ function QuestionsPage() {
                             className="rounded border-slate-600 bg-slate-800 text-indigo-500 cursor-pointer"
                           />
                         </td>
-                        <td className="py-3 text-white max-w-xs"><p className="truncate">{q.text}</p></td>
+                        <td className="py-3 text-white max-w-xs">
+                          <p className="truncate" title={q.text}>{q.text}</p>
+                          {searching && <p className="text-xs text-slate-500 mt-0.5">{questionPlace(q)}</p>}
+                        </td>
                         <td className="py-3 text-slate-500">{q.topic ? q.topic.name : "—"}</td>
                         <td className={`py-3 font-medium ${difficultyColors[q.difficulty] ?? "text-slate-400"}`}>{q.difficulty}</td>
                         <td className="py-3 text-slate-400">{q.year ?? "—"}</td>
