@@ -106,14 +106,14 @@ function LoginForm() {
             value={identifier}
             onChange={(e) => setIdentifier(e.target.value)}
             required
-            className="w-full px-4 py-3 rounded-xl bg-white/50 dark:bg-black/50 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+            className="w-full px-4 py-3 rounded-xl bg-white/50 dark:bg-black/50 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500/50 transition-all"
           />
         </div>
 
         <div className="space-y-1">
           <div className="flex items-center justify-between ml-1">
             <label className="text-sm font-medium">Password</label>
-            <Link href="/forgot-password" className="text-xs text-indigo-500 hover:text-indigo-600 font-semibold">
+            <Link href="/forgot-password" className="text-xs text-brand-500 hover:text-brand-600 font-semibold">
               Forgot?
             </Link>
           </div>
@@ -123,7 +123,7 @@ function LoginForm() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            className="w-full px-4 py-3 rounded-xl bg-white/50 dark:bg-black/50 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+            className="w-full px-4 py-3 rounded-xl bg-white/50 dark:bg-black/50 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500/50 transition-all"
           />
         </div>
 
@@ -138,7 +138,7 @@ function LoginForm() {
 
       <p className="text-center text-sm text-slate-500 dark:text-slate-400 mt-8">
         Don&apos;t have an account?{" "}
-        <Link href="/register" className="text-indigo-500 font-semibold hover:text-indigo-600 transition-colors">
+        <Link href="/register" className="text-brand-500 font-semibold hover:text-brand-600 transition-colors">
           Create one
         </Link>
       </p>

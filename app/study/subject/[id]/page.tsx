@@ -25,7 +25,7 @@ function StepMarker({ topic, step }: { topic: MapTopic; step: number }) {
     );
   }
   return (
-    <span className={`${base} ${topic.recommended ? "bg-indigo-600 text-white" : "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400"}`}>
+    <span className={`${base} ${topic.recommended ? "bg-brand-600 text-white" : "bg-brand-500/10 text-brand-600 dark:text-brand-400"}`}>
       {step}
     </span>
   );
@@ -53,7 +53,7 @@ export default function StudySubjectPage({ params }: { params: Promise<{ id: str
     return (
       <div className="max-w-xl mx-auto glass-panel p-10 rounded-2xl text-center space-y-4">
         <p className="text-slate-500">We couldn&apos;t find that subject.</p>
-        <Link href="/study" className="text-indigo-600 dark:text-indigo-400 font-semibold hover:underline">Back to Study</Link>
+        <Link href="/study" className="text-brand-600 dark:text-brand-400 font-semibold hover:underline">Back to Study</Link>
       </div>
     );
   }
@@ -92,16 +92,16 @@ export default function StudySubjectPage({ params }: { params: Promise<{ id: str
               {i > 0 && (
                 <div aria-hidden="true" className={`mx-auto w-0.5 h-6 ${topics[i - 1].state === "done" ? "bg-emerald-500" : "bg-slate-200 dark:bg-slate-800"}`} />
               )}
-              <div className={t.recommended ? "rounded-3xl bg-indigo-500/10 p-3 pt-2" : ""}>
+              <div className={t.recommended ? "rounded-3xl bg-brand-500/10 p-3 pt-2" : ""}>
                 {t.recommended && (
-                  <span className="inline-block mb-2 ml-1 text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-indigo-600 text-white">
+                  <span className="inline-block mb-2 ml-1 text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-brand-600 text-white">
                     Recommended next
                   </span>
                 )}
                 <Link
                   href={`/study/topic/${t.id}`}
                   aria-current={t.recommended ? "step" : undefined}
-                  className={`flex items-center gap-4 p-4 rounded-2xl border bg-white dark:bg-slate-900/70 hover:-translate-y-0.5 hover:shadow-lg transition-all ${t.recommended ? "border-indigo-500" : "border-slate-200 dark:border-slate-800"}`}
+                  className={`flex items-center gap-4 p-4 rounded-2xl border bg-white dark:bg-slate-900/70 hover:-translate-y-0.5 hover:shadow-lg transition-all ${t.recommended ? "border-brand-500" : "border-slate-200 dark:border-slate-800"}`}
                 >
                   <StepMarker topic={t} step={i + 1} />
                   <span className="flex-1 min-w-0">

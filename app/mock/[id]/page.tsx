@@ -71,7 +71,7 @@ export default function MockLandingPage() {
   }, [id]);
 
   if (error) return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0f172a] text-white p-6">
+    <div className="min-h-screen flex items-center justify-center bg-navy-900 text-white p-6">
       <div className="text-center space-y-4 max-w-sm">
         <div className="text-6xl">😕</div>
         <h1 className="text-2xl font-bold">Exam not available</h1>
@@ -81,13 +81,13 @@ export default function MockLandingPage() {
   );
 
   if (!exam) return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0f172a]">
-      <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+    <div className="min-h-screen flex items-center justify-center bg-navy-900">
+      <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-white flex flex-col items-center justify-center p-6">
+    <div className="min-h-screen bg-navy-900 text-white flex flex-col items-center justify-center p-6">
       <div className="w-full max-w-lg space-y-6">
         {/* Header */}
         <div className="text-center space-y-3">
@@ -104,7 +104,7 @@ export default function MockLandingPage() {
             { label: "Max Attempts", value: "2" },
           ].map((s) => (
             <div key={s.label} className="bg-white/5 rounded-2xl p-4 text-center">
-              <div className="text-2xl font-bold text-indigo-300">{s.value}</div>
+              <div className="text-2xl font-bold text-brand-300">{s.value}</div>
               <div className="text-xs text-slate-400 mt-1">{s.label}</div>
             </div>
           ))}
@@ -138,7 +138,7 @@ export default function MockLandingPage() {
             countdown !== null && (
               <div className="space-y-1">
                 <p className="text-sm text-slate-400 uppercase tracking-wider">Starts in</p>
-                <div className="text-4xl font-mono font-bold text-indigo-300">{fmtCountdown(countdown)}</div>
+                <div className="text-4xl font-mono font-bold text-brand-300">{fmtCountdown(countdown)}</div>
               </div>
             )
           )}
@@ -150,14 +150,14 @@ export default function MockLandingPage() {
             {hasToken ? (
               <button
                 onClick={() => router.push(`/mock/${id}/subjects`)}
-                className="w-full py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-lg transition-colors"
+                className="w-full py-3.5 rounded-2xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-lg transition-colors"
               >
                 Enter Exam
               </button>
             ) : (
               <>
                 <Link href={`/mock/${id}/login`}
-                  className="block w-full py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-center text-lg transition-colors">
+                  className="block w-full py-3.5 rounded-2xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-center text-lg transition-colors">
                   Log In
                 </Link>
                 <Link href={`/mock/${id}/register`}

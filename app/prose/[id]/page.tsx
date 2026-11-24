@@ -85,7 +85,7 @@ export default function ProseDetailPage({ params }: { params: Promise<{ id: stri
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
         <p className="text-red-500">{error || "Prose text not found."}</p>
-        <Link href="/prose" className="text-indigo-500 hover:underline text-sm">← Back to Prose</Link>
+        <Link href="/prose" className="text-brand-500 hover:underline text-sm">← Back to Prose</Link>
       </div>
     );
   }
@@ -93,7 +93,7 @@ export default function ProseDetailPage({ params }: { params: Promise<{ id: stri
   return (
     <div className="space-y-8 max-w-4xl">
       {/* Back link */}
-      <Link href="/prose" className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-indigo-500 transition-colors">
+      <Link href="/prose" className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-brand-500 transition-colors">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
         Back to Prose
       </Link>
@@ -112,7 +112,7 @@ export default function ProseDetailPage({ params }: { params: Promise<{ id: stri
             {themes.length > 0 && (
               <div className="flex flex-wrap gap-2 mb-4">
                 {themes.map((theme) => (
-                  <span key={theme} className="px-3 py-1 rounded-full text-xs font-medium bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-800">
+                  <span key={theme} className="px-3 py-1 rounded-full text-xs font-medium bg-brand-50 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300 border border-brand-100 dark:border-brand-800">
                     {theme}
                   </span>
                 ))}
@@ -149,7 +149,7 @@ export default function ProseDetailPage({ params }: { params: Promise<{ id: stri
             onClick={() => setActiveTab(key)}
             className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
               activeTab === key
-                ? "border-indigo-500 text-indigo-600 dark:text-indigo-400"
+                ? "border-brand-500 text-brand-600 dark:text-brand-400"
                 : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
             }`}
           >
@@ -175,7 +175,7 @@ export default function ProseDetailPage({ params }: { params: Promise<{ id: stri
               <ul className="space-y-2">
                 {themes.map((theme) => (
                   <li key={theme} className="flex items-center gap-3 text-slate-700 dark:text-slate-300">
-                    <span className="w-2 h-2 rounded-full bg-indigo-500 flex-shrink-0" />
+                    <span className="w-2 h-2 rounded-full bg-brand-500 flex-shrink-0" />
                     <span className="capitalize">{theme}</span>
                   </li>
                 ))}
@@ -190,7 +190,7 @@ export default function ProseDetailPage({ params }: { params: Promise<{ id: stri
                   <li key={s.id}>
                     <button
                       onClick={() => { setActiveTab("read"); setActiveChapter(i); }}
-                      className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline text-left"
+                      className="text-sm text-brand-600 dark:text-brand-400 hover:underline text-left"
                     >
                       {s.title}
                     </button>
@@ -215,7 +215,7 @@ export default function ProseDetailPage({ params }: { params: Promise<{ id: stri
                     onClick={() => setActiveChapter(i)}
                     className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
                       activeChapter === i
-                        ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 font-medium"
+                        ? "bg-brand-50 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300 font-medium"
                         : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
                     }`}
                   >
@@ -251,7 +251,7 @@ export default function ProseDetailPage({ params }: { params: Promise<{ id: stri
                   <button
                     onClick={() => setActiveChapter((c) => Math.max(0, c - 1))}
                     disabled={activeChapter === 0}
-                    className="flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-indigo-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    className="flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-brand-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
                     Previous
@@ -262,7 +262,7 @@ export default function ProseDetailPage({ params }: { params: Promise<{ id: stri
                   <button
                     onClick={() => setActiveChapter((c) => Math.min(sortedSections.length - 1, c + 1))}
                     disabled={activeChapter === sortedSections.length - 1}
-                    className="flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-indigo-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    className="flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-brand-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                   >
                     Next
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>

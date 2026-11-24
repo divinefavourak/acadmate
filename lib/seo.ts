@@ -9,9 +9,8 @@ export const SITE_DESCRIPTION =
   "Free JAMB CBT practice and Post-UTME past questions for Nigerian students. " +
   "8,600+ questions across 11 subjects. Practice online, track your progress, and ace your exams.";
 
-// Default OG fallback — replace with a proper 1200×630 branded image.
-export const DEFAULT_OG_IMAGE =
-  "/images/520596414_739489019062965_5923685459460735498_n.jpg";
+// 1200x630 share image, built by scripts/brand/build.mjs.
+export const DEFAULT_OG_IMAGE = "/brand/og.png";
 
 // ─── URL helpers ─────────────────────────────────────────────────────────────
 
@@ -101,9 +100,9 @@ export function organizationSchema() {
     url: SITE_URL,
     logo: {
       "@type": "ImageObject",
-      url: canonicalUrl("/images/logo.jpg"),
-      width: 192,
-      height: 192,
+      url: canonicalUrl("/brand/icon-512.png"),
+      width: 512,
+      height: 512,
     },
     description: SITE_DESCRIPTION,
     areaServed: "NG",

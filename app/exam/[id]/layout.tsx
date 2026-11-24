@@ -10,7 +10,7 @@ export default function ExamLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col h-dvh overflow-hidden bg-slate-50 dark:bg-[#09090b] select-none">
+    <div className="flex flex-col h-dvh overflow-hidden bg-slate-50 dark:bg-navy-950 select-none">
       {children}
     </div>
   );

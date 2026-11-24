@@ -21,7 +21,7 @@ export default function UserMenu({ compact = false, className = "" }: Props) {
       <Link
         href="/dashboard/profile"
         aria-label="Profile"
-        className={`shrink-0 rounded-full ring-2 ring-transparent hover:ring-indigo-500/40 transition ${className}`}
+        className={`shrink-0 rounded-full ring-2 ring-transparent hover:ring-brand-500/40 transition ${className}`}
       >
         <UserAvatar avatarConfig={avatarConfig} avatarUrl={avatarUrl} name={user?.name} size={36} />
       </Link>

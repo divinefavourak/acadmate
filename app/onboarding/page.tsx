@@ -198,9 +198,9 @@ export default function OnboardingPage() {
               key={n}
               className={`h-1.5 rounded-full transition-all ${
                 n === step
-                  ? "w-8 bg-indigo-500"
+                  ? "w-8 bg-brand-500"
                   : n < step
-                  ? "w-6 bg-indigo-500/60"
+                  ? "w-6 bg-brand-500/60"
                   : "w-6 bg-slate-300 dark:bg-slate-700"
               }`}
             />
@@ -224,7 +224,7 @@ export default function OnboardingPage() {
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Your full name"
                 required
-                className="w-full px-4 py-3 rounded-xl bg-white/50 dark:bg-black/50 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+                className="w-full px-4 py-3 rounded-xl bg-white/50 dark:bg-black/50 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500/50 transition-all"
               />
             </div>
 
@@ -239,7 +239,7 @@ export default function OnboardingPage() {
                 min={10}
                 max={99}
                 required
-                className="w-full px-4 py-3 rounded-xl bg-white/50 dark:bg-black/50 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+                className="w-full px-4 py-3 rounded-xl bg-white/50 dark:bg-black/50 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500/50 transition-all"
               />
             </div>
 
@@ -251,7 +251,7 @@ export default function OnboardingPage() {
                 onChange={(e) => setInstitution(e.target.value)}
                 placeholder="e.g. University of Lagos"
                 required
-                className="w-full px-4 py-3 rounded-xl bg-white/50 dark:bg-black/50 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+                className="w-full px-4 py-3 rounded-xl bg-white/50 dark:bg-black/50 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500/50 transition-all"
               />
               <p className="text-xs text-slate-500 pt-1">
                 The university you&apos;re aiming for. Drives Post-UTME paper selection.
@@ -271,14 +271,14 @@ export default function OnboardingPage() {
 
             <div className="space-y-2">
               {COMPULSORY_LABELS.map((label) => (
-                <div key={label} className="flex items-center gap-3 p-3 rounded-xl border-2 border-indigo-500 bg-indigo-50/50 dark:bg-indigo-900/20">
-                  <div className="shrink-0 w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center">
+                <div key={label} className="flex items-center gap-3 p-3 rounded-xl border-2 border-brand-500 bg-brand-50/50 dark:bg-brand-900/20">
+                  <div className="shrink-0 w-6 h-6 rounded-full bg-brand-600 flex items-center justify-center">
                     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                       <polyline points="20 6 9 17 4 12" />
                     </svg>
                   </div>
                   <div className="font-semibold text-sm">{label}</div>
-                  <span className="ml-auto text-xs font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-100 dark:bg-indigo-900/40 px-2 py-0.5 rounded-full">
+                  <span className="ml-auto text-xs font-semibold text-brand-600 dark:text-brand-400 bg-brand-100 dark:bg-brand-900/40 px-2 py-0.5 rounded-full">
                     Compulsory
                   </span>
                 </div>
@@ -312,7 +312,7 @@ export default function OnboardingPage() {
                       disabled={disabled}
                       className={`px-3 py-2.5 rounded-xl border-2 text-sm font-medium text-left transition-all disabled:opacity-30 disabled:cursor-not-allowed ${
                         selected
-                          ? "border-indigo-500 bg-indigo-50/50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300"
+                          ? "border-brand-500 bg-brand-50/50 dark:bg-brand-900/20 text-brand-700 dark:text-brand-300"
                           : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
                       }`}
                     >
@@ -409,7 +409,7 @@ export default function OnboardingPage() {
 
       <p className="text-center text-xs text-slate-400">
         Wrong account?{" "}
-        <Link href="/login" className="text-indigo-500 hover:text-indigo-600 font-medium">
+        <Link href="/login" className="text-brand-500 hover:text-brand-600 font-medium">
           Sign in again
         </Link>
       </p>

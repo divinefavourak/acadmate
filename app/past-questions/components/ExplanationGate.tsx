@@ -48,14 +48,14 @@ export function ExplanationGate({ slug, anchor }: { slug: string; anchor?: strin
   if (state.kind === "signed-out") {
     const back = `${pathname}${anchor ? `#${anchor}` : ""}`;
     return (
-      <div className="mt-3 rounded-md border border-indigo-500/20 bg-white/70 dark:bg-white/5 p-3">
+      <div className="mt-3 rounded-md border border-brand-500/20 bg-white/70 dark:bg-white/5 p-3">
         <p className="text-sm text-slate-700 dark:text-slate-300">
           Sign in to see the worked explanation. It&apos;s free.
         </p>
         <div className="mt-2.5 flex flex-wrap gap-2">
           <Link
             href={`/login?callbackUrl=${encodeURIComponent(back)}`}
-            className="rounded-md bg-indigo-600 hover:bg-indigo-500 px-3.5 py-1.5 text-sm font-semibold text-white transition-colors"
+            className="rounded-md bg-brand-600 hover:bg-brand-500 px-3.5 py-1.5 text-sm font-semibold text-white transition-colors"
           >
             Sign in
           </Link>
@@ -77,7 +77,7 @@ export function ExplanationGate({ slug, anchor }: { slug: string; anchor?: strin
         <button
           type="button"
           onClick={() => setState({ kind: "idle" })}
-          className="font-medium text-indigo-700 dark:text-indigo-300 hover:underline"
+          className="font-medium text-brand-700 dark:text-brand-300 hover:underline"
         >
           Try again
         </button>

@@ -20,7 +20,7 @@ const outfit = Outfit({
 });
 
 export const viewport: Viewport = {
-  themeColor: "#6366f1",
+  themeColor: "#0874d4",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -71,12 +71,7 @@ export const metadata: Metadata = {
     title: SITE_NAME,
   },
 
-  // ── Icons ────────────────────────────────────────────────────────────────
-  icons: {
-    icon: "/images/logo.jpg",
-    apple: "/images/logo.jpg",
-    shortcut: "/images/logo.jpg",
-  },
+  // Icons come from the file conventions: app/icon.svg and app/apple-icon.png.
 
   // ── Open Graph defaults ─────────────────────────────────────────────────
   openGraph: {

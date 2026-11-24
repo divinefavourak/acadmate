@@ -9,7 +9,7 @@ import type { StrikeWarning } from "@/app/exam/hooks/useExamGuard";
 import Calculator from "@/app/exam/components/Calculator";
 import MathText from "@/app/components/MathText";
 import ConfirmModal from "@/app/components/ConfirmModal";
-import Image from "next/image";
+import { BrandMark } from "@/app/components/BrandMark";
 
 interface Option { label: string; text: string }
 interface Question { id: string; text: string; subject: string | null; imageUrl?: string | null; options: Option[] }
@@ -209,16 +209,16 @@ export default function MockExamPage() {
   }
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0f172a]">
+    <div className="min-h-screen flex items-center justify-center bg-navy-900">
       <div className="text-center space-y-3">
-        <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto" />
+        <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin mx-auto" />
         <p className="text-slate-400 text-sm">Loading your exam…</p>
       </div>
     </div>
   );
 
   if (error) return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0f172a] text-white p-6">
+    <div className="min-h-screen flex items-center justify-center bg-navy-900 text-white p-6">
       <div className="text-center space-y-4 max-w-sm">
         <div className="text-5xl">⛔</div>
         <h1 className="text-xl font-bold">Can&apos;t start exam</h1>
@@ -239,12 +239,12 @@ export default function MockExamPage() {
   const timerCritical = (secondsLeft ?? 0) < 120;
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-white flex flex-col">
+    <div className="min-h-screen bg-navy-900 text-white flex flex-col">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-[#0f172a]/95 backdrop-blur border-b border-white/10 px-4 py-3">
+      <div className="sticky top-0 z-10 bg-navy-900/95 backdrop-blur border-b border-white/10 px-4 py-3">
         <div className="max-w-2xl mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center gap-2.5 min-w-0">
-            <Image src="/images/logo.jpg" alt="Acadmate" width={30} height={30} className="rounded-lg shadow-md object-cover shrink-0" />
+            <BrandMark size={30} tone="dark" />
             <div className="min-w-0">
               <p className="text-xs text-slate-500 uppercase tracking-wider">Attempt {session.attemptNumber}</p>
               <p className="font-semibold truncate text-sm">{session.examTitle}</p>
@@ -266,14 +266,14 @@ export default function MockExamPage() {
                 ⚠ {strikes}/2
               </span>
             )}
-            <div className={`text-2xl font-mono font-bold tabular-nums ${timerCritical ? "text-red-400 animate-pulse" : "text-indigo-300"}`}>
+            <div className={`text-2xl font-mono font-bold tabular-nums ${timerCritical ? "text-red-400 animate-pulse" : "text-brand-300"}`}>
               {secondsLeft !== null ? fmtTimer(secondsLeft) : "--:--"}
             </div>
           </div>
         </div>
         {/* Progress bar */}
         <div className="max-w-2xl mx-auto mt-2 h-1 bg-white/10 rounded-full overflow-hidden">
-          <div className="h-full bg-indigo-500 rounded-full transition-all duration-300" style={{ width: `${progress}%` }} />
+          <div className="h-full bg-brand-500 rounded-full transition-all duration-300" style={{ width: `${progress}%` }} />
         </div>
         <div className="max-w-2xl mx-auto mt-1 text-xs text-slate-500">
           {answered}/{total} answered
@@ -293,9 +293,9 @@ export default function MockExamPage() {
                 onClick={() => setCurrent(i)}
                 className={`w-8 h-8 rounded-lg text-xs font-bold transition-colors ${
                   i === current
-                    ? "bg-indigo-600 text-white"
+                    ? "bg-brand-600 text-white"
                     : isAnswered
-                    ? "bg-indigo-900/60 text-indigo-300"
+                    ? "bg-brand-900/60 text-brand-300"
                     : "bg-white/5 text-slate-400 hover:bg-white/10"
                 }`}
               >
@@ -310,7 +310,7 @@ export default function MockExamPage() {
           <div className="flex-1 space-y-4">
             <div className="bg-white/5 rounded-2xl p-5 space-y-3">
               <div className="flex items-start gap-3">
-                <span className="shrink-0 w-7 h-7 rounded-full bg-indigo-600/60 text-xs font-bold flex items-center justify-center text-indigo-200">
+                <span className="shrink-0 w-7 h-7 rounded-full bg-brand-600/60 text-xs font-bold flex items-center justify-center text-brand-200">
                   {current + 1}
                 </span>
                 <MathText text={q.text} className="leading-relaxed text-white" />
@@ -329,12 +329,12 @@ export default function MockExamPage() {
                     onClick={() => selectAnswer(q.id, opt.label)}
                     className={`w-full flex items-start gap-3 px-4 py-3.5 rounded-xl text-left transition-all ${
                       selected
-                        ? "bg-indigo-600 border-2 border-indigo-400 text-white"
+                        ? "bg-brand-600 border-2 border-brand-400 text-white"
                         : "bg-white/5 border-2 border-transparent hover:bg-white/10 text-slate-200"
                     }`}
                   >
                     <span className={`shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs font-bold mt-0.5 ${
-                      selected ? "border-white bg-white text-indigo-600" : "border-slate-500 text-slate-400"
+                      selected ? "border-white bg-white text-brand-600" : "border-slate-500 text-slate-400"
                     }`}>
                       {opt.label}
                     </span>
@@ -356,7 +356,7 @@ export default function MockExamPage() {
               {current < total - 1 ? (
                 <button
                   onClick={() => setCurrent((c) => Math.min(total - 1, c + 1))}
-                  className="px-5 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-500 transition-colors"
+                  className="px-5 py-2.5 rounded-xl bg-brand-600 text-white text-sm font-medium hover:bg-brand-500 transition-colors"
                 >
                   Next →
                 </button>
@@ -406,7 +406,7 @@ export default function MockExamPage() {
       {/* Panic modal */}
       {showPanicModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <div className="bg-[#1e293b] rounded-2xl p-6 w-full max-w-sm space-y-4">
+          <div className="bg-slate-800 rounded-2xl p-6 w-full max-w-sm space-y-4">
             {panicSent ? (
               <div className="text-center space-y-3">
                 <div className="text-4xl">✅</div>
@@ -473,7 +473,7 @@ function StrikeWarningModal({
 
   return (
     <div className="fixed inset-0 z-999 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-      <div className="w-full max-w-md bg-[#1e293b] rounded-2xl shadow-2xl border border-white/10 overflow-hidden">
+      <div className="w-full max-w-md bg-slate-800 rounded-2xl shadow-2xl border border-white/10 overflow-hidden">
         <div className={`h-1.5 w-full ${isFinal ? "bg-red-600" : "bg-amber-500"}`} />
         <div className="p-6 sm:p-8 space-y-5">
           <div className="flex items-start gap-4">
@@ -495,7 +495,7 @@ function StrikeWarningModal({
           {!isFinal && (
             <button
               onClick={onDismiss}
-              className="w-full py-3 rounded-xl font-bold text-sm bg-indigo-600 hover:bg-indigo-500 text-white transition-colors"
+              className="w-full py-3 rounded-xl font-bold text-sm bg-brand-600 hover:bg-brand-500 text-white transition-colors"
             >
               I understand — return to exam
             </button>

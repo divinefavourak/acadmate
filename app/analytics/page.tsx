@@ -13,7 +13,7 @@ interface AnalyticsData {
   weakTopics: { topicId: string; name: string; correct: number; total: number; percentage: number }[];
 }
 
-function ScoreBar({ percentage, color = "bg-indigo-500" }: { percentage: number; color?: string }) {
+function ScoreBar({ percentage, color = "bg-brand-500" }: { percentage: number; color?: string }) {
   return (
     <div className="w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
       <div className={`h-full ${color} rounded-full transition-all`} style={{ width: `${percentage}%` }} />
@@ -70,7 +70,7 @@ export default function AnalyticsPage() {
               <div key={t.id} className="flex-1 flex flex-col items-center gap-2">
                 <span className="text-xs font-medium text-slate-500">{Math.round(t.score)}%</span>
                 <div
-                  className="w-full bg-indigo-500 rounded-t-sm"
+                  className="w-full bg-brand-500 rounded-t-sm"
                   style={{ height: `${(t.score / maxTrend) * 100}%` }}
                 />
                 <span className="text-xs text-slate-500">#{i + 1}</span>

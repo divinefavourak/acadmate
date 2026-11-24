@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { SCHOOLS } from "@/features/post-utme/constants";
 import { schoolHasQuestions } from "@/features/post-utme/api";
-import Folder from "@/app/admin/components/Folder";
+import Folder from "@/app/components/Folder";
 
 const SCHOOL_COLORS = [
   "#16A34A", "#2563EB", "#7C3AED", "#DC2626",
@@ -40,7 +40,7 @@ export default function PostUtmeSchoolsPage() {
         <span>/</span>
         <span className="text-slate-800 dark:text-slate-200 font-medium">Post-UTME</span>
         <span>/</span>
-        <span className="text-indigo-600 dark:text-indigo-400 font-medium">Select School</span>
+        <span className="text-brand-600 dark:text-brand-400 font-medium">Select School</span>
       </nav>
 
       <div>
@@ -68,7 +68,7 @@ export default function PostUtmeSchoolsPage() {
               <Folder color={SCHOOL_COLORS[i % SCHOOL_COLORS.length]} size={1.2} />
               <div className="text-center">
                 <p className={`font-bold text-sm transition-colors ${
-                  isReady ? "group-hover:text-indigo-400 dark:group-hover:text-indigo-400" : ""
+                  isReady ? "group-hover:text-brand-400 dark:group-hover:text-brand-400" : ""
                 }`}>
                   {school.abbr}
                 </p>

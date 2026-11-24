@@ -47,7 +47,7 @@ export default function ForgotPasswordPage() {
           <p className="text-slate-400 text-sm">
             If <strong>{email}</strong> is registered, we sent a reset link. It expires in 1 hour.
           </p>
-          <Link href="/login" className="text-indigo-500 text-sm font-semibold hover:text-indigo-400 transition-colors">
+          <Link href="/login" className="text-brand-500 text-sm font-semibold hover:text-brand-400 transition-colors">
             ← Back to sign in
           </Link>
         </div>
@@ -75,7 +75,7 @@ export default function ForgotPasswordPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full px-4 py-3 rounded-xl bg-white/50 dark:bg-black/50 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+                className="w-full px-4 py-3 rounded-xl bg-white/50 dark:bg-black/50 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500/50 transition-all"
               />
             </div>
 
@@ -90,7 +90,7 @@ export default function ForgotPasswordPage() {
 
           <p className="text-center text-sm text-slate-500 dark:text-slate-400 mt-6">
             Remembered it?{" "}
-            <Link href="/login" className="text-indigo-500 font-semibold hover:text-indigo-600 transition-colors">
+            <Link href="/login" className="text-brand-500 font-semibold hover:text-brand-600 transition-colors">
               Sign in
             </Link>
           </p>

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiClient, ApiError } from "@/lib/api/client";
 import Loader from "@/app/components/Loader";
-import Folder from "@/app/admin/components/Folder";
+import Folder from "@/app/components/Folder";
 
 const SUBJECT_COLORS = [
   "#4F46E5", "#7C3AED", "#2563EB", "#0891B2",
@@ -266,7 +266,7 @@ export default function NewExamPage() {
                       !available
                         ? "border-slate-200 dark:border-slate-800 opacity-50"
                         : mode === id
-                        ? "border-indigo-500 bg-indigo-50/50 dark:bg-indigo-900/20"
+                        ? "border-brand-500 bg-brand-50/50 dark:bg-brand-900/20"
                         : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
                     }`}
                   >
@@ -299,8 +299,8 @@ export default function NewExamPage() {
               </div>
 
               {/* Use of English — locked/compulsory */}
-              <div className="flex items-center gap-3 p-3 rounded-xl border-2 border-indigo-500 bg-indigo-50/50 dark:bg-indigo-900/20">
-                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center">
+              <div className="flex items-center gap-3 p-3 rounded-xl border-2 border-brand-500 bg-brand-50/50 dark:bg-brand-900/20">
+                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-brand-600 flex items-center justify-center">
                   <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
@@ -311,7 +311,7 @@ export default function NewExamPage() {
                   </div>
                   <div className="text-xs text-slate-500">30 objective + 10 prose questions</div>
                 </div>
-                <span className="ml-auto flex-shrink-0 text-xs font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-100 dark:bg-indigo-900/40 px-2 py-0.5 rounded-full">
+                <span className="ml-auto flex-shrink-0 text-xs font-semibold text-brand-600 dark:text-brand-400 bg-brand-100 dark:bg-brand-900/40 px-2 py-0.5 rounded-full">
                   Compulsory
                 </span>
               </div>
@@ -351,7 +351,7 @@ export default function NewExamPage() {
                           onToggle={() => toggleSubject(s.id)}
                         />
                         <span className={`text-xs font-medium text-center leading-tight transition-colors ${
-                          isSelected ? "text-indigo-400" : "text-slate-400 group-hover:text-slate-200"
+                          isSelected ? "text-brand-400" : "text-slate-400 group-hover:text-slate-200"
                         }`}>
                           {s.name}
                         </span>
@@ -374,7 +374,7 @@ export default function NewExamPage() {
                       onClick={() => setSelectedProseId("")}
                       className={`w-full p-3 rounded-xl border-2 text-left transition-all ${
                         selectedProseId === ""
-                          ? "border-indigo-500 bg-indigo-50/50 dark:bg-indigo-900/20"
+                          ? "border-brand-500 bg-brand-50/50 dark:bg-brand-900/20"
                           : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
                       }`}
                     >
@@ -389,7 +389,7 @@ export default function NewExamPage() {
                         disabled={pt._count.questions === 0}
                         className={`w-full p-3 rounded-xl border-2 text-left transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
                           selectedProseId === pt.id
-                            ? "border-indigo-500 bg-indigo-50/50 dark:bg-indigo-900/20"
+                            ? "border-brand-500 bg-brand-50/50 dark:bg-brand-900/20"
                             : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
                         }`}
                       >
@@ -430,7 +430,7 @@ export default function NewExamPage() {
                         onToggle={() => setSelectedSubject(s.id)}
                       />
                       <span className={`text-xs font-medium text-center leading-tight transition-colors ${
-                        selectedSubject === s.id ? "text-indigo-400" : "text-slate-400 group-hover:text-slate-200"
+                        selectedSubject === s.id ? "text-brand-400" : "text-slate-400 group-hover:text-slate-200"
                       }`}>
                         {s.name}
                       </span>
@@ -448,9 +448,9 @@ export default function NewExamPage() {
                     step={5}
                     value={questionCount}
                     onChange={(e) => setQuestionCount(Number(e.target.value))}
-                    className="flex-1 accent-indigo-500"
+                    className="flex-1 accent-brand-500"
                   />
-                  <span className="w-12 text-right font-semibold text-indigo-600 dark:text-indigo-400">
+                  <span className="w-12 text-right font-semibold text-brand-600 dark:text-brand-400">
                     {questionCount}
                   </span>
                 </div>
@@ -481,7 +481,7 @@ export default function NewExamPage() {
                           onToggle={() => setSelectedSubject(s.id)}
                         />
                         <span className={`text-xs font-medium text-center leading-tight transition-colors ${
-                          selectedSubject === s.id ? "text-indigo-400" : "text-slate-400 group-hover:text-slate-200"
+                          selectedSubject === s.id ? "text-brand-400" : "text-slate-400 group-hover:text-slate-200"
                         }`}>
                           {s.name}
                         </span>
@@ -506,7 +506,7 @@ export default function NewExamPage() {
                         disabled={t._count.questions === 0}
                         className={`w-full p-3 rounded-xl border-2 text-left transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
                           selectedTopic === t.id
-                            ? "border-indigo-500 bg-indigo-50/50 dark:bg-indigo-900/20"
+                            ? "border-brand-500 bg-brand-50/50 dark:bg-brand-900/20"
                             : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
                         }`}
                       >
@@ -528,9 +528,9 @@ export default function NewExamPage() {
                     step={5}
                     value={Math.min(questionCount, 30)}
                     onChange={(e) => setQuestionCount(Number(e.target.value))}
-                    className="flex-1 accent-indigo-500"
+                    className="flex-1 accent-brand-500"
                   />
-                  <span className="w-12 text-right font-semibold text-indigo-600 dark:text-indigo-400">
+                  <span className="w-12 text-right font-semibold text-brand-600 dark:text-brand-400">
                     {Math.min(questionCount, 30)}
                   </span>
                 </div>
@@ -542,8 +542,8 @@ export default function NewExamPage() {
           {mode === "POST_UTME" && (
             <div className="space-y-3">
               <div className="glass-panel p-5 rounded-2xl flex items-start gap-4">
-                <div className="flex-shrink-0 w-9 h-9 rounded-xl bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center mt-0.5">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-600 dark:text-indigo-400">
+                <div className="flex-shrink-0 w-9 h-9 rounded-xl bg-brand-100 dark:bg-brand-900/40 flex items-center justify-center mt-0.5">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-brand-600 dark:text-brand-400">
                     <path d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Z"/>
                     <path d="m3 9 2.45-4.9A2 2 0 0 1 7.24 3h9.52a2 2 0 0 1 1.8 1.1L21 9"/>
                     <path d="M12 3v6"/>

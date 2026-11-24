@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
+import { BrandMark } from "@/app/components/BrandMark";
 import Loader from "@/app/components/Loader";
 import { apiClient, ApiError } from "@/lib/api/client";
 import { ensureToken } from "@/lib/api/auth";
@@ -99,17 +99,11 @@ export default function LiveJoinPage({
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-10 bg-slate-50 dark:bg-[#09090b]">
+    <div className="min-h-screen flex items-center justify-center px-4 py-10 bg-slate-50 dark:bg-navy-950">
       <div className="w-full max-w-md">
         {/* Brand */}
         <div className="flex items-center justify-center gap-2.5 mb-8">
-          <Image
-            src="/images/logo.jpg"
-            alt="Acadmate"
-            width={36}
-            height={36}
-            className="rounded-xl shadow-md object-cover"
-          />
+          <BrandMark size={36} />
           <span className="text-xl font-bold tracking-tight">Acadmate</span>
         </div>
 
@@ -239,7 +233,7 @@ function Detail({
       <p
         className={`font-bold mt-0.5 ${
           mono
-            ? "font-mono tracking-widest text-indigo-600 dark:text-indigo-400"
+            ? "font-mono tracking-widest text-brand-600 dark:text-brand-400"
             : "text-slate-800 dark:text-slate-100"
         }`}
       >

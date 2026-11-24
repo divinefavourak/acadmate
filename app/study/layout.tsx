@@ -10,9 +10,9 @@ export const metadata: Metadata = {
 export default function StudyLayout({ children }: { children: React.ReactNode }) {
   return (
     <UserProvider>
-    <div className="relative flex h-dvh flex-col overflow-hidden bg-slate-50 dark:bg-[#09090b] md:flex-row">
+    <div className="relative flex h-dvh flex-col overflow-hidden bg-slate-50 dark:bg-navy-950 md:flex-row">
       <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-500 rounded-full mix-blend-multiply filter blur-[150px] opacity-10 pointer-events-none" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[50%] bg-purple-500 rounded-full mix-blend-multiply filter blur-[150px] opacity-10 pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[50%] bg-mint-500 rounded-full mix-blend-multiply filter blur-[150px] opacity-10 pointer-events-none" />
       <Sidebar />
       <DashboardHeader navItems={navItems} />
       <main className="flex-1 overflow-y-auto w-full relative z-10">

@@ -110,37 +110,37 @@ export default function MockExamOverviewPage() {
         <div className="space-y-1.5">
           <label className="text-sm font-medium">Title</label>
           <input required value={title} onChange={(e) => setTitle(e.target.value)}
-            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500" />
+            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-500" />
         </div>
         <div className="space-y-1.5">
           <label className="text-sm font-medium">Custom link (slug)</label>
           <input value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="e.g. unilag-mock-2026"
-            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500" />
+            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-500" />
           <p className="text-xs text-slate-400">Shareable as /mock/your-slug. Leave blank to use the default link.</p>
         </div>
         <div className="space-y-1.5">
           <label className="text-sm font-medium">Description</label>
           <textarea rows={2} value={description} onChange={(e) => setDescription(e.target.value)}
-            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500 resize-none" />
+            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-500 resize-none" />
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Starts at</label>
             <input type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)}
-              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500" />
+              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-500" />
           </div>
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Ends at</label>
             <input type="datetime-local" value={endsAt} onChange={(e) => setEndsAt(e.target.value)}
-              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500" />
+              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-500" />
           </div>
         </div>
         <div className="space-y-1.5">
           <label className="text-sm font-medium">Duration per attempt</label>
           <div className="flex items-center gap-4">
             <input type="range" min={10} max={180} step={5} value={durationMinutes} onChange={(e) => setDurationMinutes(Number(e.target.value))}
-              className="flex-1 accent-indigo-500 cursor-pointer" />
-            <span className="w-20 text-right font-semibold text-indigo-600 dark:text-indigo-400">{durationMinutes} min</span>
+              className="flex-1 accent-brand-500 cursor-pointer" />
+            <span className="w-20 text-right font-semibold text-brand-600 dark:text-brand-400">{durationMinutes} min</span>
           </div>
         </div>
         <label className="flex items-center gap-3 cursor-pointer select-none">
@@ -150,7 +150,7 @@ export default function MockExamOverviewPage() {
             aria-checked={isActive}
             onClick={() => setIsActive((v) => !v)}
             onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setIsActive((v) => !v); } }}
-            className={`relative w-11 h-6 rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${isActive ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-700"}`}
+            className={`relative w-11 h-6 rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${isActive ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-700"}`}
           >
             <div className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${isActive ? "translate-x-5" : ""}`} />
           </button>
@@ -184,7 +184,7 @@ export default function MockExamOverviewPage() {
                 <button
                   type="button"
                   onClick={() => copyLink(l.key, l.url)}
-                  className="shrink-0 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 hover:bg-indigo-500/25 transition-colors"
+                  className="shrink-0 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-brand-500/15 text-brand-700 dark:text-brand-300 border border-brand-500/30 hover:bg-brand-500/25 transition-colors"
                 >
                   {copied === l.key ? "Copied!" : copied === `${l.key}:error` ? "Failed" : "Copy"}
                 </button>

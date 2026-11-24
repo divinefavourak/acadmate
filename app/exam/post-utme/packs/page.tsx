@@ -27,7 +27,7 @@ function PackCard({
       onClick={onSelect}
       className={`p-5 rounded-2xl border-2 text-left transition-all ${
         selected
-          ? "border-indigo-500 bg-indigo-50/60 dark:bg-indigo-900/20"
+          ? "border-brand-500 bg-brand-50/60 dark:bg-brand-900/20"
           : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white/50 dark:bg-black/30"
       }`}
     >
@@ -41,7 +41,7 @@ function PackCard({
           </div>
         </div>
         {selected && (
-          <div className="flex-shrink-0 w-5 h-5 rounded-full bg-indigo-600 flex items-center justify-center mt-0.5">
+          <div className="flex-shrink-0 w-5 h-5 rounded-full bg-brand-600 flex items-center justify-center mt-0.5">
             <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="20 6 9 17 4 12" />
             </svg>
@@ -167,7 +167,7 @@ function PacksContent() {
           </div>
           <Link
             href="/exam/post-utme/schools"
-            className="text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:underline"
+            className="text-sm font-medium text-brand-600 dark:text-brand-400 hover:underline"
           >
             ← Back to schools
           </Link>
@@ -199,7 +199,7 @@ function PacksContent() {
         <span>/</span>
         <span className="text-slate-800 dark:text-slate-200 font-medium">{school.abbr}</span>
         <span>/</span>
-        <span className="text-indigo-600 dark:text-indigo-400 font-medium">Select Pack</span>
+        <span className="text-brand-600 dark:text-brand-400 font-medium">Select Pack</span>
       </nav>
 
       {/* Header */}
@@ -267,9 +267,9 @@ function PacksContent() {
                 step={5}
                 value={Math.min(questionCount, Math.max(cappedMax, 10))}
                 onChange={(e) => setQuestionCount(Number(e.target.value))}
-                className="flex-1 accent-indigo-500"
+                className="flex-1 accent-brand-500"
               />
-              <span className="w-12 text-right font-semibold text-indigo-600 dark:text-indigo-400">
+              <span className="w-12 text-right font-semibold text-brand-600 dark:text-brand-400">
                 {Math.min(questionCount, Math.max(cappedMax, 10))}
               </span>
             </div>

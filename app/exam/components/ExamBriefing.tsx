@@ -1,5 +1,5 @@
 import { useState } from "react";
-import Image from "next/image";
+import { BrandMark } from "@/app/components/BrandMark";
 
 interface Props {
   mode: string;
@@ -48,9 +48,9 @@ export default function ExamBriefing({ mode, totalQuestions, durationMinutes, on
 
         {/* Branding */}
         <div className="flex flex-col items-center gap-3 text-center">
-          <Image src="/images/logo.jpg" alt="Acadmate" width={48} height={48} className="rounded-xl shadow-md" />
+          <BrandMark size={48} />
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-indigo-500 mb-1">Acadmate CBT</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-500 mb-1">Acadmate CBT</p>
             <h1 className="text-2xl font-bold">{MODE_LABEL[mode] ?? mode}</h1>
             <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">
               {totalQuestions} questions &nbsp;·&nbsp; {durationMinutes} minutes
@@ -93,7 +93,7 @@ export default function ExamBriefing({ mode, totalQuestions, durationMinutes, on
         <button
           onClick={handleBegin}
           disabled={starting}
-          className="w-full py-4 rounded-2xl font-bold text-base bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] text-white transition-all shadow-lg shadow-indigo-500/20 disabled:opacity-60 disabled:cursor-not-allowed"
+          className="w-full py-4 rounded-2xl font-bold text-base bg-brand-600 hover:bg-brand-500 active:scale-[0.98] text-white transition-all shadow-lg shadow-brand-500/20 disabled:opacity-60 disabled:cursor-not-allowed"
         >
           {starting ? "Starting…" : "I understand — Begin Exam"}
         </button>

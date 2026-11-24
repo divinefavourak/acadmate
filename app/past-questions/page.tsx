@@ -61,7 +61,7 @@ export default async function PastQuestionsHub() {
               className="rounded-2xl border border-black/5 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.03] p-5"
             >
               <h2 className="text-xl font-bold">
-                <Link href={subjectPath(s.slug)} className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                <Link href={subjectPath(s.slug)} className="hover:text-brand-600 dark:hover:text-brand-400 transition-colors">
                   JAMB {s.name}
                 </Link>
               </h2>
@@ -74,7 +74,7 @@ export default async function PastQuestionsHub() {
                   <li key={y.year}>
                     <Link
                       href={yearPath(s.slug, y.year)}
-                      className="inline-block rounded-lg border border-black/10 dark:border-white/10 px-2.5 py-1 text-sm hover:border-indigo-500/50 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                      className="inline-block rounded-lg border border-black/10 dark:border-white/10 px-2.5 py-1 text-sm hover:border-brand-500/50 hover:text-brand-600 dark:hover:text-brand-400 transition-colors"
                     >
                       {y.year}
                     </Link>

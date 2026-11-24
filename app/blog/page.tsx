@@ -42,7 +42,7 @@ export default async function BlogIndexPage() {
     <div className="space-y-10">
       {/* Heading */}
       <div className="space-y-4 max-w-2xl">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-indigo-600 dark:text-indigo-400">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-600 dark:text-brand-400">
           The Acadmate Blog
         </p>
         <h1 className="text-3xl md:text-5xl font-bold tracking-tight leading-tight">

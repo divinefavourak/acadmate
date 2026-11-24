@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
+import { BrandMark } from "@/app/components/BrandMark";
 import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "@/lib/api/auth";
 import UserMenu from "./UserMenu";
@@ -134,8 +134,8 @@ export default function Sidebar() {
       <div className={`flex items-center p-4 ${collapsed ? "justify-center" : "justify-between"}`}>
         {!collapsed && (
           <Link href="/dashboard" className="flex items-center gap-2 group min-w-0">
-            <Image src="/images/logo.jpg" alt="Acadmate Logo" width={32} height={32} className="rounded-lg shadow-md object-cover shrink-0" />
-            <span className="text-xl font-bold tracking-tight truncate">Acadmate Business Consult</span>
+            <BrandMark size={32} />
+            <span className="text-xl font-bold tracking-tight truncate">Acadmate</span>
           </Link>
         )}
         <button
@@ -160,7 +160,7 @@ export default function Sidebar() {
               title={collapsed ? label : undefined}
               className={`flex items-center ${collapsed ? "justify-center" : "gap-3"} px-4 py-3 rounded-xl font-medium transition-colors ${
                 active
-                  ? "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400"
+                  ? "bg-brand-500/10 text-brand-600 dark:text-brand-400"
                   : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50"
               }`}
             >

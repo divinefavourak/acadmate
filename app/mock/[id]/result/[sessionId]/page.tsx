@@ -66,16 +66,16 @@ export default function MockResultPage() {
   }, [id, sessionId, router]);
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0f172a]">
-      <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+    <div className="min-h-screen flex items-center justify-center bg-navy-900">
+      <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
     </div>
   );
 
   if (error || !result) return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0f172a] text-white p-6 text-center">
+    <div className="min-h-screen flex items-center justify-center bg-navy-900 text-white p-6 text-center">
       <div className="space-y-4">
         <p className="text-red-400">{error || "Result not found"}</p>
-        <Link href={`/mock/${id}`} className="text-indigo-400 hover:underline">Back to exam</Link>
+        <Link href={`/mock/${id}`} className="text-brand-400 hover:underline">Back to exam</Link>
       </div>
     </div>
   );
@@ -85,7 +85,7 @@ export default function MockResultPage() {
   const subjects = Object.entries(result.subjectBreakdown);
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-white">
+    <div className="min-h-screen bg-navy-900 text-white">
       <div className="max-w-2xl mx-auto p-6 space-y-6">
         {/* Score hero */}
         <div className="text-center space-y-4 py-8">
@@ -128,7 +128,7 @@ export default function MockResultPage() {
         {/* Actions */}
         <div className="space-y-3">
           <Link href={`/mock/${id}/leaderboard`}
-            className="block w-full py-3 text-center rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-colors">
+            className="block w-full py-3 text-center rounded-2xl bg-brand-600 hover:bg-brand-500 text-white font-semibold transition-colors">
             View Leaderboard
           </Link>
           <button

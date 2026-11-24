@@ -17,7 +17,7 @@ const jsonLd = webPageSchema({
 
 export default function TermsPage() {
   return (
-    <div className="min-h-screen bg-white dark:bg-zinc-950 text-slate-800 dark:text-slate-200">
+    <div className="min-h-screen bg-white dark:bg-navy-950 text-slate-800 dark:text-slate-200">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -25,7 +25,7 @@ export default function TermsPage() {
       <div className="max-w-3xl mx-auto px-6 py-16">
         <Link
           href="/"
-          className="text-sm text-indigo-500 hover:text-indigo-600 font-medium mb-8 inline-block"
+          className="text-sm text-brand-500 hover:text-brand-600 font-medium mb-8 inline-block"
         >
           ← Back to home
         </Link>
@@ -162,7 +162,7 @@ export default function TermsPage() {
               Questions about these terms? Email us at{" "}
               <a
                 href="mailto:acadmatebc@gmail.com"
-                className="text-indigo-500 hover:underline"
+                className="text-brand-500 hover:underline"
               >
                 acadmatebc@gmail.com
               </a>

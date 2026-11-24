@@ -45,7 +45,7 @@ export default function UserAvatar({ avatarConfig, avatarUrl, name, size = 40, c
 
   return (
     <div
-      className={`rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold select-none ${className}`}
+      className={`rounded-full bg-brand-600 text-white flex items-center justify-center font-bold select-none ${className}`}
       style={{ width: size, height: size, fontSize: size * 0.38 }}
     >
       {initials}

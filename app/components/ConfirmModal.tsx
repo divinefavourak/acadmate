@@ -66,7 +66,7 @@ export default function ConfirmModal({
             onClick={onConfirm}
             disabled={loading}
             className={`px-4 py-2 text-sm font-medium rounded-lg text-white disabled:opacity-50 transition-colors ${
-              tone === "danger" ? "bg-red-600 hover:bg-red-500" : "bg-indigo-600 hover:bg-indigo-500"
+              tone === "danger" ? "bg-red-600 hover:bg-red-500" : "bg-brand-600 hover:bg-brand-500"
             }`}
           >
             {loading ? "Working…" : confirmLabel}

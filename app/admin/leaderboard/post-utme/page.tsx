@@ -82,7 +82,7 @@ export default function AdminPostUtmeLeaderboardPage() {
                       <p className="text-xs text-slate-500 truncate">{entry.email}</p>
                     </div>
                   </div>
-                  <span className="font-bold tabular-nums text-indigo-400 text-sm">
+                  <span className="font-bold tabular-nums text-brand-400 text-sm">
                     {entry.points.toLocaleString()} pts
                   </span>
                 </div>

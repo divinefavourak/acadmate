@@ -105,7 +105,7 @@ export default function ResultsPage() {
                     <p className="text-xs text-slate-400 font-mono">{participant.phone}</p>
                   </td>
                   <td className="px-4 py-3 text-center">
-                    <span className="font-bold text-indigo-600 dark:text-indigo-400">{best!.score?.toFixed(1)}%</span>
+                    <span className="font-bold text-brand-600 dark:text-brand-400">{best!.score?.toFixed(1)}%</span>
                   </td>
                   <td className="px-4 py-3 text-center text-slate-500">{fmtDuration(best!.durationSeconds)}</td>
                   <td className="px-4 py-3 text-center text-slate-500">{best!.attemptNumber}</td>
@@ -144,7 +144,7 @@ export default function ResultsPage() {
                       <p className="text-xs text-slate-400 font-mono">{s.participant.phone}</p>
                     </td>
                     <td className="px-4 py-3 text-center font-medium">{s.attemptNumber}</td>
-                    <td className="px-4 py-3 text-center font-bold text-indigo-600 dark:text-indigo-400">
+                    <td className="px-4 py-3 text-center font-bold text-brand-600 dark:text-brand-400">
                       {s.score !== null ? `${s.score.toFixed(1)}%` : "—"}
                     </td>
                     <td className="px-4 py-3 text-center text-slate-500">{fmtDuration(s.durationSeconds)}</td>

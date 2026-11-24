@@ -152,7 +152,7 @@ function PreviewModal({
             return (
               <div key={globalIdx} className="bg-slate-800/60 border border-slate-700 rounded-xl p-4 space-y-3">
                 <div className="flex items-start gap-3">
-                  <span className="flex-shrink-0 text-xs font-bold text-indigo-400 bg-indigo-900/30 rounded-full px-2.5 py-1 mt-0.5">
+                  <span className="flex-shrink-0 text-xs font-bold text-brand-400 bg-brand-900/30 rounded-full px-2.5 py-1 mt-0.5">
                     Q{globalIdx + 1}
                   </span>
                   <div className="flex-1 min-w-0">
@@ -214,7 +214,7 @@ function PreviewModal({
               Cancel
             </button>
             <button onClick={onConfirm} disabled={uploading}
-              className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 active:scale-95">
+              className="px-5 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 active:scale-95">
               {uploading ? (
                 <>
                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
@@ -413,7 +413,7 @@ export default function ImportsPage() {
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-bold text-white">Upload Questions</h2>
           <button onClick={downloadTemplate}
-            className="text-xs text-indigo-400 hover:text-indigo-300 font-semibold flex items-center gap-1 transition-colors">
+            className="text-xs text-brand-400 hover:text-brand-300 font-semibold flex items-center gap-1 transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
             Download Template
           </button>
@@ -471,14 +471,14 @@ export default function ImportsPage() {
             type="checkbox"
             checked={createMissingTopics}
             onChange={(e) => setCreateMissingTopics(e.target.checked)}
-            className="h-4 w-4 rounded border-slate-600 bg-slate-900 accent-indigo-500"
+            className="h-4 w-4 rounded border-slate-600 bg-slate-900 accent-brand-500"
           />
           Create topics that don&apos;t exist yet
           <span className="text-xs text-slate-500">(otherwise the question imports without a topic)</span>
         </label>
 
         <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
-          <label className="flex-1 flex items-center gap-3 px-4 py-3 border-2 border-dashed border-slate-600 hover:border-indigo-500 rounded-xl cursor-pointer transition-colors min-h-[52px]">
+          <label className="flex-1 flex items-center gap-3 px-4 py-3 border-2 border-dashed border-slate-600 hover:border-brand-500 rounded-xl cursor-pointer transition-colors min-h-[52px]">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400 flex-shrink-0"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
             <span className="text-sm text-slate-400 truncate">{fileLabel}</span>
             <input
@@ -499,7 +499,7 @@ export default function ImportsPage() {
               fileRef.current?.click();
             }}
             className={`px-5 py-3 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 active:scale-95 text-white ${
-              mode === "POST_UTME" ? "bg-amber-600 hover:bg-amber-500" : "bg-indigo-600 hover:bg-indigo-500"
+              mode === "POST_UTME" ? "bg-amber-600 hover:bg-amber-500" : "bg-brand-600 hover:bg-brand-500"
             }`}
           >
             Preview & Upload
@@ -597,7 +597,7 @@ export default function ImportsPage() {
                             </span>
                             {canPublish && (
                               <button onClick={() => handlePublish(imp)} disabled={isPublishing}
-                                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-brand-600 hover:bg-brand-500 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                                 {isPublishing ? (
                                   <>
                                     <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>

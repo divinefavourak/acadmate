@@ -130,7 +130,7 @@ export default function SubjectsPage() {
         {!creating && (
           <button
             onClick={() => { setCreating(true); setCreateError(""); }}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-all active:scale-95"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-sm font-semibold transition-all active:scale-95"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             Add Subject
@@ -141,8 +141,8 @@ export default function SubjectsPage() {
       {error && <p className="text-red-500 text-sm">{error}</p>}
 
       {creating && (
-        <form onSubmit={handleCreate} className="bg-slate-800/50 border border-indigo-700/50 rounded-2xl p-5 space-y-4">
-          <h2 className="text-sm font-semibold text-indigo-400 uppercase tracking-wider">New Subject</h2>
+        <form onSubmit={handleCreate} className="bg-slate-800/50 border border-brand-700/50 rounded-2xl p-5 space-y-4">
+          <h2 className="text-sm font-semibold text-brand-400 uppercase tracking-wider">New Subject</h2>
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="flex-1 space-y-1">
               <label className="text-xs font-medium text-slate-400">Name <span className="text-red-400">*</span></label>
@@ -150,7 +150,7 @@ export default function SubjectsPage() {
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
                 placeholder="e.g. General Knowledge"
-                className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/50"
                 autoFocus
               />
             </div>
@@ -161,7 +161,7 @@ export default function SubjectsPage() {
                 onChange={(e) => setNewCode(e.target.value.toUpperCase())}
                 placeholder="e.g. GK"
                 maxLength={10}
-                className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-brand-500/50"
               />
             </div>
           </div>
@@ -170,7 +170,7 @@ export default function SubjectsPage() {
             <button
               type="submit"
               disabled={saving}
-              className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-all disabled:opacity-50 active:scale-95"
+              className="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-sm font-semibold transition-all disabled:opacity-50 active:scale-95"
             >
               {saving ? "Saving…" : "Save Subject"}
             </button>
@@ -225,7 +225,7 @@ export default function SubjectsPage() {
                           </Link>
                           <button
                             onClick={() => editingId === s.id ? setEditingId(null) : startEdit(s)}
-                            className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-indigo-900/30 text-indigo-400 hover:bg-indigo-900/50 transition-colors"
+                            className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-brand-900/30 text-brand-400 hover:bg-brand-900/50 transition-colors"
                           >
                             Edit
                           </button>
@@ -245,14 +245,14 @@ export default function SubjectsPage() {
                     {editingId === s.id && (
                       <tr className={`${i < subjects.length - 1 ? "border-b border-slate-800" : ""}`}>
                         <td colSpan={5} className="py-3 px-0">
-                          <form onSubmit={handleSaveEdit} className="bg-slate-900/60 border border-indigo-700/40 rounded-xl p-4 space-y-3">
+                          <form onSubmit={handleSaveEdit} className="bg-slate-900/60 border border-brand-700/40 rounded-xl p-4 space-y-3">
                             <div className="flex flex-col sm:flex-row gap-3">
                               <div className="flex-1 space-y-1">
                                 <label className="text-xs font-medium text-slate-400">Name</label>
                                 <input
                                   value={editName}
                                   onChange={(e) => setEditName(e.target.value)}
-                                  className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                                  className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/50"
                                 />
                               </div>
                               <div className="w-full sm:w-32 space-y-1">
@@ -261,7 +261,7 @@ export default function SubjectsPage() {
                                   value={editCode}
                                   onChange={(e) => setEditCode(e.target.value.toUpperCase())}
                                   maxLength={10}
-                                  className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                                  className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-brand-500/50"
                                 />
                               </div>
                               <div className="flex-1 space-y-1">
@@ -269,14 +269,14 @@ export default function SubjectsPage() {
                                 <input
                                   value={editDescription}
                                   onChange={(e) => setEditDescription(e.target.value)}
-                                  className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                                  className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/50"
                                 />
                               </div>
                             </div>
                             {editError && <p className="text-red-400 text-xs">{editError}</p>}
                             <div className="flex gap-2">
                               <button type="submit" disabled={editSaving}
-                                className="px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold disabled:opacity-50 transition-colors">
+                                className="px-4 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold disabled:opacity-50 transition-colors">
                                 {editSaving ? "Saving…" : "Save"}
                               </button>
                               <button type="button" onClick={() => setEditingId(null)}

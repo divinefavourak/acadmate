@@ -30,7 +30,7 @@ export default function NotificationBell() {
       href="/admin/notifications"
       className={`relative flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${
         active
-          ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30"
+          ? "bg-brand-500/20 text-brand-300 border border-brand-500/30"
           : "text-slate-400 hover:bg-slate-800 hover:text-white"
       }`}
     >

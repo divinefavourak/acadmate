@@ -176,10 +176,10 @@ export default function QuestionsPage() {
         <div className="flex flex-col sm:flex-row gap-2">
           <label className={`flex-1 flex items-start gap-2 rounded-xl border px-3 py-2.5 cursor-pointer transition-colors ${
             uploadMode === "append"
-              ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20"
+              ? "border-brand-500 bg-brand-50 dark:bg-brand-900/20"
               : "border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/40"
           }`}>
-            <input type="radio" name="uploadMode" className="mt-0.5 accent-indigo-600" checked={uploadMode === "append"} onChange={() => setUploadMode("append")} />
+            <input type="radio" name="uploadMode" className="mt-0.5 accent-brand-600" checked={uploadMode === "append"} onChange={() => setUploadMode("append")} />
             <span className="text-xs">
               <span className="font-semibold block">Add to existing</span>
               <span className="text-slate-400">Append these to the current questions. Build a paper across several uploads.</span>
@@ -187,10 +187,10 @@ export default function QuestionsPage() {
           </label>
           <label className={`flex-1 flex items-start gap-2 rounded-xl border px-3 py-2.5 cursor-pointer transition-colors ${
             uploadMode === "replace"
-              ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20"
+              ? "border-brand-500 bg-brand-50 dark:bg-brand-900/20"
               : "border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/40"
           }`}>
-            <input type="radio" name="uploadMode" className="mt-0.5 accent-indigo-600" checked={uploadMode === "replace"} onChange={() => setUploadMode("replace")} />
+            <input type="radio" name="uploadMode" className="mt-0.5 accent-brand-600" checked={uploadMode === "replace"} onChange={() => setUploadMode("replace")} />
             <span className="text-xs">
               <span className="font-semibold block">Replace all</span>
               <span className="text-slate-400">Delete every existing question first, then upload these.</span>
@@ -198,7 +198,7 @@ export default function QuestionsPage() {
           </label>
         </div>
         <details className="text-xs">
-          <summary className="cursor-pointer text-indigo-500 font-medium">Show expected format</summary>
+          <summary className="cursor-pointer text-brand-500 font-medium">Show expected format</summary>
           <pre className="mt-2 bg-slate-100 dark:bg-slate-900 rounded-xl p-3 overflow-x-auto text-slate-600 dark:text-slate-300 text-[11px] leading-relaxed">
             {SAMPLE}
           </pre>
@@ -209,7 +209,7 @@ export default function QuestionsPage() {
           value={jsonText}
           onChange={(e) => { setJsonText(e.target.value); setParseError(""); }}
           placeholder='[{"text": "...", "options": [...]}]'
-          className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none focus:border-indigo-500 resize-y"
+          className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none focus:border-brand-500 resize-y"
         />
         {parseError && <p className="text-sm text-red-500">{parseError}</p>}
         {error && <p className="text-sm text-red-500">{error}</p>}
@@ -254,7 +254,7 @@ export default function QuestionsPage() {
               onClick={() => setSubjectFilter("all")}
               className={`text-xs px-3 py-1 rounded-full border transition-colors ${
                 subjectFilter === "all"
-                  ? "bg-indigo-600 border-indigo-500 text-white"
+                  ? "bg-brand-600 border-brand-500 text-white"
                   : "border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
               }`}
             >
@@ -266,7 +266,7 @@ export default function QuestionsPage() {
                 onClick={() => setSubjectFilter(subject)}
                 className={`text-xs px-3 py-1 rounded-full border transition-colors ${
                   subjectFilter === subject
-                    ? "bg-indigo-600 border-indigo-500 text-white"
+                    ? "bg-brand-600 border-brand-500 text-white"
                     : "border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
                 }`}
               >
@@ -286,7 +286,7 @@ export default function QuestionsPage() {
                   onClick={() => setExpanded(expanded === q.id ? null : q.id)}
                   className="w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
                 >
-                  <span className="shrink-0 w-6 h-6 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-xs font-bold flex items-center justify-center mt-0.5">
+                  <span className="shrink-0 w-6 h-6 rounded-full bg-brand-100 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300 text-xs font-bold flex items-center justify-center mt-0.5">
                     {idx + 1}
                   </span>
                   <MathText text={q.text} className="flex-1 text-sm leading-relaxed line-clamp-2" />

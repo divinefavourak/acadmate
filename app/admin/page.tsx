@@ -88,7 +88,7 @@ export default function AdminDashboard() {
             <MiniBarChart
               data={stats?.dailyExamActivity ?? []}
               valueKey="count"
-              color="indigo"
+              color="brand"
               emptyMessage="No exams completed in the last 7 days"
             />
           )}
@@ -161,7 +161,7 @@ export default function AdminDashboard() {
             <MiniBarChart
               data={stats?.dailyVisits ?? []}
               valueKey="count"
-              color="indigo"
+              color="brand"
               emptyMessage="No visits recorded yet"
             />
           )}

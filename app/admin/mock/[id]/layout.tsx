@@ -27,7 +27,7 @@ export default function MockExamLayout({ children }: { children: React.ReactNode
             <Link key={tab.path} href={href}
               className={`px-4 py-2.5 text-sm font-medium rounded-t-lg border-b-2 transition-colors ${
                 active
-                  ? "border-indigo-500 text-indigo-700 dark:text-indigo-300"
+                  ? "border-brand-500 text-brand-700 dark:text-brand-300"
                   : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
               }`}>
               {tab.label}

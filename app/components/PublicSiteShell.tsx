@@ -1,5 +1,5 @@
 import Link from "next/link";
-import Image from "next/image";
+import { BrandMark } from "@/app/components/BrandMark";
 import { ThemeToggle } from "@/app/components/ThemeToggle";
 
 const NAV = [
@@ -20,16 +20,16 @@ export function PublicSiteShell({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col min-h-screen bg-white dark:bg-[#09090b] text-slate-900 dark:text-white relative overflow-x-hidden">
+    <div className="flex flex-col min-h-screen bg-white dark:bg-navy-950 text-slate-900 dark:text-white relative overflow-x-hidden">
       <div className="pointer-events-none fixed inset-0 z-0" aria-hidden>
-        <div className="absolute top-0 left-1/4 w-150 h-150 bg-indigo-600/10 rounded-full blur-[120px]" />
-        <div className="absolute bottom-0 right-1/4 w-100 h-100 bg-purple-600/10 rounded-full blur-[100px]" />
+        <div className="absolute top-0 left-1/4 w-150 h-150 bg-brand-600/10 rounded-full blur-[120px]" />
+        <div className="absolute bottom-0 right-1/4 w-100 h-100 bg-mint-600/10 rounded-full blur-[100px]" />
       </div>
 
-      <header className="sticky top-0 z-50 border-b border-black/5 dark:border-white/5 bg-white/80 dark:bg-[#09090b]/80 backdrop-blur-xl">
+      <header className="sticky top-0 z-50 border-b border-black/5 dark:border-white/5 bg-white/80 dark:bg-navy-950/80 backdrop-blur-xl">
         <div className="max-w-6xl mx-auto px-4 md:px-6 h-16 flex items-center justify-between gap-4">
           <Link href="/" className="flex items-center gap-2.5 shrink-0">
-            <Image src="/images/logo.jpg" alt="Acadmate" width={32} height={32} className="rounded-lg" />
+            <BrandMark size={32} />
             <span className="text-lg font-bold tracking-tight">Acadmate</span>
           </Link>
 
@@ -60,7 +60,7 @@ export function PublicSiteShell({
             <ThemeToggle />
             <Link
               href="/register"
-              className="text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl transition-colors"
+              className="text-sm font-semibold bg-brand-600 hover:bg-brand-500 text-white px-4 py-2 rounded-xl transition-colors"
             >
               Get started
             </Link>

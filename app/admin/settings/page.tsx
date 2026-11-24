@@ -122,7 +122,7 @@ export default function ExamSettingsPage() {
                   disabled={busy}
                   onClick={() => toggle(key)}
                   className={`relative shrink-0 mt-1 h-7 w-12 rounded-full transition-colors disabled:opacity-60 ${
-                    on ? "bg-indigo-600" : "bg-slate-300 dark:bg-slate-700"
+                    on ? "bg-brand-600" : "bg-slate-300 dark:bg-slate-700"
                   }`}
                 >
                   <span
