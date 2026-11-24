@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import { Outfit } from "next/font/google";
-import Script from "next/script";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import { ThemeProvider } from "./components/ThemeProvider";
@@ -13,6 +12,9 @@ import {
   DEFAULT_OG_IMAGE,
   canonicalUrl,
 } from "@/lib/seo";
+
+// Reads the saved choice (ThemeProvider writes it), else the OS preference.
+const THEME_INIT = `(function(){try{var s=localStorage.getItem("acadmate-theme");var d=s?s==="dark":window.matchMedia("(prefers-color-scheme: dark)").matches;document.documentElement.classList.toggle("dark",d)}catch(e){}})()`;
 
 const outfit = Outfit({
   variable: "--font-outfit",
@@ -121,7 +123,10 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <head>
-        <Script id="theme-init" strategy="beforeInteractive" src="/theme-init.js" />
+        {/* Sets the theme class before first paint, so there is no light/dark flash.
+            Inline on purpose: as a separate file it cost a request, and the auth
+            middleware redirected it to /login for logged-out visitors. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT }} />
         {/* Resource hints — reduces latency for API and image CDN */}
         {apiOrigin && (
           <>

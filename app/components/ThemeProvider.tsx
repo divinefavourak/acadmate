@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useSyncExternalStore } from "react";
 
 type Theme = "dark" | "light";
 
@@ -13,25 +13,34 @@ export function useTheme() {
   return useContext(ThemeCtx);
 }
 
+// The source of truth is the `dark` class on <html>. an inline script in app/layout.tsx
+// sets it before first paint (from localStorage, else the OS preference), so React only
+// has to read it, and every toggle on the page stays in sync with the class.
+function subscribe(onChange: () => void) {
+  const observer = new MutationObserver(onChange);
+  observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+  return () => observer.disconnect();
+}
+
+const getSnapshot = (): Theme =>
+  document.documentElement.classList.contains("dark") ? "dark" : "light";
+
+// The server can't know the visitor's theme. React renders this during hydration,
+// then re-renders with the real value, so the toggle icon never mismatches.
+const getServerSnapshot = (): Theme => "dark";
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>("dark");
+  const theme = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
-  useEffect(() => {
-    const stored = localStorage.getItem("acadmate-theme") as Theme | null;
-    const initial =
-      stored ?? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
-    setTheme(initial);
-    document.documentElement.classList.toggle("dark", initial === "dark");
-  }, []);
-
-  function toggle() {
-    setTheme((prev) => {
-      const next = prev === "dark" ? "light" : "dark";
+  const toggle = useCallback(() => {
+    const next: Theme = getSnapshot() === "dark" ? "light" : "dark";
+    try {
       localStorage.setItem("acadmate-theme", next);
-      document.documentElement.classList.toggle("dark", next === "dark");
-      return next;
-    });
-  }
+    } catch {
+      // Private mode or blocked storage: the choice lasts for this page only.
+    }
+    document.documentElement.classList.toggle("dark", next === "dark");
+  }, []);
 
   return <ThemeCtx.Provider value={{ theme, toggle }}>{children}</ThemeCtx.Provider>;
 }

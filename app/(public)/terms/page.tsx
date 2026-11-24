@@ -1,4 +1,3 @@
-import Link from "next/link";
 import type { Metadata } from "next";
 import { buildMetadata, webPageSchema } from "@/lib/seo";
 
@@ -17,18 +16,12 @@ const jsonLd = webPageSchema({
 
 export default function TermsPage() {
   return (
-    <div className="min-h-screen bg-white dark:bg-navy-950 text-slate-800 dark:text-slate-200">
+    <div className="text-slate-800 dark:text-slate-200">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <div className="max-w-3xl mx-auto px-6 py-16">
-        <Link
-          href="/"
-          className="text-sm text-brand-500 hover:text-brand-600 font-medium mb-8 inline-block"
-        >
-          ← Back to home
-        </Link>
+      <div className="max-w-3xl mx-auto">
 
         <h1 className="text-3xl font-bold mb-2">Terms of Service</h1>
         <p className="text-slate-500 dark:text-slate-400 text-sm mb-10">

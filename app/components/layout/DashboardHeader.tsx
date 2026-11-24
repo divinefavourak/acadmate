@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { BrandMark } from "@/app/components/BrandMark";
 import MobileNav from "./MobileNav";
+import { ThemeToggle } from "@/app/components/ThemeToggle";
 import UserMenu from "@/app/dashboard/components/UserMenu";
 
 interface NavItem {
@@ -33,7 +34,8 @@ export default function DashboardHeader({
           <BrandMark size={28} />
           <span className="text-lg font-bold tracking-tight truncate">{title}</span>
         </Link>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-1 shrink-0">
+          <ThemeToggle />
           <UserMenu compact />
           <button
             onClick={() => setIsMenuOpen(true)}
