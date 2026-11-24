@@ -86,35 +86,35 @@ export default function AdminMockPage() {
           <div className="sm:col-span-2 space-y-1.5">
             <label className="text-sm font-medium">Title</label>
             <input required value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Unilag Post-UTME Mock 2026"
-              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500" />
+              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-500" />
           </div>
           <div className="sm:col-span-2 space-y-1.5">
             <label className="text-sm font-medium">Custom link (slug) <span className="text-slate-400 font-normal">(optional)</span></label>
             <input value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="e.g. unilag-mock-2026"
-              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500" />
+              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-500" />
             <p className="text-xs text-slate-400">Shareable as /mock/your-slug. Letters, numbers and hyphens only.</p>
           </div>
           <div className="sm:col-span-2 space-y-1.5">
             <label className="text-sm font-medium">Description <span className="text-slate-400 font-normal">(optional)</span></label>
             <textarea rows={2} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Short description shown on the landing page"
-              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500 resize-none" />
+              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-500 resize-none" />
           </div>
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Starts at</label>
             <input required type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)}
-              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500" />
+              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-500" />
           </div>
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Ends at</label>
             <input required type="datetime-local" value={endsAt} onChange={(e) => setEndsAt(e.target.value)}
-              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500" />
+              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-500" />
           </div>
           <div className="sm:col-span-2 space-y-1.5">
             <label className="text-sm font-medium">Duration per attempt</label>
             <div className="flex items-center gap-4">
               <input type="range" min={10} max={180} step={5} value={durationMinutes} onChange={(e) => setDurationMinutes(Number(e.target.value))}
-                className="flex-1 accent-indigo-500 cursor-pointer" />
-              <span className="w-20 text-right font-semibold text-indigo-600 dark:text-indigo-400">{durationMinutes} min</span>
+                className="flex-1 accent-brand-500 cursor-pointer" />
+              <span className="w-20 text-right font-semibold text-brand-600 dark:text-brand-400">{durationMinutes} min</span>
             </div>
           </div>
         </div>
@@ -155,7 +155,7 @@ export default function AdminMockPage() {
                   <span><b className="text-slate-700 dark:text-slate-200">{exam._count.sessions}</b> attempts</span>
                 </div>
                 <Link href={`/admin/mock/${exam.id}`}
-                  className="text-center px-3 py-2 rounded-xl text-sm font-semibold bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 hover:bg-indigo-500/25 transition-colors">
+                  className="text-center px-3 py-2 rounded-xl text-sm font-semibold bg-brand-500/15 text-brand-700 dark:text-brand-300 border border-brand-500/30 hover:bg-brand-500/25 transition-colors">
                   Manage →
                 </Link>
               </div>

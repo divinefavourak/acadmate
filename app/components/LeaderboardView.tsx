@@ -309,7 +309,7 @@ export default function LeaderboardView({
               <div className="px-3">
                 <div className="flex items-center gap-3 px-4 py-3 rounded-2xl"
                   style={{ background: "rgba(99,102,241,0.22)" }}>
-                  <span className="w-6 shrink-0 text-center font-bold text-sm text-indigo-400">?</span>
+                  <span className="w-6 shrink-0 text-center font-bold text-sm text-brand-400">?</span>
                   <div className="rounded-full overflow-hidden shrink-0"
                     style={{ width: 36, height: 36, boxShadow: "0 0 0 2px #818CF8" }}>
                     <UserAvatar
@@ -320,7 +320,7 @@ export default function LeaderboardView({
                     />
                   </div>
                   <p className="flex-1 font-semibold text-sm text-white">You</p>
-                  <p className="font-bold text-sm text-indigo-400">—</p>
+                  <p className="font-bold text-sm text-brand-400">—</p>
                 </div>
               </div>
             </>

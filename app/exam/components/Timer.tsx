@@ -74,7 +74,7 @@ export default function Timer({ initialMinutes = 120, totalMinutes, onExpire }: 
           strokeDasharray={CIRCUMFERENCE}
           strokeDashoffset={CIRCUMFERENCE * (1 - fraction)}
           className={`transition-[stroke-dashoffset] duration-1000 ease-linear ${
-            isWarning ? "stroke-red-500" : "stroke-indigo-600 dark:stroke-indigo-400"
+            isWarning ? "stroke-red-500" : "stroke-brand-600 dark:stroke-brand-400"
           }`}
         />
       </svg>

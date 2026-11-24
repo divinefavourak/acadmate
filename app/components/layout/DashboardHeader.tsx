@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
+import { BrandMark } from "@/app/components/BrandMark";
 import MobileNav from "./MobileNav";
 import UserMenu from "@/app/dashboard/components/UserMenu";
 
@@ -28,9 +28,9 @@ export default function DashboardHeader({
 
   return (
     <>
-      <header className="sticky top-0 z-[80] flex h-16 w-full items-center justify-between gap-3 border-b border-slate-200 bg-white/80 px-4 backdrop-blur-md dark:border-slate-800 dark:bg-black/80 md:hidden">
+      <header className="sticky top-0 z-[80] flex h-16 w-full items-center justify-between gap-3 border-b border-slate-200 bg-white/80 px-4 backdrop-blur-md dark:border-slate-800 dark:bg-navy-950/80 md:hidden">
         <Link href="/" className="flex items-center gap-2 group min-w-0">
-          <Image src="/images/logo.jpg" alt="Acadmate Logo" width={28} height={28} className="rounded-lg shadow-sm shrink-0" />
+          <BrandMark size={28} />
           <span className="text-lg font-bold tracking-tight truncate">{title}</span>
         </Link>
         <div className="flex items-center gap-2 shrink-0">

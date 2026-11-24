@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
+import { BrandMark } from "@/app/components/BrandMark";
 import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "@/lib/api/auth";
 import NotificationBell from "./NotificationBell";
@@ -129,7 +129,7 @@ export default function AdminSidebar() {
     <aside className="w-64 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-900 dark:text-white flex-col hidden md:flex">
       <div className="p-6">
         <Link href="/admin" className="flex items-center gap-3 mb-8 group">
-          <Image src="/images/logo.jpg" alt="Acadmate Logo" width={36} height={36} className="rounded-xl shadow-md object-cover" />
+          <BrandMark size={36} />
           <span className="text-xl font-bold tracking-tight">Admin Console</span>
         </Link>
       </div>
@@ -143,7 +143,7 @@ export default function AdminSidebar() {
               href={href}
               className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${
                 active
-                  ? "bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30"
+                  ? "bg-brand-500/15 text-brand-700 dark:text-brand-300 border border-brand-500/30"
                   : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
               }`}
             >

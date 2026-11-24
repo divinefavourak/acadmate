@@ -41,7 +41,7 @@ export function QuestionCard({
     <article
       id={id}
       data-revealed={open}
-      className="group scroll-mt-24 overflow-hidden rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-[#111114] shadow-sm"
+      className="group scroll-mt-24 overflow-hidden rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-slate-900 shadow-sm"
     >
       <div className="flex flex-wrap items-center gap-2 border-b border-black/5 dark:border-white/10 px-4 py-2.5">
         {chips}
@@ -55,7 +55,7 @@ export function QuestionCard({
           aria-expanded={open}
           aria-controls={panelId}
           onClick={() => setOpen((o) => !o)}
-          className="rounded-md border border-indigo-600/50 dark:border-indigo-400/50 px-3.5 py-1.5 text-sm font-medium text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors"
+          className="rounded-md border border-brand-600/50 dark:border-brand-400/50 px-3.5 py-1.5 text-sm font-medium text-brand-700 dark:text-brand-300 hover:bg-brand-50 dark:hover:bg-brand-500/10 transition-colors"
         >
           {open ? "Hide solution" : "View solution"}
         </button>

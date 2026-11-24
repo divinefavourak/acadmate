@@ -49,7 +49,7 @@ function CategoryChip({
       onClick={onClick}
       className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all ${
         active
-          ? "bg-indigo-600 text-white"
+          ? "bg-brand-600 text-white"
           : "bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-slate-200"
       }`}
     >
@@ -62,7 +62,7 @@ export function FeaturedCard({ post }: { post: BlogListItem }) {
   return (
     <Link
       href={`/blog/${post.slug}`}
-      className="group block rounded-3xl overflow-hidden border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.04] hover:border-indigo-500/40 transition-all"
+      className="group block rounded-3xl overflow-hidden border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.04] hover:border-brand-500/40 transition-all"
     >
       <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
         <div className="aspect-video md:aspect-auto bg-slate-100 dark:bg-slate-900 relative overflow-hidden">
@@ -74,14 +74,14 @@ export function FeaturedCard({ post }: { post: BlogListItem }) {
               className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
             />
           ) : (
-            <div className="w-full h-full bg-gradient-to-br from-indigo-600/30 to-purple-600/20" />
+            <div className="w-full h-full bg-gradient-to-br from-brand-600/30 to-mint-600/20" />
           )}
         </div>
         <div className="p-6 md:p-10 flex flex-col justify-center gap-4">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-indigo-600 dark:text-indigo-400">
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-600 dark:text-brand-400">
             {categoryLabel(post.category)}
           </span>
-          <h2 className="text-2xl md:text-3xl font-bold leading-tight group-hover:text-indigo-600 dark:group-hover:text-indigo-200 transition-colors">
+          <h2 className="text-2xl md:text-3xl font-bold leading-tight group-hover:text-brand-600 dark:group-hover:text-brand-200 transition-colors">
             {post.title}
           </h2>
           <p className="text-slate-600 dark:text-slate-400 line-clamp-3">{post.excerpt}</p>
@@ -98,7 +98,7 @@ export function PostCard({ post }: { post: BlogListItem }) {
   return (
     <Link
       href={`/blog/${post.slug}`}
-      className="group rounded-2xl overflow-hidden border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.03] hover:border-indigo-500/40 hover:bg-slate-50 dark:hover:bg-white/[0.05] transition-all flex flex-col"
+      className="group rounded-2xl overflow-hidden border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.03] hover:border-brand-500/40 hover:bg-slate-50 dark:hover:bg-white/[0.05] transition-all flex flex-col"
     >
       <div className="aspect-video bg-slate-100 dark:bg-slate-900 relative overflow-hidden">
         {post.coverImageUrl ? (
@@ -113,10 +113,10 @@ export function PostCard({ post }: { post: BlogListItem }) {
         )}
       </div>
       <div className="p-5 flex-1 flex flex-col gap-2">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-indigo-600 dark:text-indigo-400">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-brand-600 dark:text-brand-400">
           {categoryLabel(post.category)}
         </span>
-        <h3 className="font-bold leading-snug group-hover:text-indigo-600 dark:group-hover:text-indigo-200 transition-colors">
+        <h3 className="font-bold leading-snug group-hover:text-brand-600 dark:group-hover:text-brand-200 transition-colors">
           {post.title}
         </h3>
         <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-3 flex-1">{post.excerpt}</p>

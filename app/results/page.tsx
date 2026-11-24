@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Loader from "@/app/components/Loader";
 import { apiClient } from "@/lib/api/client";
+import { modeLabel } from "@/lib/examModes";
 
 interface ActiveSession {
   id: string;
@@ -45,14 +46,6 @@ function timeRemaining(expiresAt: string | null): string {
   const hrs = Math.floor(mins / 60);
   if (hrs > 0) return `${hrs}h ${mins % 60}m left`;
   return `${mins}m left`;
-}
-
-function modeLabel(mode: string) {
-  if (mode === "MOCK") return "Full UTME Mock";
-  if (mode === "PRACTICE") return "Practice Session";
-  if (mode === "TOPIC") return "Topic Practice";
-  if (mode === "POST_UTME") return "Post-UTME";
-  return mode;
 }
 
 function scoreColor(score: number) {
@@ -146,7 +139,7 @@ export default function ResultsPage() {
                 {!isExpired ? (
                   <Link
                     href={`/exam/${s.id}`}
-                    className="shrink-0 inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-xl transition-colors"
+                    className="shrink-0 inline-flex items-center gap-2 px-5 py-2.5 bg-brand-600 hover:bg-brand-500 text-white text-sm font-semibold rounded-xl transition-colors"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                       <polygon points="5 3 19 12 5 21 5 3"/>
@@ -220,7 +213,7 @@ export default function ResultsPage() {
                       <td className="py-4 text-emerald-600 dark:text-emerald-400">{r.correct}</td>
                       <td className="py-4 text-red-600 dark:text-red-400">{r.incorrect}</td>
                       <td className="py-4 text-right">
-                        <Link href={`/results/${r.id}`} className="text-indigo-500 hover:text-indigo-600 font-medium text-xs">View →</Link>
+                        <Link href={`/results/${r.id}`} className="text-brand-500 hover:text-brand-600 font-medium text-xs">View →</Link>
                       </td>
                     </tr>
                   ))}

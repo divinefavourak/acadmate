@@ -42,7 +42,7 @@ export default function StudyTopicPage({ params }: { params: Promise<{ id: strin
     return (
       <div className="max-w-xl mx-auto glass-panel p-10 rounded-2xl text-center space-y-4">
         <p className="text-slate-500">We couldn&apos;t find notes for that topic.</p>
-        <Link href="/study" className="text-indigo-600 dark:text-indigo-400 font-semibold hover:underline">Back to Study</Link>
+        <Link href="/study" className="text-brand-600 dark:text-brand-400 font-semibold hover:underline">Back to Study</Link>
       </div>
     );
   }
@@ -131,7 +131,7 @@ export default function StudyTopicPage({ params }: { params: Promise<{ id: strin
                 <span
                   className={`block h-1.5 rounded-full transition-colors ${
                     i === index
-                      ? "bg-indigo-600 dark:bg-indigo-400"
+                      ? "bg-brand-600 dark:bg-brand-400"
                       : read.has(n.id)
                       ? "bg-emerald-500"
                       : "bg-slate-200 dark:bg-slate-800 group-hover:bg-slate-300 dark:group-hover:bg-slate-700"
@@ -150,12 +150,12 @@ export default function StudyTopicPage({ params }: { params: Promise<{ id: strin
           <div className="rounded-2xl bg-amber-500/10 border border-amber-500/30 p-6 text-center space-y-4">
             <p className="font-semibold">The rest of this topic is for Premium students.</p>
             <p className="text-sm text-slate-600 dark:text-slate-400">Upgrade to read every section and unlock all Premium notes.</p>
-            <Link href="/dashboard/upgrade" className="inline-block px-6 py-3 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-colors">
+            <Link href="/dashboard/upgrade" className="inline-block px-6 py-3 rounded-full bg-brand-600 hover:bg-brand-500 text-white font-semibold transition-colors">
               Go Premium
             </Link>
           </div>
         ) : (
-          <div className="prose dark:prose-invert max-w-none prose-headings:font-bold prose-a:text-indigo-600 dark:prose-a:text-indigo-400 prose-img:rounded-xl prose-code:before:content-none prose-code:after:content-none">
+          <div className="prose dark:prose-invert max-w-none prose-headings:font-bold prose-a:text-brand-600 dark:prose-a:text-brand-400 prose-img:rounded-xl prose-code:before:content-none prose-code:after:content-none">
             <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>
               {note.body}
             </ReactMarkdown>
@@ -173,13 +173,13 @@ export default function StudyTopicPage({ params }: { params: Promise<{ id: strin
         </button>
         {isLast && noteLocked ? (
           // A locked topic ends at the upgrade prompt, not at "complete".
-          <Link href="/dashboard/upgrade" className="px-6 py-3 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-colors">
+          <Link href="/dashboard/upgrade" className="px-6 py-3 rounded-full bg-brand-600 hover:bg-brand-500 text-white font-semibold transition-colors">
             Go Premium
           </Link>
         ) : (
           <button
             onClick={next}
-            className="px-6 py-3 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-colors"
+            className="px-6 py-3 rounded-full bg-brand-600 hover:bg-brand-500 text-white font-semibold transition-colors"
           >
             {isLast ? "Finish topic" : "Next section"}
           </button>

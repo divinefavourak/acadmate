@@ -88,7 +88,7 @@ export default function MockRegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-white flex flex-col items-center justify-center p-6">
+    <div className="min-h-screen bg-navy-900 text-white flex flex-col items-center justify-center p-6">
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center space-y-2">
           <h1 className="text-2xl font-bold">Register for Mock Exam</h1>
@@ -103,7 +103,7 @@ export default function MockRegisterPage() {
               avatarUrl={avatarUrl}
               name={name}
               size={88}
-              className="ring-4 ring-indigo-500/40"
+              className="ring-4 ring-brand-500/40"
             />
             <div className="flex items-center gap-2">
               <button
@@ -135,7 +135,7 @@ export default function MockRegisterPage() {
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="e.g. 08012345678"
-              className="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+              className="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-brand-500"
             />
           </div>
           <div className="space-y-1.5">
@@ -146,7 +146,7 @@ export default function MockRegisterPage() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Your full name"
-              className="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+              className="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-brand-500"
             />
           </div>
           <div className="space-y-1.5">
@@ -159,7 +159,7 @@ export default function MockRegisterPage() {
               value={pin}
               onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
               placeholder="••••"
-              className="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-500 text-center text-2xl tracking-[0.5em] focus:outline-none focus:border-indigo-500"
+              className="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-500 text-center text-2xl tracking-[0.5em] focus:outline-none focus:border-brand-500"
             />
           </div>
           <div className="space-y-1.5">
@@ -172,14 +172,14 @@ export default function MockRegisterPage() {
               value={confirmPin}
               onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, ""))}
               placeholder="••••"
-              className="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-500 text-center text-2xl tracking-[0.5em] focus:outline-none focus:border-indigo-500"
+              className="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-500 text-center text-2xl tracking-[0.5em] focus:outline-none focus:border-brand-500"
             />
           </div>
           {error && <p className="text-sm text-red-400">{error}</p>}
           <button
             type="submit"
             disabled={submitting}
-            className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white font-semibold transition-colors"
+            className="w-full py-3 rounded-xl bg-brand-600 hover:bg-brand-500 disabled:opacity-60 text-white font-semibold transition-colors"
           >
             {submitting ? "Registering…" : "Register"}
           </button>
@@ -187,7 +187,7 @@ export default function MockRegisterPage() {
 
         <p className="text-center text-sm text-slate-400">
           Already registered?{" "}
-          <Link href={`/mock/${id}/login`} className="text-indigo-400 hover:text-indigo-300">Log in</Link>
+          <Link href={`/mock/${id}/login`} className="text-brand-400 hover:text-brand-300">Log in</Link>
         </p>
         <p className="text-center text-sm">
           <Link href={`/mock/${id}`} className="text-slate-500 hover:text-slate-300">← Back to exam info</Link>

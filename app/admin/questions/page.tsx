@@ -4,7 +4,7 @@ import { useEffect, useState, useRef, Suspense, Fragment } from "react";
 import { useSearchParams } from "next/navigation";
 import MathText from "@/app/components/MathText";
 import MiniBarChart from "@/app/admin/components/MiniBarChart";
-import Folder from "@/app/admin/components/Folder";
+import Folder from "@/app/components/Folder";
 import { apiClient } from "@/lib/api/client";
 import { SCHOOLS } from "@/features/post-utme/constants";
 import QuestionBuilder, { emptyForm, OPTION_LABELS, type QuestionForm } from "./QuestionBuilder";
@@ -676,7 +676,7 @@ function QuestionsPage() {
                 onKeyDown={(e) => { if (e.key === "Escape") setSearchInput(""); }}
                 placeholder="Search question or answer text…"
                 aria-label="Search questions"
-                className="w-72 max-w-full pl-3 pr-8 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 text-sm placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                className="w-72 max-w-full pl-3 pr-8 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 text-sm placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-500/50"
               />
               {searchInput && (
                 <button
@@ -693,7 +693,7 @@ function QuestionsPage() {
             <select
               value={publishedFilter}
               onChange={(e) => { setPublishedFilter(e.target.value); setPage(0); }}
-              className="px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+              className="px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/50"
             >
               <option value="">All Questions</option>
               <option value="true">Published</option>
@@ -703,7 +703,7 @@ function QuestionsPage() {
           {activeTab === "questions" && !builderOpen && (
             <button
               onClick={openNewQuestion}
-              className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-colors"
+              className="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-sm font-medium transition-colors"
             >
               + New Question
             </button>
@@ -785,7 +785,7 @@ function QuestionsPage() {
                 size={1.15}
               />
               <div className="text-center">
-                <p className="text-white text-sm font-medium group-hover:text-indigo-300 transition-colors">{sub.name}</p>
+                <p className="text-white text-sm font-medium group-hover:text-brand-300 transition-colors">{sub.name}</p>
                 <p className="text-slate-500 text-xs">{sub._count?.questions ?? 0} questions</p>
               </div>
             </div>
@@ -849,7 +849,7 @@ function QuestionsPage() {
                 <span className="text-white">“{search}”</span> in {searchScope || "all questions"}
               </span>
               {searchScope && (
-                <button onClick={resetNavigation} className="text-indigo-400 hover:text-indigo-300">
+                <button onClick={resetNavigation} className="text-brand-400 hover:text-brand-300">
                   Search all questions
                 </button>
               )}
@@ -859,9 +859,9 @@ function QuestionsPage() {
             <p className="text-red-400 text-sm mb-4 bg-red-900/20 border border-red-800 rounded-lg px-4 py-2">{fetchError}</p>
           )}
           {selectedIds.size > 0 && (
-            <div className="flex flex-wrap items-center gap-2 mb-4 px-4 py-3 rounded-xl bg-indigo-950/60 border border-indigo-700/50">
-              <span className="text-sm text-indigo-300 font-semibold mr-1">{selectedIds.size} selected</span>
-              <div className="w-px h-4 bg-indigo-800 mx-1" />
+            <div className="flex flex-wrap items-center gap-2 mb-4 px-4 py-3 rounded-xl bg-brand-950/60 border border-brand-700/50">
+              <span className="text-sm text-brand-300 font-semibold mr-1">{selectedIds.size} selected</span>
+              <div className="w-px h-4 bg-brand-800 mx-1" />
 
               {/* Publish */}
               <button
@@ -890,7 +890,7 @@ function QuestionsPage() {
                 {bulkUnflagging ? "Unflagging…" : "Clear Flags"}
               </button>
 
-              <div className="w-px h-4 bg-indigo-800 mx-1" />
+              <div className="w-px h-4 bg-brand-800 mx-1" />
 
               {/* Delete — two-step confirm */}
               {confirmDelete ? (
@@ -950,7 +950,7 @@ function QuestionsPage() {
                     </div>
                     <div className="flex gap-1.5">
                       <button onClick={() => handleOpenEdit(q.id)} disabled={loadingEdit === q.id}
-                        className="px-2.5 py-1 rounded bg-indigo-900/30 text-indigo-400 text-xs font-medium disabled:opacity-50">
+                        className="px-2.5 py-1 rounded bg-brand-900/30 text-brand-400 text-xs font-medium disabled:opacity-50">
                         {loadingEdit === q.id ? "…" : "Edit"}
                       </button>
                       <button onClick={() => handlePreview(q.id)} disabled={loadingPreview === q.id}
@@ -977,7 +977,7 @@ function QuestionsPage() {
                           type="checkbox"
                           checked={questions.length > 0 && selectedIds.size === questions.length}
                           onChange={toggleSelectAll}
-                          className="rounded border-slate-600 bg-slate-800 text-indigo-500 cursor-pointer"
+                          className="rounded border-slate-600 bg-slate-800 text-brand-500 cursor-pointer"
                         />
                       </th>
                       <th className="pb-3 font-medium">Question</th>
@@ -992,13 +992,13 @@ function QuestionsPage() {
                     {questions.map((q, i) => (
                       <Fragment key={q.id}>
                       <tr
-                        className={`${i < questions.length - 1 ? "border-b border-slate-800" : ""} ${q.isFlagged ? "bg-red-950/20" : ""} ${selectedIds.has(q.id) ? "bg-indigo-950/20" : ""} hover:bg-slate-800/50 transition-colors`}>
+                        className={`${i < questions.length - 1 ? "border-b border-slate-800" : ""} ${q.isFlagged ? "bg-red-950/20" : ""} ${selectedIds.has(q.id) ? "bg-brand-950/20" : ""} hover:bg-slate-800/50 transition-colors`}>
                         <td className="py-3 pr-3">
                           <input
                             type="checkbox"
                             checked={selectedIds.has(q.id)}
                             onChange={() => toggleSelect(q.id)}
-                            className="rounded border-slate-600 bg-slate-800 text-indigo-500 cursor-pointer"
+                            className="rounded border-slate-600 bg-slate-800 text-brand-500 cursor-pointer"
                           />
                         </td>
                         <td className="py-3 text-white max-w-xs">
@@ -1030,7 +1030,7 @@ function QuestionsPage() {
                               Quick Fix
                             </button>
                             <button onClick={() => handleOpenEdit(q.id)} disabled={loadingEdit === q.id}
-                              className="inline-flex items-center px-2.5 py-1 rounded bg-indigo-900/30 text-indigo-400 hover:bg-indigo-900/50 text-xs font-medium transition-colors disabled:opacity-50">
+                              className="inline-flex items-center px-2.5 py-1 rounded bg-brand-900/30 text-brand-400 hover:bg-brand-900/50 text-xs font-medium transition-colors disabled:opacity-50">
                               {loadingEdit === q.id ? "…" : "Edit"}
                             </button>
                             <button onClick={() => handlePreview(q.id)} disabled={loadingPreview === q.id}
@@ -1135,7 +1135,7 @@ function QuestionsPage() {
                       key={q.id}
                       ref={highlightId === q.id ? highlightRef : null}
                       className={`px-5 py-3 flex items-start gap-4 transition-colors ${
-                        highlightId === q.id ? "bg-indigo-900/30 ring-1 ring-indigo-500/50" : ""
+                        highlightId === q.id ? "bg-brand-900/30 ring-1 ring-brand-500/50" : ""
                       }`}
                     >
                       <div className="flex-1 min-w-0">
@@ -1146,7 +1146,7 @@ function QuestionsPage() {
                           <span className="text-xs text-red-400">🚩 {q.flagCount}×</span>
                           {q.examType && (
                             <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${
-                              q.examType === "POST_UTME" ? "bg-amber-900/30 text-amber-400" : "bg-indigo-900/30 text-indigo-400"
+                              q.examType === "POST_UTME" ? "bg-amber-900/30 text-amber-400" : "bg-brand-900/30 text-brand-400"
                             }`}>
                               {q.examType === "POST_UTME" ? (q.school ? `Post-UTME · ${q.school}` : "Post-UTME") : "JAMB"}
                             </span>
@@ -1155,7 +1155,7 @@ function QuestionsPage() {
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0">
                         <button onClick={() => handleOpenEdit(q.id)} disabled={loadingEdit === q.id}
-                          className="inline-flex items-center px-2.5 py-1 rounded bg-indigo-900/30 text-indigo-400 hover:bg-indigo-900/50 text-xs font-medium transition-colors disabled:opacity-50">
+                          className="inline-flex items-center px-2.5 py-1 rounded bg-brand-900/30 text-brand-400 hover:bg-brand-900/50 text-xs font-medium transition-colors disabled:opacity-50">
                           {loadingEdit === q.id ? "…" : "Edit"}
                         </button>
                         <button onClick={() => handlePreview(q.id)} disabled={loadingPreview === q.id}
@@ -1193,7 +1193,7 @@ function QuestionsPage() {
                 <MiniBarChart
                   data={analyticsData.map((d) => ({ label: d.subject, count: d.questions }))}
                   valueKey="count"
-                  color="indigo"
+                  color="brand"
                   emptyMessage="No data"
                 />
               </div>
@@ -1258,7 +1258,7 @@ function QuestionsPage() {
                   )}
                   {previewQuestion.examType && (
                     <span className={`px-2 py-0.5 rounded font-medium ${
-                      previewQuestion.examType === "POST_UTME" ? "bg-amber-900/30 text-amber-400" : "bg-indigo-900/30 text-indigo-400"
+                      previewQuestion.examType === "POST_UTME" ? "bg-amber-900/30 text-amber-400" : "bg-brand-900/30 text-brand-400"
                     }`}>
                       {previewQuestion.examType === "POST_UTME"
                         ? (previewQuestion.school ? `Post-UTME · ${previewQuestion.school}` : "Post-UTME")
@@ -1297,9 +1297,9 @@ function QuestionsPage() {
                 ))}
               </div>
               {previewQuestion.explanation && (
-                <div className="p-4 rounded-xl bg-indigo-900/20 border border-indigo-800/30 space-y-2">
-                  <h4 className="text-xs font-bold text-indigo-400 uppercase tracking-wider">Explanation</h4>
-                  <p className="text-sm text-indigo-100">
+                <div className="p-4 rounded-xl bg-brand-900/20 border border-brand-800/30 space-y-2">
+                  <h4 className="text-xs font-bold text-brand-400 uppercase tracking-wider">Explanation</h4>
+                  <p className="text-sm text-brand-100">
                     <MathText text={previewQuestion.explanation.text} />
                   </p>
                 </div>

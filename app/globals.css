@@ -4,41 +4,86 @@
 /* Class-based dark mode — toggled by ThemeProvider adding .dark to <html> */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* ─── Brand tokens ────────────────────────────────────────────────────────────
+   Taken from the logo (public/brand/, built by scripts/brand/build.mjs):
+   the figure runs from sky blue (brand) to mint green (mint), with a gold
+   star and a navy ground.
+
+   Contrast checked against WCAG AA (4.5:1 for body text):
+   - white text on brand-600 is 4.7:1, so solid buttons use brand-600
+   - brand-600 text on white is 4.7:1, so light-mode links use brand-600
+   - brand-400 text on navy-950 is 7.8:1, so dark-mode links use brand-400
+   brand-500 with white text is only 3.3:1. Keep it for hovers, rings and
+   large display text. */
+@theme {
+  --color-brand-50: #eef7ff;
+  --color-brand-100: #d8edff;
+  --color-brand-200: #b9dffe;
+  --color-brand-300: #89cafd;
+  --color-brand-400: #4fadf9;
+  --color-brand-500: #1a91f0;
+  --color-brand-600: #0874d4;
+  --color-brand-700: #085dab;
+  --color-brand-800: #0c4e8b;
+  --color-brand-900: #114373;
+  --color-brand-950: #0c2a4c;
+
+  --color-mint-50: #ebfdf5;
+  --color-mint-100: #d0fae7;
+  --color-mint-200: #a5f3d2;
+  --color-mint-300: #6be6b8;
+  --color-mint-400: #34d29b;
+  --color-mint-500: #16b985;
+  --color-mint-600: #0b966c;
+  --color-mint-700: #0a785a;
+  --color-mint-800: #0c5f49;
+  --color-mint-900: #0c4e3d;
+  --color-mint-950: #042c23;
+
+  /* The dark theme's grounds. navy-950 is the page; slate-900/800 cards sit on it. */
+  --color-navy-950: #08111f;
+  --color-navy-900: #0d1d2f; /* the logo's own navy */
+
+  --font-sans: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Semantic colours, switched by the .dark class. Use these (bg-background,
+   text-foreground, bg-surface, border-line) for new page-level surfaces. */
 :root {
-  --background: #fdfdfd;
-  --foreground: #0f172a;
-  --primary: 243 75% 59%; /* Indigo-600 */
-  --primary-hover: 243 75% 50%;
-  --secondary: 199 89% 48%; /* Sky-500 */
+  --background: #ffffff;
+  --foreground: #0f1f2e;
   --surface: #ffffff;
-  --border: #e2e8f0;
-  
+  --line: #e2e8f0;
   --glass-bg: rgba(255, 255, 255, 0.7);
-  --glass-border: rgba(255, 255, 255, 0.3);
+  --glass-border: rgba(15, 31, 46, 0.08);
 }
 
 html.dark {
-  --background: #09090b;
-  --foreground: #fafafa;
-  --primary: 243 85% 65%;
-  --primary-hover: 243 85% 75%;
-  --surface: #121214;
-  --border: #27272a;
+  --background: var(--color-navy-950);
+  --foreground: #f1f5f9;
+  --surface: var(--color-slate-900);
+  --line: var(--color-slate-800);
+  --glass-bg: rgba(15, 23, 42, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.08);
+}
 
-  --glass-bg: rgba(24, 24, 27, 0.7);
-  --glass-border: rgba(255, 255, 255, 0.1);
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-line: var(--line);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-outfit), sans-serif;
+  font-family: var(--font-sans);
   margin: 0;
   padding: 0;
   min-height: 100vh;
 }
 
-/* Premium utility classes */
+/* Shared utility classes */
 .glass-panel {
   background: var(--glass-bg);
   backdrop-filter: blur(12px);
@@ -48,14 +93,14 @@ body {
 }
 
 .text-gradient {
-  background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--secondary)));
+  background: linear-gradient(135deg, var(--color-brand-500), var(--color-mint-400));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .btn-primary {
-  background-color: hsl(var(--primary));
+  background-color: var(--color-brand-600);
   color: white;
   border: none;
   padding: 0.75rem 1.5rem;
@@ -67,7 +112,7 @@ body {
 }
 
 .btn-primary:hover {
-  background-color: hsl(var(--primary-hover));
+  background-color: var(--color-brand-700);
   transform: translateY(-2px);
   box-shadow: 0 6px 20px 0 rgba(0, 0, 0, 0.15);
 }
@@ -75,7 +120,7 @@ body {
 .btn-secondary {
   background-color: transparent;
   color: var(--foreground);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   padding: 0.75rem 1.5rem;
   border-radius: 9999px;
   font-weight: 600;
@@ -85,7 +130,7 @@ body {
 
 .btn-secondary:hover {
   background-color: var(--surface);
-  border-color: hsl(var(--primary));
+  border-color: var(--color-brand-500);
 }
 
 @keyframes blob {
@@ -110,11 +155,10 @@ body {
 .loader {
   width: 44.8px;
   height: 44.8px;
-  color: #554cb5;
+  color: var(--color-brand-500);
   position: relative;
   background: radial-gradient(11.2px, currentColor 94%, #0000);
 }
-
 .loader:before {
   content: '';
   position: absolute;

@@ -186,7 +186,7 @@ export default function BlogEditor({ mode, initial }: BlogEditorProps) {
             <button
               onClick={handlePublish}
               disabled={submitting || publishing}
-              className="px-4 py-2 rounded-xl text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-50 transition-colors"
+              className="px-4 py-2 rounded-xl text-sm font-semibold bg-brand-600 hover:bg-brand-500 text-white disabled:opacity-50 transition-colors"
             >
               {publishing ? "Publishing…" : "Publish"}
             </button>
@@ -214,7 +214,7 @@ export default function BlogEditor({ mode, initial }: BlogEditorProps) {
               value={form.title}
               onChange={(e) => update("title", e.target.value)}
               placeholder="A clear, scroll-stopping headline"
-              className="w-full px-4 py-3 rounded-xl bg-slate-900/60 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-lg"
+              className="w-full px-4 py-3 rounded-xl bg-slate-900/60 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500/50 text-lg"
             />
           </div>
 
@@ -225,7 +225,7 @@ export default function BlogEditor({ mode, initial }: BlogEditorProps) {
               onChange={(e) => update("excerpt", e.target.value)}
               placeholder="1–2 sentence summary — shown in lists and emails."
               rows={3}
-              className="w-full px-4 py-3 rounded-xl bg-slate-900/60 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 resize-y"
+              className="w-full px-4 py-3 rounded-xl bg-slate-900/60 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500/50 resize-y"
             />
           </div>
 
@@ -253,7 +253,7 @@ export default function BlogEditor({ mode, initial }: BlogEditorProps) {
             <select
               value={form.category}
               onChange={(e) => update("category", e.target.value as BlogCategory)}
-              className="w-full px-4 py-3 rounded-xl bg-slate-900/60 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+              className="w-full px-4 py-3 rounded-xl bg-slate-900/60 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500/50"
             >
               {BLOG_CATEGORIES.map((c) => (
                 <option key={c} value={c}>
@@ -270,7 +270,7 @@ export default function BlogEditor({ mode, initial }: BlogEditorProps) {
               value={form.slug}
               onChange={(e) => update("slug", e.target.value)}
               placeholder="auto-generated from title"
-              className="w-full px-4 py-3 rounded-xl bg-slate-900/60 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 font-mono text-sm"
+              className="w-full px-4 py-3 rounded-xl bg-slate-900/60 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500/50 font-mono text-sm"
             />
             <p className="text-xs text-slate-500 mt-1">Leave blank to derive from title.</p>
           </div>

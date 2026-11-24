@@ -51,10 +51,10 @@ interface Props {
 }
 
 const field =
-  "w-full px-3 py-2 rounded-lg bg-slate-950/60 border border-slate-700 text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50";
+  "w-full px-3 py-2 rounded-lg bg-slate-950/60 border border-slate-700 text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/50";
 // Compact selects/inputs in the footer strip.
 const chip =
-  "px-3 py-1.5 rounded-full bg-slate-800 border border-slate-700 text-slate-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/50 disabled:opacity-40";
+  "px-3 py-1.5 rounded-full bg-slate-800 border border-slate-700 text-slate-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-brand-500/50 disabled:opacity-40";
 
 const DIFFICULTY_TONE: Record<string, string> = {
   EASY: "!border-emerald-500/40 !text-emerald-300",
@@ -117,7 +117,7 @@ export default function QuestionBuilder({
           <button
             type="button"
             onClick={() => guard(onNew)}
-            className="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium transition-colors"
+            className="px-2.5 py-1 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-xs font-medium transition-colors"
           >
             + New
           </button>
@@ -136,11 +136,11 @@ export default function QuestionBuilder({
                     aria-current={active ? "true" : undefined}
                     disabled={loadingId === q.id}
                     className={`w-full text-left p-3 rounded-xl border transition-colors disabled:opacity-60 ${
-                      active ? "bg-indigo-600/20 border-indigo-500" : "bg-slate-800/70 border-slate-700 hover:border-slate-500"
+                      active ? "bg-brand-600/20 border-brand-500" : "bg-slate-800/70 border-slate-700 hover:border-slate-500"
                     }`}
                   >
                     <span className="flex items-center gap-2 mb-1.5">
-                      <span className={`w-6 h-6 rounded-md flex items-center justify-center text-xs font-bold ${active ? "bg-indigo-600 text-white" : "bg-slate-700 text-slate-300"}`}>
+                      <span className={`w-6 h-6 rounded-md flex items-center justify-center text-xs font-bold ${active ? "bg-brand-600 text-white" : "bg-slate-700 text-slate-300"}`}>
                         {i + 1}
                       </span>
                       <span className={`text-[10px] font-semibold uppercase tracking-wider ${q.isFlagged ? "text-red-400" : q.isPublished ? "text-emerald-400" : "text-amber-400"}`}>
@@ -158,10 +158,10 @@ export default function QuestionBuilder({
 
       {/* ── Right: the editor ─────────────────────────────────────────────── */}
       <form onSubmit={onSubmit} className="rounded-2xl bg-slate-900 border border-slate-800 overflow-hidden">
-        <div className="flex items-center justify-between gap-3 px-5 py-3 bg-indigo-600 text-white">
+        <div className="flex items-center justify-between gap-3 px-5 py-3 bg-brand-600 text-white">
           <h2 className="font-semibold">
             {mode === "edit" ? "Edit question" : "New question"}
-            {dirty && <span className="ml-2 text-xs font-normal text-indigo-100">· unsaved changes</span>}
+            {dirty && <span className="ml-2 text-xs font-normal text-brand-100">· unsaved changes</span>}
           </h2>
           <button type="button" onClick={() => guard(onClose)} aria-label="Close editor" className="p-1.5 rounded-lg hover:bg-white/15 transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
@@ -207,7 +207,7 @@ export default function QuestionBuilder({
                     />
                     <span
                       aria-hidden="true"
-                      className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-indigo-400 ${
+                      className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-brand-400 ${
                         opt.isCorrect ? "border-emerald-500 bg-emerald-500 text-white" : "border-slate-600"
                       }`}
                     >
@@ -247,7 +247,7 @@ export default function QuestionBuilder({
               className={`${field} resize-y font-mono`}
             />
             {form.explanation.includes("$") && (
-              <div className="mt-1.5 px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-indigo-100 text-sm">
+              <div className="mt-1.5 px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-brand-100 text-sm">
                 <MathText text={form.explanation} />
               </div>
             )}
@@ -256,7 +256,7 @@ export default function QuestionBuilder({
           <div>
             <span className="block text-xs font-medium text-slate-400 mb-1">Image (optional)</span>
             <div className="flex items-center gap-3">
-              <label className="flex-1 flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-950/60 border border-slate-700 text-slate-400 text-sm cursor-pointer hover:border-indigo-500/50 transition-colors">
+              <label className="flex-1 flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-950/60 border border-slate-700 text-slate-400 text-sm cursor-pointer hover:border-brand-500/50 transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2" ry="2" /><circle cx="9" cy="9" r="2" /><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" /></svg>
                 {uploading ? "Uploading…" : form.imageUrl ? "Change image" : "Upload image"}
                 <input
@@ -371,7 +371,7 @@ export default function QuestionBuilder({
             <button
               type="submit"
               disabled={saving || uploading}
-              className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-colors disabled:opacity-60"
+              className="px-5 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-sm font-medium transition-colors disabled:opacity-60"
             >
               {saving ? "Saving…" : mode === "edit" ? "Save changes" : "Create question"}
             </button>

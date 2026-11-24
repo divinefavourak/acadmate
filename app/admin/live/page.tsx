@@ -196,7 +196,7 @@ export default function AdminLivePage() {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. SS3 Friday Mock"
-              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500"
+              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-500"
             />
           </div>
 
@@ -208,7 +208,7 @@ export default function AdminLivePage() {
               id="ls-mode"
               value={mode}
               onChange={(e) => setMode(e.target.value as ExamMode)}
-              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500 cursor-pointer"
+              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-500 cursor-pointer"
             >
               {(Object.keys(MODE_LABELS) as ExamMode[]).map((m) => (
                 <option key={m} value={m}>
@@ -243,8 +243,8 @@ export default function AdminLivePage() {
                   aria-pressed={on}
                   className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors cursor-pointer ${
                     on
-                      ? "bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-500/40"
-                      : "bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-indigo-400"
+                      ? "bg-brand-500/15 text-brand-700 dark:text-brand-300 border-brand-500/40"
+                      : "bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-brand-400"
                   }`}
                 >
                   {s.name}
@@ -269,9 +269,9 @@ export default function AdminLivePage() {
                 step={5}
                 value={durationMinutes}
                 onChange={(e) => setDurationMinutes(Number(e.target.value))}
-                className="flex-1 accent-indigo-500 cursor-pointer"
+                className="flex-1 accent-brand-500 cursor-pointer"
               />
-              <span className="w-20 text-right font-semibold text-indigo-600 dark:text-indigo-400">
+              <span className="w-20 text-right font-semibold text-brand-600 dark:text-brand-400">
                 {durationMinutes} min
               </span>
             </div>
@@ -289,9 +289,9 @@ export default function AdminLivePage() {
                 step={5}
                 value={questionCount}
                 onChange={(e) => setQuestionCount(Number(e.target.value))}
-                className="flex-1 accent-indigo-500 cursor-pointer"
+                className="flex-1 accent-brand-500 cursor-pointer"
               />
-              <span className="w-12 text-right font-semibold text-indigo-600 dark:text-indigo-400">
+              <span className="w-12 text-right font-semibold text-brand-600 dark:text-brand-400">
                 {questionCount}
               </span>
             </div>
@@ -409,12 +409,12 @@ function SessionCard({
       <button
         onClick={onCopy}
         title="Copy join link"
-        className="flex items-center justify-between gap-2 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 px-4 py-3 hover:border-indigo-400 transition-colors cursor-pointer group"
+        className="flex items-center justify-between gap-2 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 px-4 py-3 hover:border-brand-400 transition-colors cursor-pointer group"
       >
-        <span className="font-mono text-2xl font-bold tracking-[0.2em] text-indigo-600 dark:text-indigo-400">
+        <span className="font-mono text-2xl font-bold tracking-[0.2em] text-brand-600 dark:text-brand-400">
           {s.code}
         </span>
-        <span className="text-xs text-slate-400 group-hover:text-indigo-500 transition-colors">
+        <span className="text-xs text-slate-400 group-hover:text-brand-500 transition-colors">
           {copied ? "Link copied!" : "Copy link"}
         </span>
       </button>
@@ -434,7 +434,7 @@ function SessionCard({
       <div className="flex items-center gap-2 pt-1">
         <Link
           href={`/admin/live/${s.code}`}
-          className="flex-1 text-center px-3 py-2 rounded-xl text-sm font-semibold bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 hover:bg-indigo-500/25 transition-colors"
+          className="flex-1 text-center px-3 py-2 rounded-xl text-sm font-semibold bg-brand-500/15 text-brand-700 dark:text-brand-300 border border-brand-500/30 hover:bg-brand-500/25 transition-colors"
         >
           Open dashboard
         </Link>

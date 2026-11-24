@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { BrandMark } from "@/app/components/BrandMark";
 import { motion } from "framer-motion";
 import MobileNav from "@/app/components/layout/MobileNav";
 import V2Banner from "./V2Banner";
@@ -53,26 +54,20 @@ export default function HomeLandingContent({
 
   return (
     // overflow-clip, not overflow-hidden: hidden makes this div a scroll container, which stops the sticky header sticking.
-    <div className="flex flex-col min-h-screen bg-[#09090b] text-white relative overflow-clip">
+    <div className="flex flex-col min-h-screen bg-navy-950 text-white relative overflow-clip">
       {/* Subtle background gradient */}
       <div className="pointer-events-none fixed inset-0 z-0">
-        <div className="absolute top-0 left-1/4 w-150 h-150 bg-indigo-600/10 rounded-full blur-[120px]" />
-        <div className="absolute bottom-0 right-1/4 w-100 h-100 bg-purple-600/10 rounded-full blur-[100px]" />
+        <div className="absolute top-0 left-1/4 w-150 h-150 bg-brand-600/10 rounded-full blur-[120px]" />
+        <div className="absolute bottom-0 right-1/4 w-100 h-100 bg-mint-600/10 rounded-full blur-[100px]" />
       </div>
 
       {/* Nav, with the v2 announcement pinned above it */}
-      <header className="sticky top-0 z-50 border-b border-white/5 bg-[#09090b]/80 backdrop-blur-xl">
+      <header className="sticky top-0 z-50 border-b border-white/5 bg-navy-950/80 backdrop-blur-xl">
         <V2Banner />
         <div className="max-w-7xl mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5">
-            <Image
-              src="/images/logo.jpg"
-              alt="Acadmate logo"
-              width={32}
-              height={32}
-              className="rounded-lg"
-            />
-            <span className="text-lg font-bold tracking-tight">Acadmate Business Consult</span>
+            <BrandMark size={32} tone="dark" />
+            <span className="text-lg font-bold tracking-tight">Acadmate</span>
           </Link>
 
           <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-400" aria-label="Main navigation">
@@ -87,7 +82,7 @@ export default function HomeLandingContent({
             <Link href="/login" className="hidden sm:inline-flex text-sm font-medium text-slate-400 hover:text-white transition-colors px-4 py-2">
               Sign In
             </Link>
-            <Link href="/register" className="text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl transition-colors">
+            <Link href="/register" className="text-sm font-semibold bg-brand-600 hover:bg-brand-500 text-white px-5 py-2.5 rounded-xl transition-colors">
               Register free
             </Link>
             <button
@@ -112,13 +107,13 @@ export default function HomeLandingContent({
             initial="hidden"
             animate="visible"
           >
-            <motion.div variants={fadeUp} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-semibold uppercase tracking-wider mb-6">
+            <motion.div variants={fadeUp} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-400 text-xs font-semibold uppercase tracking-wider mb-6">
               🎓 Nigeria&apos;s Student Success Platform
             </motion.div>
 
             <motion.h1 variants={fadeUp} className="text-4xl md:text-6xl font-extrabold tracking-tight leading-[1.08] mb-6">
               Ace your exams.<br />
-              <span className="bg-linear-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+              <span className="bg-linear-to-r from-brand-400 to-mint-400 bg-clip-text text-transparent">
                 Go further.
               </span>
             </motion.h1>
@@ -128,7 +123,7 @@ export default function HomeLandingContent({
             </motion.p>
 
             <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-10">
-              <Link href="/register" className="flex-1 sm:flex-none text-center bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-8 py-4 rounded-2xl transition-all hover:shadow-lg hover:shadow-indigo-500/25 text-base">
+              <Link href="/register" className="flex-1 sm:flex-none text-center bg-brand-600 hover:bg-brand-500 text-white font-bold px-8 py-4 rounded-2xl transition-all hover:shadow-lg hover:shadow-brand-500/25 text-base">
                 Start Practising Free
               </Link>
               <Link href="#features" className="flex-1 sm:flex-none text-center border border-white/10 hover:border-white/20 text-slate-300 hover:text-white font-medium px-8 py-4 rounded-2xl transition-all text-base bg-white/5">
@@ -181,7 +176,7 @@ export default function HomeLandingContent({
               initial={{ opacity: 0, x: -20, y: 20 }}
               animate={{ opacity: 1, x: 0, y: 0 }}
               transition={{ delay: 0.6, duration: 0.5, ease: "easeOut" }}
-              className="absolute -bottom-6 -left-6 w-44 md:w-52 rounded-xl overflow-hidden border-2 border-indigo-500/50 shadow-xl shadow-indigo-500/10 hidden sm:block"
+              className="absolute -bottom-6 -left-6 w-44 md:w-52 rounded-xl overflow-hidden border-2 border-brand-500/50 shadow-xl shadow-brand-500/10 hidden sm:block"
             >
               <Image
                 src="/images/520231975_1062352099320762_1989502761018549539_n.jpg"
@@ -201,7 +196,7 @@ export default function HomeLandingContent({
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.7, duration: 0.4, ease: "easeOut" }}
-              className="absolute -top-4 -right-4 bg-[#09090b] border border-white/10 rounded-2xl px-4 py-3 shadow-xl hidden md:block"
+              className="absolute -top-4 -right-4 bg-navy-950 border border-white/10 rounded-2xl px-4 py-3 shadow-xl hidden md:block"
             >
               <p className="text-xs text-slate-400 mb-0.5">Average Score Gain</p>
               <p className="text-2xl font-extrabold text-emerald-400">+47pts</p>
@@ -236,7 +231,7 @@ export default function HomeLandingContent({
             { icon: "📊", title: "Deep Analytics", desc: "Spot your weak topics before exam day. Track your score trend and subject accuracy over time." },
             { icon: "🎓", title: "Post-UTME Prep", desc: "Practice with real Post-UTME past papers from UNILAG, UI, OAU, UNIBEN, ABU and UNN. Timed 30-minute sessions, 40 questions." },
             { icon: "🏆", title: "Leaderboard", desc: "See how you rank among all students nationally. Separate UTME and Post-UTME boards updated in real time." },
-            { icon: "🎯", title: "Topic Mastery", desc: "Drill specific topics until they&apos;re perfect. Identify gaps and close them systematically." },
+            { icon: "🎯", title: "Topic Mastery", desc: "Drill specific topics until they’re perfect. Identify gaps and close them systematically." },
             { icon: "📖", title: "Literature Guide", desc: "Full summaries, character breakdowns and predicted questions for The Lekki Headmaster and other UTME prose." },
             { icon: "🔐", title: "Google Sign-In", desc: "Register or sign in with your Google account in one click — no password required." },
             { icon: "📰", title: "Blog & School News", desc: "Stay informed with JAMB updates, university announcements, and study tips written by our team." },
@@ -304,14 +299,14 @@ export default function HomeLandingContent({
           </motion.div>
 
           {/* Premium plan */}
-          <motion.div variants={fadeUp} className="relative bg-indigo-600 rounded-2xl p-8 space-y-6 shadow-2xl shadow-indigo-500/20">
+          <motion.div variants={fadeUp} className="relative bg-brand-600 rounded-2xl p-8 space-y-6 shadow-2xl shadow-brand-500/20">
             <div className="absolute top-4 right-4 px-2.5 py-1 rounded-full bg-white/15 text-white text-xs font-bold">
               Most Popular
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-widest text-indigo-200 mb-1">Premium</p>
+              <p className="text-xs font-semibold uppercase tracking-widest text-brand-200 mb-1">Premium</p>
               <p className="text-4xl font-extrabold text-white">Contact Us</p>
-              <p className="text-indigo-200 text-sm mt-2">Pay once, full access — no subscription.</p>
+              <p className="text-brand-200 text-sm mt-2">Pay once, full access — no subscription.</p>
             </div>
             <ul className="space-y-3">
               {[
@@ -331,7 +326,7 @@ export default function HomeLandingContent({
               href="https://wa.me/2349031843486"
               target="_blank"
               rel="noopener noreferrer"
-              className="block text-center bg-white text-indigo-700 font-bold px-6 py-3 rounded-xl hover:bg-indigo-50 transition-colors"
+              className="block text-center bg-white text-brand-700 font-bold px-6 py-3 rounded-xl hover:bg-brand-50 transition-colors"
             >
               Pay via WhatsApp
             </a>
@@ -342,7 +337,7 @@ export default function HomeLandingContent({
       {/* ── SUBJECTS ── */}
       <section id="subjects" className="relative z-10 max-w-7xl mx-auto px-4 md:px-6 py-20 md:py-32">
         <motion.div
-          className="rounded-[2.5rem] bg-indigo-500/5 border border-indigo-500/10 p-10 md:p-16"
+          className="rounded-[2.5rem] bg-brand-500/5 border border-brand-500/10 p-10 md:p-16"
           variants={scaleIn}
           initial="hidden"
           whileInView="visible"
@@ -376,7 +371,7 @@ export default function HomeLandingContent({
               <motion.div
                 key={i}
                 variants={fadeUp}
-                className="flex items-center gap-3 bg-white/3 border border-white/8 rounded-xl p-4 hover:border-indigo-500/30 transition-colors group"
+                className="flex items-center gap-3 bg-white/3 border border-white/8 rounded-xl p-4 hover:border-brand-500/30 transition-colors group"
               >
                 <span className="text-xl">{s.icon}</span>
                 <span className="text-sm font-semibold text-slate-200 group-hover:text-white transition-colors">{s.name}</span>
@@ -437,7 +432,7 @@ export default function HomeLandingContent({
               />
               <div className="absolute inset-0 bg-linear-to-br from-emerald-900/40 to-transparent" />
             </div>
-            <div className="absolute -bottom-5 -right-5 bg-[#09090b] border border-white/10 rounded-2xl p-5 shadow-xl max-w-55 hidden md:block">
+            <div className="absolute -bottom-5 -right-5 bg-navy-950 border border-white/10 rounded-2xl p-5 shadow-xl max-w-55 hidden md:block">
               <p className="text-sm font-bold text-white mb-1">90%+ Accuracy</p>
               <p className="text-xs text-slate-400">Predicting JAMB literature questions since 2022.</p>
             </div>
@@ -456,10 +451,10 @@ export default function HomeLandingContent({
           >
             <div className="flex items-end justify-between mb-10">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-indigo-400 mb-2">The Acadmate Blog</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-400 mb-2">The Acadmate Blog</p>
                 <h2 className="text-3xl md:text-4xl font-bold">News, tips &amp; opportunities</h2>
               </div>
-              <Link href="/blog" className="hidden sm:inline-flex text-sm font-medium text-indigo-400 hover:text-indigo-300 transition-colors">
+              <Link href="/blog" className="hidden sm:inline-flex text-sm font-medium text-brand-400 hover:text-brand-300 transition-colors">
                 View all posts →
               </Link>
             </div>
@@ -469,7 +464,7 @@ export default function HomeLandingContent({
                 <Link
                   key={post.id}
                   href={`/blog/${post.slug}`}
-                  className="group rounded-2xl overflow-hidden border border-white/8 bg-white/3 hover:border-indigo-500/30 hover:bg-white/6 transition-all flex flex-col"
+                  className="group rounded-2xl overflow-hidden border border-white/8 bg-white/3 hover:border-brand-500/30 hover:bg-white/6 transition-all flex flex-col"
                 >
                   <div className="aspect-video bg-slate-900 relative overflow-hidden">
                     {post.coverImageUrl ? (
@@ -480,11 +475,11 @@ export default function HomeLandingContent({
                         className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
                       />
                     ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-indigo-600/20 to-purple-600/10" />
+                      <div className="w-full h-full bg-gradient-to-br from-brand-600/20 to-mint-600/10" />
                     )}
                   </div>
                   <div className="p-5 flex-1 flex flex-col gap-2">
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-indigo-400">
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-brand-400">
                       {categoryLabel(post.category)}
                     </span>
                     <h3 className="font-bold leading-snug text-slate-200 group-hover:text-white transition-colors">
@@ -497,7 +492,7 @@ export default function HomeLandingContent({
             </div>
 
             <div className="mt-8 text-center sm:hidden">
-              <Link href="/blog" className="text-sm font-medium text-indigo-400 hover:text-indigo-300 transition-colors">
+              <Link href="/blog" className="text-sm font-medium text-brand-400 hover:text-brand-300 transition-colors">
                 View all posts →
               </Link>
             </div>
@@ -512,7 +507,7 @@ export default function HomeLandingContent({
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, amount: 0.3 }}
-          className="relative overflow-hidden rounded-[2.5rem] bg-indigo-600 p-10 md:p-16 text-center"
+          className="relative overflow-hidden rounded-[2.5rem] bg-brand-600 p-10 md:p-16 text-center"
         >
           <div className="absolute inset-0 opacity-10">
             <Image
@@ -523,31 +518,31 @@ export default function HomeLandingContent({
               aria-hidden="true"
             />
           </div>
-          <div className="absolute inset-0 bg-indigo-600/80" />
+          <div className="absolute inset-0 bg-brand-600/80" />
           <div className="relative z-10">
             <h2 className="text-3xl md:text-5xl font-extrabold mb-4 text-white">Your student journey starts here.</h2>
-            <p className="text-indigo-200 text-lg max-w-2xl mx-auto mb-10">
+            <p className="text-brand-200 text-lg max-w-2xl mx-auto mb-10">
               Join Nigerian students who use Acadmate to ace their exams, find scholarships, and build a path beyond admission.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link href="/register" className="w-full sm:w-auto bg-white text-indigo-700 font-bold px-10 py-4 rounded-2xl hover:shadow-xl hover:scale-105 transition-all text-base">
+              <Link href="/register" className="w-full sm:w-auto bg-white text-brand-700 font-bold px-10 py-4 rounded-2xl hover:shadow-xl hover:scale-105 transition-all text-base">
                 Create Free Account
               </Link>
               <Link href="/login" className="w-full sm:w-auto bg-white/10 border border-white/20 text-white font-medium px-10 py-4 rounded-2xl hover:bg-white/20 transition-all text-base">
                 Sign In
               </Link>
             </div>
-            <p className="mt-6 text-indigo-300 text-sm">Free to start — no credit card required.</p>
+            <p className="mt-6 text-brand-300 text-sm">Free to start — no credit card required.</p>
           </div>
         </motion.div>
       </section>
 
       {/* Footer */}
-      <footer className="relative z-10 border-t border-white/5 py-10 px-4 md:px-6 bg-[#09090b]/80 backdrop-blur-xl">
+      <footer className="relative z-10 border-t border-white/5 py-10 px-4 md:px-6 bg-navy-950/80 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-8">
           <div className="flex flex-col items-center md:items-start gap-4">
             <Link href="/" className="flex items-center gap-2">
-              <Image src="/images/logo.jpg" alt="Acadmate" width={22} height={22} className="rounded" />
+              <BrandMark size={22} tone="dark" />
               <span className="font-bold text-slate-300 text-lg">Acadmate</span>
             </Link>
             <p className="text-sm text-slate-500 max-w-xs text-center md:text-left">
@@ -566,8 +561,8 @@ export default function HomeLandingContent({
                 rel={item.href.startsWith("http") ? "noopener noreferrer" : undefined}
                 aria-label={item.name}
               >
-                <div className="p-2.5 rounded-full bg-white/5 border border-white/5 group-hover:border-indigo-500/50 group-hover:bg-indigo-500/10 transition-all">
-                  <item.icon className="size-5 text-slate-400 group-hover:text-indigo-400 transition-colors" />
+                <div className="p-2.5 rounded-full bg-white/5 border border-white/5 group-hover:border-brand-500/50 group-hover:bg-brand-500/10 transition-all">
+                  <item.icon className="size-5 text-slate-400 group-hover:text-brand-400 transition-colors" />
                 </div>
               </Link>
             ))}

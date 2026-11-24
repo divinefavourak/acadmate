@@ -124,7 +124,9 @@ export default async function middleware(req: NextRequest) {
 }
 
 export const config = {
+  // Static files skip the gate entirely. icon.svg and apple-icon.png are served
+  // from app/ by the metadata file conventions, and brand/ holds the logo files.
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|manifest.json|robots.txt|sitemap|images/).*)",
+    "/((?!_next/static|_next/image|favicon.ico|icon.svg|apple-icon.png|manifest.json|robots.txt|sitemap|images/|brand/).*)",
   ],
 };

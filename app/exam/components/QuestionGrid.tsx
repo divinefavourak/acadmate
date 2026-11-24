@@ -30,7 +30,7 @@ export default function QuestionGrid({
 
         if (isCurrent) {
           buttonClass +=
-            "bg-indigo-600 text-white shadow-md shadow-indigo-500/25 ring-2 ring-indigo-500 ring-offset-2 dark:ring-offset-black";
+            "bg-brand-600 text-white shadow-md shadow-brand-500/25 ring-2 ring-brand-500 ring-offset-2 dark:ring-offset-black";
         } else if (isMarked) {
           buttonClass +=
             "bg-amber-400/20 text-amber-600 dark:text-amber-400 border border-amber-400/50 hover:bg-amber-400/30";

@@ -158,12 +158,12 @@ export default function AdminNotificationsPage() {
                         </span>
                       )}
                       {n.questionId && (
-                        <span className="text-xs text-indigo-500">View question →</span>
+                        <span className="text-xs text-brand-500">View question →</span>
                       )}
                     </div>
                   </div>
                   {!n.read && (
-                    <span className="flex-shrink-0 w-2 h-2 rounded-full bg-indigo-400 mt-1.5" />
+                    <span className="flex-shrink-0 w-2 h-2 rounded-full bg-brand-400 mt-1.5" />
                   )}
                 </div>
               </button>

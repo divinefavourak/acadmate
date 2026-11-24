@@ -23,7 +23,7 @@ function ResetForm() {
     return (
       <div className="text-center space-y-4">
         <p className="text-red-400">Invalid reset link.</p>
-        <Link href="/forgot-password" className="text-indigo-500 text-sm font-semibold">
+        <Link href="/forgot-password" className="text-brand-500 text-sm font-semibold">
           Request a new one
         </Link>
       </div>
@@ -89,7 +89,7 @@ function ResetForm() {
             onChange={(e) => setPassword(e.target.value)}
             required
             minLength={6}
-            className="w-full px-4 py-3 rounded-xl bg-white/50 dark:bg-black/50 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+            className="w-full px-4 py-3 rounded-xl bg-white/50 dark:bg-black/50 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500/50 transition-all"
           />
         </div>
 
@@ -102,7 +102,7 @@ function ResetForm() {
             onChange={(e) => setConfirm(e.target.value)}
             required
             minLength={6}
-            className="w-full px-4 py-3 rounded-xl bg-white/50 dark:bg-black/50 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+            className="w-full px-4 py-3 rounded-xl bg-white/50 dark:bg-black/50 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500/50 transition-all"
           />
         </div>
 

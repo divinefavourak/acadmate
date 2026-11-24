@@ -199,7 +199,7 @@ export default function AdminNotesPage() {
             value={subjectId}
             onChange={(e) => { setSubjectId(e.target.value); setTopicId(null); setDraft(null); }}
             aria-label="Subject"
-            className="w-full px-4 py-3 rounded-xl bg-slate-900/60 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+            className="w-full px-4 py-3 rounded-xl bg-slate-900/60 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500/50"
           >
             {subjects.map((s) => (
               <option key={s.id} value={s.id}>{s.name}</option>
@@ -218,7 +218,7 @@ export default function AdminNotesPage() {
                     <button
                       onClick={() => { setTopicId(t.id); setDraft(null); setError(""); }}
                       aria-current={t.id === topicId}
-                      className={`w-full text-left px-4 py-3 transition-colors ${t.id === topicId ? "bg-indigo-600/20" : "hover:bg-slate-800/50"}`}
+                      className={`w-full text-left px-4 py-3 transition-colors ${t.id === topicId ? "bg-brand-600/20" : "hover:bg-slate-800/50"}`}
                     >
                       <span className="flex items-center justify-between gap-2">
                         <span className="font-medium text-sm truncate">{t.name}</span>
@@ -258,7 +258,7 @@ export default function AdminNotesPage() {
                         key={a}
                         aria-pressed={current.topic.notesAccess === a}
                         onClick={() => current.topic.notesAccess !== a && updateSettings({ notesAccess: a })}
-                        className={`px-3 py-1.5 font-medium transition-colors ${current.topic.notesAccess === a ? "bg-indigo-600 text-white" : "text-slate-400 hover:text-white"}`}
+                        className={`px-3 py-1.5 font-medium transition-colors ${current.topic.notesAccess === a ? "bg-brand-600 text-white" : "text-slate-400 hover:text-white"}`}
                       >
                         {a === "FREE" ? "Free" : "Premium"}
                       </button>
@@ -283,7 +283,7 @@ export default function AdminNotesPage() {
                 {current.notes.map((n, i) => (
                   <li
                     key={n.id}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${draft?.id === n.id ? "border-indigo-500/50 bg-indigo-600/10" : "border-slate-800 bg-slate-900"}`}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${draft?.id === n.id ? "border-brand-500/50 bg-brand-600/10" : "border-slate-800 bg-slate-900"}`}
                   >
                     <span className="w-6 text-center text-sm font-bold text-slate-500 tabular-nums">{i + 1}</span>
                     <span className="flex-1 min-w-0">
@@ -295,7 +295,7 @@ export default function AdminNotesPage() {
                     <span className="flex items-center gap-1 text-xs">
                       <button onClick={() => move(i, -1)} disabled={i === 0} aria-label={`Move ${n.title} up`} className="px-2 py-1 rounded-lg text-slate-400 hover:bg-slate-800 disabled:opacity-30">↑</button>
                       <button onClick={() => move(i, 1)} disabled={i === current.notes.length - 1} aria-label={`Move ${n.title} down`} className="px-2 py-1 rounded-lg text-slate-400 hover:bg-slate-800 disabled:opacity-30">↓</button>
-                      <button onClick={() => { setError(""); setDraft({ id: n.id, title: n.title, body: n.body }); }} className="px-2 py-1 rounded-lg text-indigo-300 hover:bg-slate-800">Edit</button>
+                      <button onClick={() => { setError(""); setDraft({ id: n.id, title: n.title, body: n.body }); }} className="px-2 py-1 rounded-lg text-brand-300 hover:bg-slate-800">Edit</button>
                       <button onClick={() => setToDelete(n)} className="px-2 py-1 rounded-lg text-red-400 hover:bg-slate-800">Delete</button>
                     </span>
                   </li>
@@ -313,7 +313,7 @@ export default function AdminNotesPage() {
                       onChange={(e) => setDraft({ ...draft, title: e.target.value })}
                       placeholder="e.g. What is a cell?"
                       maxLength={160}
-                      className="w-full px-4 py-3 rounded-xl bg-slate-900/60 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                      className="w-full px-4 py-3 rounded-xl bg-slate-900/60 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500/50"
                     />
                   </div>
 
@@ -342,7 +342,7 @@ export default function AdminNotesPage() {
                         <button onClick={() => saveDraft(false)} disabled={saving} className="px-4 py-2 rounded-xl text-sm font-medium border border-amber-500/30 text-amber-300 hover:bg-amber-500/10 disabled:opacity-50 transition-colors">
                           Save and unpublish
                         </button>
-                        <button onClick={() => saveDraft(undefined)} disabled={saving} className="px-4 py-2 rounded-xl text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-50 transition-colors">
+                        <button onClick={() => saveDraft(undefined)} disabled={saving} className="px-4 py-2 rounded-xl text-sm font-semibold bg-brand-600 hover:bg-brand-500 text-white disabled:opacity-50 transition-colors">
                           {saving ? "Saving…" : "Save"}
                         </button>
                       </>
@@ -351,7 +351,7 @@ export default function AdminNotesPage() {
                         <button onClick={() => saveDraft(undefined)} disabled={saving} className="px-4 py-2 rounded-xl text-sm font-medium border border-slate-700 hover:bg-slate-800 disabled:opacity-50 transition-colors">
                           Save draft
                         </button>
-                        <button onClick={() => saveDraft(true)} disabled={saving} className="px-4 py-2 rounded-xl text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-50 transition-colors">
+                        <button onClick={() => saveDraft(true)} disabled={saving} className="px-4 py-2 rounded-xl text-sm font-semibold bg-brand-600 hover:bg-brand-500 text-white disabled:opacity-50 transition-colors">
                           {saving ? "Saving…" : "Save and publish"}
                         </button>
                       </>

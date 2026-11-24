@@ -107,7 +107,7 @@ export default function NotesImportPanel({ onImported }: { onImported: () => voi
               type="checkbox"
               checked={createTopics}
               onChange={(e) => { setCreateTopics(e.target.checked); setResult(null); setItems(null); setFilename(""); }}
-              className="accent-indigo-500"
+              className="accent-brand-500"
             />
             Create topics that don&apos;t exist yet
           </label>
@@ -160,7 +160,7 @@ export default function NotesImportPanel({ onImported }: { onImported: () => voi
               <button
                 onClick={() => items && send(items, false)}
                 disabled={busy || !items}
-                className="px-4 py-2 rounded-xl text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-50 transition-colors"
+                className="px-4 py-2 rounded-xl text-sm font-semibold bg-brand-600 hover:bg-brand-500 text-white disabled:opacity-50 transition-colors"
               >
                 {busy ? "Importing…" : `Import ${totalSections} section${totalSections === 1 ? "" : "s"}`}
               </button>

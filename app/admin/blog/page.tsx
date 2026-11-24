@@ -10,7 +10,7 @@ import { categoryLabel, type BlogCategory } from "@/app/blog/categories";
 // so the row reads as one toolbar rather than a pile of misc links.
 const BTN_BASE =
   "inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed";
-const BTN_PRIMARY = `${BTN_BASE} bg-indigo-600 hover:bg-indigo-500 text-white`;
+const BTN_PRIMARY = `${BTN_BASE} bg-brand-600 hover:bg-brand-500 text-white`;
 const BTN_SECONDARY = `${BTN_BASE} border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800`;
 const BTN_WARNING = `${BTN_BASE} border border-amber-500/40 text-amber-600 dark:text-amber-300 hover:bg-amber-500/10`;
 const BTN_DANGER = `${BTN_BASE} text-slate-500 hover:text-red-500 hover:bg-red-500/10`;
@@ -159,7 +159,7 @@ export default function AdminBlogListPage() {
         </div>
         <Link
           href="/admin/blog/new"
-          className="inline-flex items-center gap-2 px-4 sm:px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-semibold text-sm transition-colors whitespace-nowrap"
+          className="inline-flex items-center gap-2 px-4 sm:px-5 py-2.5 bg-brand-600 hover:bg-brand-500 text-white rounded-xl font-semibold text-sm transition-colors whitespace-nowrap"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>
           New post
@@ -185,7 +185,7 @@ export default function AdminBlogListPage() {
       ) : posts.length === 0 ? (
         <div className="glass-panel rounded-2xl py-16 text-center space-y-2">
           <p className="text-slate-500">No posts yet.</p>
-          <Link href="/admin/blog/new" className="text-indigo-500 dark:text-indigo-400 hover:text-indigo-400 dark:hover:text-indigo-300 font-medium text-sm">
+          <Link href="/admin/blog/new" className="text-brand-500 dark:text-brand-400 hover:text-brand-400 dark:hover:text-brand-300 font-medium text-sm">
             Write your first post →
           </Link>
         </div>
@@ -194,7 +194,7 @@ export default function AdminBlogListPage() {
           {posts.map((p) => (
             <li
               key={p.id}
-              className="glass-panel rounded-2xl p-4 sm:p-5 hover:border-indigo-500/30 transition-colors"
+              className="glass-panel rounded-2xl p-4 sm:p-5 hover:border-brand-500/30 transition-colors"
             >
               <div className="flex flex-col gap-4">
                 {/* Title + status badges */}
@@ -202,7 +202,7 @@ export default function AdminBlogListPage() {
                   <div className="min-w-0 flex-1">
                     <Link
                       href={`/admin/blog/${p.id}`}
-                      className="block font-semibold text-base sm:text-lg leading-snug hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors break-words"
+                      className="block font-semibold text-base sm:text-lg leading-snug hover:text-brand-500 dark:hover:text-brand-400 transition-colors break-words"
                     >
                       {p.title}
                     </Link>
@@ -219,7 +219,7 @@ export default function AdminBlogListPage() {
                       </span>
                     )}
                     {p.notifiedAt && (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-500/15 text-indigo-600 dark:text-indigo-300 border border-indigo-500/30">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-brand-500/15 text-brand-600 dark:text-brand-300 border border-brand-500/30">
                         Emailed
                       </span>
                     )}

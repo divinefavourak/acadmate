@@ -75,7 +75,7 @@ export default async function SubjectPage({ params }: { params: Params }) {
             <li key={y.year}>
               <Link
                 href={yearPath(s.slug, y.year)}
-                className="block rounded-xl border border-black/5 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.03] px-4 py-3 hover:border-indigo-500/50 transition-colors"
+                className="block rounded-xl border border-black/5 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.03] px-4 py-3 hover:border-brand-500/50 transition-colors"
               >
                 <span className="block font-semibold">JAMB {s.name} {y.year}</span>
                 <span className="block text-sm text-slate-500 dark:text-slate-400">
@@ -100,10 +100,10 @@ export default async function SubjectPage({ params }: { params: Params }) {
 function TopicRanking({ subject: s, topics }: SubjectData) {
   const max = Math.max(...topics.map((t) => t.count));
   return (
-    <section aria-labelledby="topics-heading" className="mt-12 overflow-hidden rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-[#111114]">
-      <div className="bg-indigo-700 px-5 py-4 text-white">
+    <section aria-labelledby="topics-heading" className="mt-12 overflow-hidden rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-slate-900">
+      <div className="bg-brand-700 px-5 py-4 text-white">
         <h2 id="topics-heading" className="text-lg font-bold">Most examined topics</h2>
-        <p className="text-sm text-indigo-100">In JAMB {s.name} past questions. Tap one to drill it in CBT mode.</p>
+        <p className="text-sm text-brand-100">In JAMB {s.name} past questions. Tap one to drill it in CBT mode.</p>
       </div>
       <ol className="grid sm:grid-cols-2">
         {topics.map((t, i) => (
@@ -111,9 +111,9 @@ function TopicRanking({ subject: s, topics }: SubjectData) {
             <Link
               href={practicePath(s.id, t.id)}
               rel="nofollow"
-              className="flex items-center gap-4 px-5 py-3.5 hover:bg-indigo-50/60 dark:hover:bg-indigo-500/10 transition-colors"
+              className="flex items-center gap-4 px-5 py-3.5 hover:bg-brand-50/60 dark:hover:bg-brand-500/10 transition-colors"
             >
-              <span className="w-6 shrink-0 text-sm font-semibold tabular-nums text-indigo-700 dark:text-indigo-300">
+              <span className="w-6 shrink-0 text-sm font-semibold tabular-nums text-brand-700 dark:text-brand-300">
                 {String(i + 1).padStart(2, "0")}
               </span>
               <span className="min-w-0 flex-1">
@@ -123,8 +123,8 @@ function TopicRanking({ subject: s, topics }: SubjectData) {
                     {t.count} {t.count === 1 ? "question" : "questions"}
                   </span>
                 </span>
-                <span className="mt-1.5 block h-1.5 rounded-full bg-indigo-100 dark:bg-indigo-500/15" aria-hidden>
-                  <span className="block h-full rounded-full bg-indigo-600 dark:bg-indigo-400" style={{ width: `${Math.max(4, (t.count / max) * 100)}%` }} />
+                <span className="mt-1.5 block h-1.5 rounded-full bg-brand-100 dark:bg-brand-500/15" aria-hidden>
+                  <span className="block h-full rounded-full bg-brand-600 dark:bg-brand-400" style={{ width: `${Math.max(4, (t.count / max) * 100)}%` }} />
                 </span>
               </span>
               <span className="shrink-0 text-slate-400" aria-hidden>→</span>

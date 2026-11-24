@@ -6,21 +6,21 @@ interface MiniBarChartProps {
   data: DataPoint[];
   valueKey: string;
   labelKey?: string;
-  color?: "indigo" | "emerald" | "violet" | "amber";
+  color?: "brand" | "emerald" | "violet" | "amber";
   emptyMessage?: string;
   className?: string;
   orientation?: "vertical" | "horizontal";
 }
 
 const COLOR_MAP = {
-  indigo: "bg-indigo-500 dark:bg-indigo-400",
+  brand: "bg-brand-500 dark:bg-brand-400",
   emerald: "bg-emerald-500 dark:bg-emerald-400",
   violet: "bg-violet-500 dark:bg-violet-400",
   amber: "bg-amber-500 dark:bg-amber-400",
 };
 
 const HOVER_MAP = {
-  indigo: "hover:bg-indigo-400 dark:hover:bg-indigo-300",
+  brand: "hover:bg-brand-400 dark:hover:bg-brand-300",
   emerald: "hover:bg-emerald-400 dark:hover:bg-emerald-300",
   violet: "hover:bg-violet-400 dark:hover:bg-violet-300",
   amber: "hover:bg-amber-400 dark:hover:bg-amber-300",
@@ -30,7 +30,7 @@ export default function MiniBarChart({
   data,
   valueKey,
   labelKey = "label",
-  color = "indigo",
+  color = "brand",
   emptyMessage = "No data yet",
   className = "",
   orientation = "vertical",

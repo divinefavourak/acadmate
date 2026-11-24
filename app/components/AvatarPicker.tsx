@@ -59,12 +59,12 @@ export default function AvatarPicker({ initialConfig, initialUrl, onSave }: Prop
           <img
             src={previewUrl}
             alt="avatar preview"
-            className="w-28 h-28 rounded-full object-cover ring-4 ring-indigo-500/40"
+            className="w-28 h-28 rounded-full object-cover ring-4 ring-brand-500/40"
           />
         ) : (
           <NiceAvatar
             style={{ width: 112, height: 112 }}
-            className="rounded-full ring-4 ring-indigo-500/40"
+            className="rounded-full ring-4 ring-brand-500/40"
             {...config}
           />
         )}
@@ -75,7 +75,7 @@ export default function AvatarPicker({ initialConfig, initialUrl, onSave }: Prop
         <button
           onClick={() => setMode("generated")}
           className={`px-4 py-2 font-medium transition-colors ${
-            mode === "generated" ? "bg-indigo-600 text-white" : "bg-slate-800 text-slate-400 hover:text-white"
+            mode === "generated" ? "bg-brand-600 text-white" : "bg-slate-800 text-slate-400 hover:text-white"
           }`}
         >
           Generated
@@ -83,7 +83,7 @@ export default function AvatarPicker({ initialConfig, initialUrl, onSave }: Prop
         <button
           onClick={() => setMode("upload")}
           className={`px-4 py-2 font-medium transition-colors ${
-            mode === "upload" ? "bg-indigo-600 text-white" : "bg-slate-800 text-slate-400 hover:text-white"
+            mode === "upload" ? "bg-brand-600 text-white" : "bg-slate-800 text-slate-400 hover:text-white"
           }`}
         >
           Upload Photo
@@ -121,7 +121,7 @@ export default function AvatarPicker({ initialConfig, initialUrl, onSave }: Prop
       <button
         onClick={handleSave}
         disabled={saving}
-        className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-lg font-medium transition-colors"
+        className="px-6 py-2 bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white rounded-lg font-medium transition-colors"
       >
         {saving ? "Saving…" : "Save Avatar"}
       </button>

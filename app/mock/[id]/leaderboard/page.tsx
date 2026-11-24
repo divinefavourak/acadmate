@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
+import { BrandMark } from "@/app/components/BrandMark";
 import { motion, useReducedMotion } from "framer-motion";
 import { apiClient } from "@/lib/api/client";
 import UserAvatar from "@/app/components/UserAvatar";
@@ -132,10 +132,10 @@ export default function MockLeaderboardPage() {
   const podiumEntries = PODIUM_IDX.map((i) => top3[i]).filter(Boolean) as LeaderboardEntry[];
 
   return (
-    <div className="min-h-screen text-white py-10 px-4" style={{ background: "#0f172a" }}>
+    <div className="min-h-screen text-white py-10 px-4" style={{ background: "#0d1d2f" }}>
       <div className="max-w-2xl mx-auto space-y-6">
         <div className="flex items-center justify-center gap-2">
-          <Image src="/images/logo.jpg" alt="Acadmate" width={28} height={28} className="rounded-lg shadow-md object-cover" />
+          <BrandMark size={28} tone="dark" />
           <span className="font-bold tracking-tight text-lg">Acadmate</span>
         </div>
 
@@ -147,7 +147,7 @@ export default function MockLeaderboardPage() {
 
         {loading ? (
           <div className="flex justify-center py-16">
-            <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+            <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
           </div>
         ) : fetchError ? (
           <div className="text-center py-16 text-red-400 text-sm">

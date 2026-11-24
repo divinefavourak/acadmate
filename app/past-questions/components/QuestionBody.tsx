@@ -12,7 +12,7 @@ export function QuestionChips({ subject, question }: { subject: string; question
       <span className={`${CHIP} bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300`}>{subject}</span>
       <span className={`${CHIP} bg-violet-100 text-violet-800 dark:bg-violet-500/15 dark:text-violet-300`}>{question.year}</span>
       {question.topic && (
-        <span className={`${CHIP} bg-indigo-100 text-indigo-800 dark:bg-indigo-500/15 dark:text-indigo-300`}>
+        <span className={`${CHIP} bg-brand-100 text-brand-800 dark:bg-brand-500/15 dark:text-brand-300`}>
           {question.topic.name}
         </span>
       )}

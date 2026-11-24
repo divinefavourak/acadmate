@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, use } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
+import { BrandMark } from "@/app/components/BrandMark";
 import Timer from "../components/Timer";
 import QuestionGrid from "../components/QuestionGrid";
 import Calculator from "../components/Calculator";
@@ -287,7 +287,7 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
               onSelect={(idx) => { setCurrentIndex(idx); setShowMobileNav(false); }}
             />
             <div className="flex items-center gap-4 mt-4 text-xs text-slate-500 flex-wrap">
-              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-indigo-600 inline-block" />Current</span>
+              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-brand-600 inline-block" />Current</span>
               <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-emerald-400 inline-block" />Answered</span>
               <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-amber-400 inline-block" />Flagged</span>
               <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-slate-200 dark:bg-slate-700 border border-slate-300 inline-block" />Unanswered</span>
@@ -299,17 +299,11 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
       {/* Main Exam Area */}
       <main className="flex-1 flex flex-col items-center min-w-0">
         {/* Top Bar */}
-        <header className="w-full flex items-center justify-between px-3 sm:px-8 py-2 sm:py-4 bg-white/80 dark:bg-black/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 flex-shrink-0 gap-2">
+        <header className="w-full flex items-center justify-between px-3 sm:px-8 py-2 sm:py-4 bg-white/80 dark:bg-navy-950/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 flex-shrink-0 gap-2">
           <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-shrink-0">
-              <Image
-                src="/images/logo.jpg"
-                alt="Acadmate Logo"
-                width={28}
-                height={28}
-                className="rounded-lg shadow-md object-cover"
-              />
-              <span className="font-bold tracking-tight hidden sm:block">Acadmate CBT</span>
+              <BrandMark size={28} />
+              <span className="font-bold tracking-tight hidden sm:block">Acadmate</span>
             </div>
             <div className="h-5 w-px bg-slate-200 dark:bg-slate-800 hidden sm:block flex-shrink-0" />
             {/* Tappable counter — opens mobile navigator */}
@@ -331,7 +325,7 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
               className="flex-1 min-w-6 h-2 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden"
             >
               <div
-                className="h-full rounded-full bg-indigo-600 dark:bg-indigo-400 transition-[width] duration-300"
+                className="h-full rounded-full bg-brand-600 dark:bg-brand-400 transition-[width] duration-300"
                 style={{ width: `${(answeredIndexes.length / questions.length) * 100}%` }}
               />
             </div>
@@ -371,7 +365,7 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
         <div className="w-full max-w-3xl px-4 sm:px-6 flex flex-col flex-1 overflow-hidden min-h-0">
           {/* Scrollable question + options area */}
           <div className="flex-1 overflow-y-auto py-6 sm:py-10 min-h-0">
-            <div className="mb-5 sm:mb-6 rounded-3xl bg-indigo-600 dark:bg-indigo-950/70 dark:border dark:border-indigo-500/30 text-white p-5 sm:p-8 shadow-lg shadow-indigo-600/15">
+            <div className="mb-5 sm:mb-6 rounded-3xl bg-brand-600 dark:bg-brand-950/70 dark:border dark:border-brand-500/30 text-white p-5 sm:p-8 shadow-lg shadow-brand-600/15">
               <div className="flex items-center gap-2 mb-4 flex-wrap">
                 <div className="ml-auto flex items-center gap-2">
                   {/* Bookmark — mark for review */}
@@ -412,7 +406,7 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
                 <p className="text-2xl sm:text-3xl font-bold tracking-tight">
                   Question <span className="text-amber-300 tabular-nums">{String(currentIndex + 1).padStart(2, "0")}</span>
                 </p>
-                <p className="mt-1 text-sm text-indigo-100/80">
+                <p className="mt-1 text-sm text-brand-100/80">
                   {currentQ.subject.name}
                   {currentQ.topic ? ` · ${currentQ.topic.name}` : ""}
                 </p>
@@ -436,9 +430,9 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
                 return (
                   <label
                     key={option.id}
-                    className={`flex items-center gap-3 p-3.5 sm:p-4 rounded-2xl border-2 cursor-pointer transition-all focus-within:ring-2 focus-within:ring-indigo-500/50 ${
+                    className={`flex items-center gap-3 p-3.5 sm:p-4 rounded-2xl border-2 cursor-pointer transition-all focus-within:ring-2 focus-within:ring-brand-500/50 ${
                       isSelected
-                        ? "border-indigo-600 dark:border-indigo-400 bg-indigo-50 dark:bg-indigo-900/25"
+                        ? "border-brand-600 dark:border-brand-400 bg-brand-50 dark:bg-brand-900/25"
                         : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white/70 dark:bg-slate-900/50"
                     }`}
                   >
@@ -449,13 +443,13 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
                       checked={isSelected}
                       onChange={() => handleOptionSelect(option.id)}
                     />
-                    <span className={`flex-shrink-0 w-6 text-center font-bold text-sm ${isSelected ? "text-indigo-600 dark:text-indigo-300" : "text-slate-400"}`}>
+                    <span className={`flex-shrink-0 w-6 text-center font-bold text-sm ${isSelected ? "text-brand-600 dark:text-brand-300" : "text-slate-400"}`}>
                       {option.label}
                     </span>
                     <span
                       className={`flex-1 min-w-0 text-base sm:text-lg ${
                         isSelected
-                          ? "font-medium text-indigo-900 dark:text-indigo-100"
+                          ? "font-medium text-brand-900 dark:text-brand-100"
                           : "text-slate-700 dark:text-slate-300"
                       }`}
                     >
@@ -465,7 +459,7 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
                       aria-hidden="true"
                       className={`flex-shrink-0 w-7 h-7 rounded-full border-2 flex items-center justify-center transition-colors ${
                         isSelected
-                          ? "border-indigo-600 bg-indigo-600 dark:border-indigo-400 dark:bg-indigo-400 text-white dark:text-slate-950"
+                          ? "border-brand-600 bg-brand-600 dark:border-brand-400 dark:bg-brand-400 text-white dark:text-slate-950"
                           : "border-slate-300 dark:border-slate-700"
                       }`}
                     >
@@ -624,7 +618,7 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
       )}
 
       {/* Right Sidebar — question navigator */}
-      <aside className="w-80 bg-white/90 dark:bg-black/90 backdrop-blur-md border-l border-slate-200 dark:border-slate-800 flex-col hidden lg:flex">
+      <aside className="w-80 bg-white/90 dark:bg-navy-950/90 backdrop-blur-md border-l border-slate-200 dark:border-slate-800 flex-col hidden lg:flex">
         <div className="p-6 border-b border-slate-200 dark:border-slate-800">
           <h3 className="font-bold text-lg">Question Navigator</h3>
           <p className="text-sm text-slate-500 mt-1">
@@ -644,7 +638,7 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
 
           <div className="mt-8 space-y-3 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl">
             <div className="flex items-center gap-3">
-              <div className="w-3 h-3 rounded-full bg-indigo-600"></div>
+              <div className="w-3 h-3 rounded-full bg-brand-600"></div>
               <span className="text-sm font-medium">Current</span>
             </div>
             <div className="flex items-center gap-3">
@@ -727,7 +721,7 @@ function StrikeWarningModal({
           {!isFinal && (
             <button
               onClick={onDismiss}
-              className="w-full py-3 rounded-xl font-bold text-sm bg-indigo-600 hover:bg-indigo-700 text-white transition-colors"
+              className="w-full py-3 rounded-xl font-bold text-sm bg-brand-600 hover:bg-brand-700 text-white transition-colors"
             >
               I understand — return to exam
             </button>

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-/** Thin progress bar. `tone="onPrimary"` is for use on the solid indigo card. */
+/** Thin progress bar. `tone="onPrimary"` is for use on the solid brand card. */
 export function ProgressBar({
   value,
   max,
@@ -23,7 +23,7 @@ export function ProgressBar({
       className={`h-2 w-full rounded-full overflow-hidden ${tone === "onPrimary" ? "bg-white/25" : "bg-slate-200 dark:bg-slate-800"}`}
     >
       <div
-        className={`h-full rounded-full transition-[width] duration-500 ${tone === "onPrimary" ? "bg-white" : "bg-indigo-600 dark:bg-indigo-500"}`}
+        className={`h-full rounded-full transition-[width] duration-500 ${tone === "onPrimary" ? "bg-white" : "bg-brand-600 dark:bg-brand-500"}`}
         style={{ width: `${pct}%` }}
       />
     </div>

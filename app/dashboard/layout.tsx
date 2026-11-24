@@ -15,10 +15,10 @@ export default function DashboardLayout({
 }) {
   return (
     <UserProvider>
-      <div className="flex h-dvh flex-col overflow-hidden bg-slate-50 dark:bg-[#09090b] md:flex-row relative">
+      <div className="flex h-dvh flex-col overflow-hidden bg-slate-50 dark:bg-navy-950 md:flex-row relative">
         {/* Background Orbs — kept subtle and hidden on mobile to avoid wash on light mode */}
         <div className="hidden md:block absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-500/10 dark:bg-blue-500 rounded-full dark:mix-blend-multiply filter blur-[150px] dark:opacity-10 pointer-events-none" />
-        <div className="hidden md:block absolute bottom-[-10%] right-[-10%] w-[40%] h-[50%] bg-purple-500/10 dark:bg-purple-500 rounded-full dark:mix-blend-multiply filter blur-[150px] dark:opacity-10 pointer-events-none" />
+        <div className="hidden md:block absolute bottom-[-10%] right-[-10%] w-[40%] h-[50%] bg-mint-500/10 dark:bg-mint-500 rounded-full dark:mix-blend-multiply filter blur-[150px] dark:opacity-10 pointer-events-none" />
 
         <Sidebar />
         <DashboardHeader navItems={navItems} />

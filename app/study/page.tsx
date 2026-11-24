@@ -59,7 +59,7 @@ export default function StudyHomePage() {
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search topics"
           aria-label="Search topics"
-          className="w-full pl-11 pr-4 py-3.5 rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+          className="w-full pl-11 pr-4 py-3.5 rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500/50"
         />
       </div>
 
@@ -88,15 +88,15 @@ export default function StudyHomePage() {
       ) : (
         <>
           {resume && (
-            <section aria-label="Continue reading" className="rounded-3xl bg-indigo-600 text-white p-6 md:p-8 space-y-5 shadow-lg shadow-indigo-600/20">
+            <section aria-label="Continue reading" className="rounded-3xl bg-brand-600 text-white p-6 md:p-8 space-y-5 shadow-lg shadow-brand-600/20">
               <span className="inline-block text-xs font-semibold px-3 py-1 rounded-full bg-white/20">In progress</span>
               <div>
                 <h2 className="text-2xl font-bold leading-tight">{resume.name}</h2>
-                <p className="text-indigo-100 text-sm mt-1">{resume.subject.name}</p>
+                <p className="text-brand-100 text-sm mt-1">{resume.subject.name}</p>
               </div>
               <div className="space-y-2">
                 <ProgressBar value={resume.readNotes} max={resume.totalNotes} label={`${resume.name} progress`} tone="onPrimary" />
-                <p className="text-xs text-indigo-100">{resume.readNotes} of {resume.totalNotes} sections read</p>
+                <p className="text-xs text-brand-100">{resume.readNotes} of {resume.totalNotes} sections read</p>
               </div>
               <Link
                 href={`/study/topic/${resume.id}`}
@@ -123,7 +123,7 @@ export default function StudyHomePage() {
                     href={`/study/subject/${s.id}`}
                     className="glass-panel rounded-2xl p-5 flex flex-col gap-4 hover:-translate-y-0.5 hover:shadow-lg transition-all"
                   >
-                    <span className="w-12 h-12 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                    <span className="w-12 h-12 rounded-xl bg-brand-500/10 text-brand-600 dark:text-brand-400 flex items-center justify-center">
                       <SubjectIcon name={s.name} />
                     </span>
                     <span className="font-semibold leading-snug">{s.name}</span>

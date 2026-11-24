@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
-import Image from "next/image";
+import { BrandMark } from "@/app/components/BrandMark";
 import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "@/lib/api/auth";
 
@@ -54,10 +54,10 @@ export default function MobileNav({
       />
 
       {/* Slide-over panel */}
-      <div className="absolute inset-y-0 right-0 w-[80%] max-w-sm bg-white dark:bg-[#09090b] shadow-2xl flex flex-col transform transition-transform duration-300 ease-out translate-x-0 border-l border-slate-200 dark:border-slate-800">
+      <div className="absolute inset-y-0 right-0 w-[80%] max-w-sm bg-white dark:bg-navy-950 shadow-2xl flex flex-col transform transition-transform duration-300 ease-out translate-x-0 border-l border-slate-200 dark:border-slate-800">
         <div className="p-6 flex items-center justify-between border-b border-slate-100 dark:border-slate-900">
           <Link href="/" className="flex items-center gap-2 group" onClick={onClose}>
-            <Image src="/images/logo.jpg" alt="Acadmate Logo" width={28} height={28} className="rounded-lg shadow-sm" />
+            <BrandMark size={28} />
             <span className="text-lg font-bold tracking-tight">{title}</span>
           </Link>
           <button 
@@ -78,11 +78,11 @@ export default function MobileNav({
                 onClick={onClose}
                 className={`flex items-center gap-4 px-4 py-4 rounded-2xl font-semibold transition-all ${
                   active
-                    ? "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20"
+                    ? "bg-brand-500/10 text-brand-600 dark:text-brand-400 border border-brand-500/20"
                     : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900"
                 }`}
               >
-                <span className={`${active ? "text-indigo-500" : "text-slate-400"}`}>{icon}</span>
+                <span className={`${active ? "text-brand-500" : "text-slate-400"}`}>{icon}</span>
                 {label}
               </Link>
             );

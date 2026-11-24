@@ -162,7 +162,7 @@ export default function ParticipantsPage() {
           value={phones}
           onChange={(e) => setPhones(e.target.value)}
           placeholder={"08012345678\n08087654321\n09011112222"}
-          className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none focus:border-indigo-500 resize-none"
+          className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none focus:border-brand-500 resize-none"
         />
         {addResult && (
           <p className="text-sm text-emerald-500">
@@ -201,7 +201,7 @@ export default function ParticipantsPage() {
                         <td className="px-4 py-3 font-medium">{p.name ?? "—"}</td>
                         <td className="px-4 py-3 font-mono text-slate-500">{p.phone}</td>
                         <td className="px-4 py-3 text-center">
-                          <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300">
+                          <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-brand-100 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300">
                             {p._count.sessions}
                           </span>
                         </td>
@@ -221,7 +221,7 @@ export default function ParticipantsPage() {
                           <div className="flex items-center justify-end gap-3 whitespace-nowrap">
                             <button
                               onClick={() => resetAttempts(p.id, p.name ?? p.phone)}
-                              className="text-xs font-medium text-indigo-500 hover:text-indigo-600 hover:underline"
+                              className="text-xs font-medium text-brand-500 hover:text-brand-600 hover:underline"
                             >
                               Reset attempts
                             </button>

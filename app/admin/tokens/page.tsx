@@ -119,12 +119,12 @@ export default function TokensPage() {
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder="Note (optional — e.g. John Doe, March 2026)"
-            className="flex-1 min-w-64 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+            className="flex-1 min-w-64 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-brand-500"
           />
           <button
             onClick={handleGenerate}
             disabled={generating}
-            className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors"
+            className="px-5 py-2.5 bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors"
           >
             {generating ? "Generating…" : "Generate Token"}
           </button>
@@ -160,7 +160,7 @@ export default function TokensPage() {
                 <div className="flex items-center gap-3 min-w-0 flex-1">
                   <button
                     onClick={() => copyCode(t.code)}
-                    className="font-mono text-sm font-bold text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors shrink-0"
+                    className="font-mono text-sm font-bold text-brand-600 hover:text-brand-500 dark:text-brand-400 dark:hover:text-brand-300 transition-colors shrink-0"
                     title="Click to copy"
                   >
                     {copyFeedback === t.code ? "Copied!" : t.code}

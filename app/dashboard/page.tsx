@@ -7,6 +7,7 @@ import Loader from "@/app/components/Loader";
 import { fadeUp, stagger } from "@/lib/motion";
 import { useUser } from "@/app/context/UserContext";
 import { useDashboard } from "@/lib/hooks/useDashboard";
+import { modeLabel } from "@/lib/examModes";
 
 const FRESH_WELCOME_HOURS = 24;
 
@@ -34,13 +35,6 @@ function formatDate(iso: string) {
   if (diffDays === 0) return "Today";
   if (diffDays === 1) return "Yesterday";
   return d.toLocaleDateString("en-NG", { day: "numeric", month: "short" });
-}
-
-function modeLabel(mode: string) {
-  if (mode === "MOCK") return "Full UTME Mock";
-  if (mode === "PRACTICE") return "Practice Session";
-  if (mode === "TOPIC") return "Topic Practice";
-  return mode;
 }
 
 export default function DashboardPage() {
@@ -108,7 +102,7 @@ export default function DashboardPage() {
       <motion.div variants={fadeUp} className="glass-panel p-4 sm:p-6 rounded-2xl">
         <div className="flex items-center justify-between mb-4 sm:mb-6">
           <h2 className="text-lg sm:text-xl font-bold">Recent Exams</h2>
-          <Link href="/results" className="text-indigo-500 font-medium hover:text-indigo-600 text-sm">View All</Link>
+          <Link href="/results" className="text-brand-500 font-medium hover:text-brand-600 text-sm">View All</Link>
         </div>
 
         {loading ? (
@@ -136,7 +130,7 @@ export default function DashboardPage() {
                       <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
                       {formatDate(r.createdAt)}
                     </div>
-                    <div className="font-bold text-indigo-600 dark:text-indigo-400">
+                    <div className="font-bold text-brand-600 dark:text-brand-400">
                       {r.correct}/{r.totalQuestions} ({Math.round(r.score)}%)
                     </div>
                   </div>
@@ -162,12 +156,12 @@ export default function DashboardPage() {
                       className={`${i < results.length - 1 ? "border-b border-slate-200 dark:border-slate-800/50" : ""} hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors`}
                     >
                       <td className="py-4 font-medium">
-                        <Link href={`/results/${r.id}`} className="hover:text-indigo-500 transition-colors">
+                        <Link href={`/results/${r.id}`} className="hover:text-brand-500 transition-colors">
                           {modeLabel(r.examSession.mode)}
                         </Link>
                       </td>
                       <td className="py-4 text-slate-500">{formatDate(r.createdAt)}</td>
-                      <td className="py-4 font-bold text-indigo-600 dark:text-indigo-400">
+                      <td className="py-4 font-bold text-brand-600 dark:text-brand-400">
                         {r.correct} / {r.totalQuestions} ({Math.round(r.score)}%)
                       </td>
                       <td className="py-4 text-right">

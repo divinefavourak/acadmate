@@ -197,7 +197,7 @@ export default async function BlogCategoryPage({
 
       {/* Heading */}
       <div className="space-y-3 max-w-2xl">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-indigo-600 dark:text-indigo-400">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-600 dark:text-brand-400">
           {categoryLabel(config.enum)}
         </p>
         <h1 className="text-3xl md:text-5xl font-bold tracking-tight leading-tight">
@@ -222,7 +222,7 @@ export default async function BlogCategoryPage({
             href={`/blog/category/${slug}`}
             className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all ${
               slug === category
-                ? "bg-indigo-600 text-white"
+                ? "bg-brand-600 text-white"
                 : "bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-white/10"
             }`}
           >

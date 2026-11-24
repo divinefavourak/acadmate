@@ -42,7 +42,7 @@ export default function UpgradePage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-6 h-6 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -57,24 +57,24 @@ export default function UpgradePage() {
       {/* Current plan status */}
       <div className={`rounded-2xl border p-6 ${
         plan === "PREMIUM"
-          ? "border-indigo-500/40 bg-indigo-500/5"
+          ? "border-brand-500/40 bg-brand-500/5"
           : "border-slate-200 dark:border-slate-800 bg-white/3"
       }`}>
         <div className="flex items-center gap-4">
           <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl ${
-            plan === "PREMIUM" ? "bg-indigo-500/20" : "bg-slate-500/10"
+            plan === "PREMIUM" ? "bg-brand-500/20" : "bg-slate-500/10"
           }`}>
             {plan === "PREMIUM" ? "⭐" : "🆓"}
           </div>
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-0.5">Current Plan</p>
-            <p className={`text-2xl font-extrabold ${plan === "PREMIUM" ? "text-indigo-400" : "text-white"}`}>
+            <p className={`text-2xl font-extrabold ${plan === "PREMIUM" ? "text-brand-400" : "text-white"}`}>
               {plan === "PREMIUM" ? "Premium" : "Free"}
             </p>
           </div>
           {plan === "PREMIUM" && (
-            <span className="ml-auto inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 text-xs font-semibold">
-              <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
+            <span className="ml-auto inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-500/15 border border-brand-500/30 text-brand-400 text-xs font-semibold">
+              <span className="w-1.5 h-1.5 rounded-full bg-brand-400" />
               Active
             </span>
           )}
@@ -99,7 +99,7 @@ export default function UpgradePage() {
                 </span>
                 {f.label}
                 {!f.free && f.premium && plan !== "PREMIUM" && (
-                  <span className="text-xs text-indigo-400 font-medium">Premium</span>
+                  <span className="text-xs text-brand-400 font-medium">Premium</span>
                 )}
               </div>
             );
@@ -124,7 +124,7 @@ export default function UpgradePage() {
               onChange={(e) => setCode(e.target.value.toUpperCase())}
               placeholder="ACM-XXXX-XXXX"
               spellCheck={false}
-              className="w-full bg-white/5 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm font-mono tracking-widest text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors"
+              className="w-full bg-white/5 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm font-mono tracking-widest text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 transition-colors"
             />
 
             {error && (
@@ -144,7 +144,7 @@ export default function UpgradePage() {
 
           <p className="text-xs text-slate-500 text-center">
             Need an access code? Contact us on{" "}
-            <a href="https://wa.me/2349031843486" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">
+            <a href="https://wa.me/2349031843486" target="_blank" rel="noopener noreferrer" className="text-brand-400 hover:underline">
               WhatsApp
             </a>{" "}
             to make payment and receive your code.
@@ -164,7 +164,7 @@ export default function UpgradePage() {
           <p className="text-slate-400 text-sm">You have full Premium access. Enjoy all exam modes!</p>
           <p className="text-xs text-slate-500">
             Questions? Reach us on{" "}
-            <a href="https://wa.me/2349031843486" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">
+            <a href="https://wa.me/2349031843486" target="_blank" rel="noopener noreferrer" className="text-brand-400 hover:underline">
               WhatsApp
             </a>
           </p>

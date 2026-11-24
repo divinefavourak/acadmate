@@ -6,6 +6,7 @@ import MathText from "@/app/components/MathText";
 import { useSearchParams } from "next/navigation";
 import { apiClient } from "@/lib/api/client";
 import Loader from "@/app/components/Loader";
+import { modeLabel } from "@/lib/examModes";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -60,14 +61,6 @@ interface ResultDetail {
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function modeLabel(mode: string) {
-  if (mode === "MOCK") return "Full UTME Mock";
-  if (mode === "PRACTICE") return "Practice Session";
-  if (mode === "TOPIC") return "Topic Practice";
-  if (mode === "POST_UTME") return "Post-UTME";
-  return mode;
-}
 
 function scoreColor(score: number) {
   if (score >= 70) return "text-emerald-500";
@@ -149,7 +142,7 @@ function StatusMark({ status, size = 28 }: { status: "correct" | "incorrect" | "
   );
 }
 
-function ScoreBar({ val, color = "bg-indigo-500" }: { val: number; color?: string }) {
+function ScoreBar({ val, color = "bg-brand-500" }: { val: number; color?: string }) {
   return (
     <div className="w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
       <div className={`h-full ${color} rounded-full transition-all`} style={{ width: `${val}%` }} />
@@ -249,8 +242,8 @@ function QuestionCard({ qa, index }: { qa: QuestionAnswer; index: number }) {
 
           {/* Explanation */}
           {qa.question.explanation && (
-            <div className="p-4 rounded-xl bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800">
-              <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-2">
+            <div className="p-4 rounded-xl bg-brand-50 dark:bg-brand-900/20 border border-brand-200 dark:border-brand-800">
+              <p className="text-xs font-semibold text-brand-600 dark:text-brand-400 uppercase tracking-wider mb-2">
                 💡 Explanation
               </p>
               <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
@@ -493,7 +486,7 @@ export default function ResultDetailPage({ params }: { params: Promise<{ id: str
                 onClick={() => setFilter(f)}
                 className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
                   filter === f
-                    ? "bg-indigo-600 text-white"
+                    ? "bg-brand-600 text-white"
                     : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
                 }`}
               >

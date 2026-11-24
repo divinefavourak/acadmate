@@ -148,14 +148,14 @@ export default function MarkdownEditor({
             <button
               type="button"
               onClick={() => setTab("write")}
-              className={`px-3 py-1.5 font-medium transition-colors ${tab === "write" ? "bg-indigo-600 text-white" : "text-slate-400 hover:text-white"}`}
+              className={`px-3 py-1.5 font-medium transition-colors ${tab === "write" ? "bg-brand-600 text-white" : "text-slate-400 hover:text-white"}`}
             >
               Write
             </button>
             <button
               type="button"
               onClick={() => setTab("preview")}
-              className={`px-3 py-1.5 font-medium transition-colors ${tab === "preview" ? "bg-indigo-600 text-white" : "text-slate-400 hover:text-white"}`}
+              className={`px-3 py-1.5 font-medium transition-colors ${tab === "preview" ? "bg-brand-600 text-white" : "text-slate-400 hover:text-white"}`}
             >
               Preview
             </button>
@@ -200,7 +200,7 @@ export default function MarkdownEditor({
             }}
             placeholder={placeholder}
             rows={rows}
-            className="w-full px-4 py-3 rounded-xl bg-slate-900/60 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 font-mono text-sm leading-relaxed resize-y"
+            className="w-full px-4 py-3 rounded-xl bg-slate-900/60 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500/50 font-mono text-sm leading-relaxed resize-y"
           />
           <p className="text-xs text-slate-500 mt-1">
             Put the cursor where a picture should go, then click Insert image — or paste or drag one in. You can add as many as you like.

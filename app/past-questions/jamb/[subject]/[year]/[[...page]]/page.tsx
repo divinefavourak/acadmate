@@ -112,8 +112,8 @@ export default async function YearPage({ params }: { params: Params }) {
               aria-current={n === page ? "page" : undefined}
               className={`min-w-10 text-center px-3 py-2 rounded-lg text-sm ${
                 n === page
-                  ? "bg-indigo-600 text-white font-semibold"
-                  : "border border-black/10 dark:border-white/10 hover:border-indigo-500/50"
+                  ? "bg-brand-600 text-white font-semibold"
+                  : "border border-black/10 dark:border-white/10 hover:border-brand-500/50"
               }`}
             >
               {n}
@@ -139,7 +139,7 @@ export default async function YearPage({ params }: { params: Params }) {
               <li key={y.year}>
                 <Link
                   href={yearPath(s.slug, y.year)}
-                  className="inline-block rounded-lg border border-black/10 dark:border-white/10 px-2.5 py-1 text-sm hover:border-indigo-500/50 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                  className="inline-block rounded-lg border border-black/10 dark:border-white/10 px-2.5 py-1 text-sm hover:border-brand-500/50 hover:text-brand-600 dark:hover:text-brand-400 transition-colors"
                 >
                   {y.year}
                 </Link>

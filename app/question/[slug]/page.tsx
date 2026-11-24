@@ -81,7 +81,7 @@ export default async function QuestionPage({ params }: { params: Params }) {
       <nav aria-label="Questions in this paper" className="mt-8 grid grid-cols-3 items-center gap-2 text-sm">
         <span>
           {prev && (
-            <Link href={questionPath(prev)} rel="prev" className="text-indigo-600 dark:text-indigo-400 hover:underline">
+            <Link href={questionPath(prev)} rel="prev" className="text-brand-600 dark:text-brand-400 hover:underline">
               ← Previous
             </Link>
           )}
@@ -91,7 +91,7 @@ export default async function QuestionPage({ params }: { params: Params }) {
         </Link>
         <span className="text-right">
           {next && (
-            <Link href={questionPath(next)} rel="next" className="text-indigo-600 dark:text-indigo-400 hover:underline">
+            <Link href={questionPath(next)} rel="next" className="text-brand-600 dark:text-brand-400 hover:underline">
               Next →
             </Link>
           )}
@@ -115,7 +115,7 @@ export default async function QuestionPage({ params }: { params: Params }) {
               <li key={r.slug}>
                 <Link
                   href={questionPath(r.slug)}
-                  className="block rounded-xl border border-black/5 dark:border-white/10 px-4 py-3 hover:border-indigo-500/50 transition-colors"
+                  className="block rounded-xl border border-black/5 dark:border-white/10 px-4 py-3 hover:border-brand-500/50 transition-colors"
                 >
                   <span className="block text-xs font-semibold text-slate-500 dark:text-slate-400">
                     {EXAM_LABEL} {s.name} {r.year}

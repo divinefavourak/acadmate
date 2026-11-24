@@ -49,7 +49,7 @@ export default async function ForumPage() {
     <div className="space-y-8">
       {/* Heading — server-rendered for crawlers */}
       <div className="space-y-3 max-w-2xl">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-indigo-600 dark:text-indigo-400">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-600 dark:text-brand-400">
           Community Forum
         </p>
         <h1 className="text-3xl md:text-5xl font-bold tracking-tight leading-tight">

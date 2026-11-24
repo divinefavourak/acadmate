@@ -250,7 +250,7 @@ export default function ProfilePage() {
             </div>
             <div className="flex justify-between items-center py-2">
               <span className="text-sm text-slate-500 dark:text-slate-400">Role</span>
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-brand-100 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300">
                 {profile?.role}
               </span>
             </div>
@@ -268,7 +268,7 @@ export default function ProfilePage() {
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
               placeholder="Your full name"
-              className="w-full px-4 py-3 rounded-xl bg-white/50 dark:bg-black/50 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+              className="w-full px-4 py-3 rounded-xl bg-white/50 dark:bg-black/50 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500/50 transition-all"
             />
           </div>
 
@@ -282,7 +282,7 @@ export default function ProfilePage() {
               value={form.age}
               onChange={(e) => setForm((f) => ({ ...f, age: e.target.value }))}
               placeholder="e.g. 17"
-              className="w-full px-4 py-3 rounded-xl bg-white/50 dark:bg-black/50 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+              className="w-full px-4 py-3 rounded-xl bg-white/50 dark:bg-black/50 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500/50 transition-all"
             />
           </div>
 
@@ -291,7 +291,7 @@ export default function ProfilePage() {
             <select
               value={form.targetYear}
               onChange={(e) => setForm((f) => ({ ...f, targetYear: e.target.value }))}
-              className="w-full px-4 py-3 rounded-xl bg-white/50 dark:bg-black/50 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+              className="w-full px-4 py-3 rounded-xl bg-white/50 dark:bg-black/50 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500/50 transition-all"
             >
               <option value="">Select year…</option>
               {YEARS.map((y) => (
@@ -307,7 +307,7 @@ export default function ProfilePage() {
               value={form.courseChoice}
               onChange={(e) => setForm((f) => ({ ...f, courseChoice: e.target.value }))}
               placeholder="e.g. Medicine and Surgery"
-              className="w-full px-4 py-3 rounded-xl bg-white/50 dark:bg-black/50 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+              className="w-full px-4 py-3 rounded-xl bg-white/50 dark:bg-black/50 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500/50 transition-all"
             />
           </div>
 
@@ -318,7 +318,7 @@ export default function ProfilePage() {
               value={form.institution}
               onChange={(e) => setForm((f) => ({ ...f, institution: e.target.value }))}
               placeholder="e.g. University of Lagos"
-              className="w-full px-4 py-3 rounded-xl bg-white/50 dark:bg-black/50 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+              className="w-full px-4 py-3 rounded-xl bg-white/50 dark:bg-black/50 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500/50 transition-all"
             />
           </div>
 
@@ -340,7 +340,7 @@ export default function ProfilePage() {
             </p>
             <div className="flex flex-wrap gap-1.5">
               {COMPULSORY_LABELS.map((label) => (
-                <span key={label} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300">
+                <span key={label} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-brand-100 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300">
                   <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
                   {label}
                 </span>
@@ -360,7 +360,7 @@ export default function ProfilePage() {
                       disabled={disabled}
                       className={`px-3 py-2 rounded-lg border text-xs font-medium text-left transition-all disabled:opacity-30 disabled:cursor-not-allowed ${
                         selected
-                          ? "border-indigo-500 bg-indigo-50/50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300"
+                          ? "border-brand-500 bg-brand-50/50 dark:bg-brand-900/20 text-brand-700 dark:text-brand-300"
                           : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
                       }`}
                     >
@@ -440,7 +440,7 @@ export default function ProfilePage() {
         </div>
 
         <div className="mt-4 text-center">
-          <Link href="/dashboard" className="text-sm text-slate-500 hover:text-indigo-500 transition-colors">
+          <Link href="/dashboard" className="text-sm text-slate-500 hover:text-brand-500 transition-colors">
             ← Back to Dashboard
           </Link>
         </div>

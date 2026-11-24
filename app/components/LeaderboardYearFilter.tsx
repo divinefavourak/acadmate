@@ -53,8 +53,8 @@ export function useLeaderboardYears(type: LeaderboardType, basePath = "/api/lead
 }
 
 const chip = "px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors";
-const chipOn = "bg-indigo-600 border-indigo-600 text-white";
-const chipOff = "border-slate-500/40 text-slate-400 hover:text-indigo-400 hover:border-indigo-400/60";
+const chipOn = "bg-brand-600 border-brand-600 text-white";
+const chipOff = "border-slate-500/40 text-slate-400 hover:text-brand-400 hover:border-brand-400/60";
 
 export default function LeaderboardYearFilter({
   years,
@@ -75,7 +75,7 @@ export default function LeaderboardYearFilter({
           type="button"
           aria-pressed={selection.basis === "earned"}
           onClick={() => onChange({ basis: "earned", year: null })}
-          className={`px-3 py-1.5 font-medium transition-colors ${selection.basis === "earned" ? "bg-indigo-600 text-white" : "text-slate-400 hover:text-indigo-400"}`}
+          className={`px-3 py-1.5 font-medium transition-colors ${selection.basis === "earned" ? "bg-brand-600 text-white" : "text-slate-400 hover:text-brand-400"}`}
         >
           By year earned
         </button>
@@ -85,7 +85,7 @@ export default function LeaderboardYearFilter({
           disabled={!hasPaperYears}
           title={hasPaperYears ? undefined : "No past-paper results yet"}
           onClick={() => onChange({ basis: "paper", year: years.paperYears[0] })}
-          className={`px-3 py-1.5 font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${selection.basis === "paper" ? "bg-indigo-600 text-white" : "text-slate-400 hover:text-indigo-400"}`}
+          className={`px-3 py-1.5 font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${selection.basis === "paper" ? "bg-brand-600 text-white" : "text-slate-400 hover:text-brand-400"}`}
         >
           By past-paper year
         </button>

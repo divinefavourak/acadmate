@@ -11,7 +11,7 @@ export function PracticeCta({
   body?: string;
 }) {
   return (
-    <aside className="rounded-2xl border border-indigo-500/20 bg-indigo-600/10 p-5 md:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <aside className="rounded-2xl border border-brand-500/20 bg-brand-600/10 p-5 md:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div>
         <p className="font-semibold">{title}</p>
         <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{body}</p>
@@ -19,7 +19,7 @@ export function PracticeCta({
       <Link
         href={href}
         rel="nofollow"
-        className="shrink-0 text-center text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl transition-colors"
+        className="shrink-0 text-center text-sm font-semibold bg-brand-600 hover:bg-brand-500 text-white px-5 py-2.5 rounded-xl transition-colors"
       >
         Practise in CBT mode
       </Link>

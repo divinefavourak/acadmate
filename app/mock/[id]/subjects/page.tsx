@@ -103,13 +103,13 @@ export default function MockSubjectsPage() {
   }
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0f172a]">
-      <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+    <div className="min-h-screen flex items-center justify-center bg-navy-900">
+      <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-white flex flex-col items-center justify-center p-6">
+    <div className="min-h-screen bg-navy-900 text-white flex flex-col items-center justify-center p-6">
       <div className="w-full max-w-lg space-y-6">
         <div className="text-center space-y-2">
           <div className="text-4xl">📝</div>
@@ -134,7 +134,7 @@ export default function MockSubjectsPage() {
             <p className="text-xs uppercase tracking-wider text-slate-500">Compulsory</p>
             <div className="flex flex-wrap gap-2">
               {options.compulsory.map((s) => (
-                <span key={s} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium bg-indigo-600/20 border border-indigo-500/40 text-indigo-200">
+                <span key={s} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium bg-brand-600/20 border border-brand-500/40 text-brand-200">
                   <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
                   {s}
                 </span>
@@ -149,7 +149,7 @@ export default function MockSubjectsPage() {
             <p className="text-xs uppercase tracking-wider text-slate-500">Your electives</p>
             <div className="flex flex-wrap gap-2">
               {options.previousElectives!.map((s) => (
-                <span key={s} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium bg-indigo-600/20 border border-indigo-500/40 text-indigo-200">
+                <span key={s} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium bg-brand-600/20 border border-brand-500/40 text-brand-200">
                   <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
                   {s}
                 </span>
@@ -180,7 +180,7 @@ export default function MockSubjectsPage() {
                     disabled={isDisabled && !isSelected}
                     className={`px-3 py-2.5 rounded-xl border-2 text-sm font-medium text-left transition-all disabled:opacity-40 ${
                       isSelected
-                        ? "border-indigo-500 bg-indigo-600/20 text-indigo-200"
+                        ? "border-brand-500 bg-brand-600/20 text-brand-200"
                         : "border-white/10 hover:border-white/25 text-slate-300"
                     }`}
                   >
@@ -210,7 +210,7 @@ export default function MockSubjectsPage() {
         <button
           onClick={handleBegin}
           disabled={!canBegin || starting}
-          className="w-full py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full py-3.5 rounded-2xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {starting ? "Starting…" : "I understand — Begin Exam"}
         </button>

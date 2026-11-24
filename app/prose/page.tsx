@@ -49,15 +49,15 @@ export default function ProseLandingPage() {
               className="glass-panel p-6 rounded-2xl hover:shadow-lg hover:-translate-y-0.5 transition-all group block"
             >
               <div className="flex items-start justify-between gap-4 mb-3">
-                <div className="w-12 h-12 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-600 dark:text-indigo-400 flex-shrink-0">
+                <div className="w-12 h-12 rounded-xl bg-brand-500/10 flex items-center justify-center text-brand-600 dark:text-brand-400 flex-shrink-0">
                   <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
                 </div>
-                <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-2.5 py-1 rounded-full">
+                <span className="text-xs font-semibold text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-900/30 px-2.5 py-1 rounded-full">
                   {t._count.questions} question{t._count.questions !== 1 ? "s" : ""}
                 </span>
               </div>
 
-              <h2 className="text-xl font-bold mb-1 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+              <h2 className="text-xl font-bold mb-1 group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors">
                 {t.title}
               </h2>
               {t.author && (
@@ -74,7 +74,7 @@ export default function ProseLandingPage() {
               <div className="mt-4 flex items-center gap-4 text-xs text-slate-500">
                 <span>{t._count.sections} section{t._count.sections !== 1 ? "s" : ""}</span>
                 <span>·</span>
-                <span className="text-indigo-500 font-semibold group-hover:underline">Study now →</span>
+                <span className="text-brand-500 font-semibold group-hover:underline">Study now →</span>
               </div>
             </Link>
           ))}

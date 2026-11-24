@@ -6,7 +6,7 @@ export default function V2Banner() {
     <div
       role="region"
       aria-label="Announcement"
-      className="bg-linear-to-r from-indigo-600 via-fuchsia-600 to-indigo-600 text-white shadow-lg shadow-indigo-900/40"
+      className="bg-linear-to-r from-brand-600 via-mint-600 to-brand-600 text-white shadow-lg shadow-brand-900/40"
     >
       <div className="max-w-7xl mx-auto px-4 py-2.5 md:py-3 flex items-center justify-between sm:justify-center gap-3 sm:gap-4">
         <p className="text-[13px] sm:text-sm md:text-base leading-snug text-left sm:text-center">
@@ -23,7 +23,7 @@ export default function V2Banner() {
         </p>
         <Link
           href="/register"
-          className="shrink-0 rounded-full bg-white px-3 sm:px-4 py-1.5 text-xs sm:text-sm font-bold text-indigo-700 hover:bg-indigo-50 transition-colors"
+          className="shrink-0 rounded-full bg-white px-3 sm:px-4 py-1.5 text-xs sm:text-sm font-bold text-brand-700 hover:bg-brand-50 transition-colors"
         >
           Try them free →
         </Link>

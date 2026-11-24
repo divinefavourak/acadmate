@@ -17,7 +17,7 @@ function timeAgo(iso: string): string {
 
 function Avatar({ name }: { name: string | null }) {
   return (
-    <div className="flex-shrink-0 w-9 h-9 rounded-full bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold text-sm">
+    <div className="flex-shrink-0 w-9 h-9 rounded-full bg-brand-100 dark:bg-brand-900/40 flex items-center justify-center text-brand-600 dark:text-brand-400 font-bold text-sm">
       {(name?.trim() || "?")[0].toUpperCase()}
     </div>
   );
@@ -132,14 +132,14 @@ export default function ThreadContent({
             placeholder="Write your reply… (sign in required)"
             rows={4}
             aria-label="Reply text"
-            className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+            className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
           />
           {postError && <p className="text-sm text-red-500">{postError}</p>}
           <div className="flex justify-end">
             <button
               type="submit"
               disabled={posting || !replyBody.trim()}
-              className="px-4 py-2 rounded-xl text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 rounded-xl text-sm font-semibold bg-brand-600 hover:bg-brand-500 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {posting ? "Posting…" : "Post reply"}
             </button>

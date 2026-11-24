@@ -198,7 +198,7 @@ export default function LiveDashboardPage({
             <StatusBadge status={session.status} />
           </div>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Code <span className="font-mono font-bold tracking-widest text-indigo-600 dark:text-indigo-400">{session.code}</span>
+            Code <span className="font-mono font-bold tracking-widest text-brand-600 dark:text-brand-400">{session.code}</span>
             {" · "}{session.questionCount} questions · {session.durationMinutes} min
             {session.subjects.length > 0 && (
               <> · {session.subjects.map((s) => s.name).join(", ")}</>
@@ -230,7 +230,7 @@ export default function LiveDashboardPage({
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Joined" value={stats.joined} accent="indigo" />
+        <StatCard label="Joined" value={stats.joined} accent="brand" />
         <StatCard label="In progress" value={stats.inProgress} accent="amber" />
         <StatCard label="Submitted" value={stats.submitted} accent="emerald" />
         <StatCard
@@ -245,8 +245,8 @@ export default function LiveDashboardPage({
         <h2 className="font-semibold text-lg">Leaderboard</h2>
         <span className="text-xs text-slate-400 flex items-center gap-1.5">
           <span className="relative flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-indigo-400 opacity-75" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-indigo-500" />
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-400 opacity-75" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-brand-500" />
           </span>
           Updated {secondsAgo}s ago
         </span>
@@ -334,7 +334,7 @@ export default function LiveDashboardPage({
                         </div>
                         <div className="h-2 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
                           <div
-                            className="h-full rounded-full bg-indigo-500 transition-all duration-500"
+                            className="h-full rounded-full bg-brand-500 transition-all duration-500"
                             style={{ width: `${pct}%` }}
                           />
                         </div>
@@ -355,7 +355,7 @@ function BackLink() {
   return (
     <Link
       href="/admin/live"
-      className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-indigo-500 transition-colors"
+      className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-brand-500 transition-colors"
     >
       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
       All live sessions
@@ -395,10 +395,10 @@ function StatCard({
 }: {
   label: string;
   value: string | number;
-  accent: "indigo" | "amber" | "emerald" | "violet";
+  accent: "brand" | "amber" | "emerald" | "violet";
 }) {
   const accents: Record<string, string> = {
-    indigo: "text-indigo-600 dark:text-indigo-400",
+    brand: "text-brand-600 dark:text-brand-400",
     amber: "text-amber-600 dark:text-amber-400",
     emerald: "text-emerald-600 dark:text-emerald-400",
     violet: "text-violet-600 dark:text-violet-400",
@@ -425,7 +425,7 @@ function Avatar({ user }: { user: { name: string | null; image: string | null } 
     );
   }
   return (
-    <span className="w-9 h-9 rounded-full bg-indigo-500/15 text-indigo-600 dark:text-indigo-300 flex items-center justify-center text-xs font-bold shrink-0">
+    <span className="w-9 h-9 rounded-full bg-brand-500/15 text-brand-600 dark:text-brand-300 flex items-center justify-center text-xs font-bold shrink-0">
       {initials(user.name)}
     </span>
   );

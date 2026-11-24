@@ -79,7 +79,7 @@ export function BlogPostContent({ post }: { post: BlogPostDetail }) {
       </Link>
 
       <header className="space-y-5 mb-8">
-        <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-[0.14em] bg-indigo-600/15 text-indigo-600 dark:text-indigo-300 border border-indigo-500/20">
+        <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-[0.14em] bg-brand-600/15 text-brand-600 dark:text-brand-300 border border-brand-500/20">
           {categoryLabel(post.category)}
         </span>
         <h1 className="text-3xl md:text-5xl font-bold tracking-tight leading-tight">{post.title}</h1>
@@ -103,7 +103,7 @@ export function BlogPostContent({ post }: { post: BlogPostDetail }) {
         />
       )}
 
-      <div className="prose dark:prose-invert prose-lg max-w-none prose-headings:font-bold prose-headings:tracking-tight prose-a:text-indigo-600 dark:prose-a:text-indigo-400 prose-a:no-underline hover:prose-a:underline prose-img:rounded-xl prose-code:before:content-none prose-code:after:content-none">
+      <div className="prose dark:prose-invert prose-lg max-w-none prose-headings:font-bold prose-headings:tracking-tight prose-a:text-brand-600 dark:prose-a:text-brand-400 prose-a:no-underline hover:prose-a:underline prose-img:rounded-xl prose-code:before:content-none prose-code:after:content-none">
         <ReactMarkdown
           remarkPlugins={[remarkGfm, remarkMath]}
           rehypePlugins={[rehypeKatex]}
@@ -115,7 +115,7 @@ export function BlogPostContent({ post }: { post: BlogPostDetail }) {
       <footer className="mt-16 pt-8 border-t border-black/5 dark:border-white/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <p className="text-sm text-slate-500 dark:text-slate-400">
           Want this delivered to your inbox?{" "}
-          <Link href="/dashboard/upgrade" className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 font-medium">
+          <Link href="/dashboard/upgrade" className="text-brand-600 dark:text-brand-400 hover:text-brand-500 font-medium">
             Go Premium
           </Link>{" "}
           for free email updates.
