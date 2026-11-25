@@ -1,9 +1,13 @@
 "use client";
 
+import { useCallback, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import StatCard from "./components/StatCard";
 import DailyCard from "./components/DailyCard";
+import CountdownCard from "./components/CountdownCard";
+import WeakTopicsCard from "./components/WeakTopicsCard";
+import { PremiumBadge, PremiumCrown } from "@/app/components/PremiumBadge";
 import Loader from "@/app/components/Loader";
 import { fadeUp, stagger } from "@/lib/motion";
 import { useUser } from "@/app/context/UserContext";
@@ -47,6 +51,9 @@ export default function DashboardPage() {
 
   const bestSubject = analytics?.subjectPerformance?.sort((a, b) => b.percentage - a.percentage)[0];
   const greeting = buildGreeting(user?.name ?? null, user?.onboardedAt ?? null);
+  const premium = user?.plan === "PREMIUM";
+  const [countdownHidden, setCountdownHidden] = useState(false);
+  const hideCountdown = useCallback(() => setCountdownHidden(true), []);
 
   return (
     <motion.div
@@ -56,10 +63,21 @@ export default function DashboardPage() {
       animate="visible"
     >
       {/* Header */}
-      <motion.div variants={fadeUp} className="flex flex-col md:flex-row md:items-end justify-between gap-4 sm:gap-6">
+      {/* Premium students get a gold-edged header with their badge */}
+      <motion.div
+        variants={fadeUp}
+        className={`flex flex-col md:flex-row md:items-end justify-between gap-4 sm:gap-6 ${
+          premium
+            ? "rounded-3xl border border-amber-300/50 dark:border-amber-400/25 bg-gradient-to-br from-amber-50 via-white/60 to-brand-50 dark:from-amber-400/10 dark:via-transparent dark:to-brand-900/20 p-5 sm:p-6"
+            : ""
+        }`}
+      >
         <div className="min-w-0">
+          {premium && <PremiumBadge className="mb-2" />}
           <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight mb-1 sm:mb-2 break-words">{greeting.primary}</h1>
-          <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400">{greeting.sub}</p>
+          <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400">
+            {premium ? "Every question, every mock, and a streak freeze each week." : greeting.sub}
+          </p>
         </div>
         <Link href="/exam/new" className="btn-primary w-full sm:w-auto flex items-center justify-center gap-2 py-3 sm:py-2.5 shrink-0">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
@@ -71,6 +89,32 @@ export default function DashboardPage() {
       <motion.div variants={fadeUp}>
         <DailyCard />
       </motion.div>
+
+      {/* What to work on, and how long is left */}
+      <motion.div variants={fadeUp} className={`grid gap-3 sm:gap-6 ${countdownHidden ? "" : "md:grid-cols-[3fr_2fr]"}`}>
+        <WeakTopicsCard
+          topics={analytics?.weakTopics ?? []}
+          total={analytics?.weakTopicsTotal ?? analytics?.weakTopics?.length ?? 0}
+          hasExams={(analytics?.totalTests ?? 0) > 0}
+        />
+        {!countdownHidden && <CountdownCard onHidden={hideCountdown} />}
+      </motion.div>
+
+      {user && user.plan === "FREE" && (
+        <motion.div variants={fadeUp}>
+          <Link
+            href="/dashboard/upgrade"
+            className="flex items-center gap-3 rounded-2xl border border-amber-300/50 dark:border-amber-400/25 bg-amber-50/70 dark:bg-amber-400/5 px-4 py-3 text-sm hover:border-amber-400 transition-colors"
+          >
+            <PremiumCrown size={18} />
+            <span className="min-w-0 flex-1">
+              <span className="font-semibold">You&apos;re on Free.</span>{" "}
+              <span className="text-slate-600 dark:text-slate-400">Premium opens every question, full mocks and a weekly streak freeze.</span>
+            </span>
+            <span className="shrink-0 font-semibold text-brand-600 dark:text-brand-400">See Premium</span>
+          </Link>
+        </motion.div>
+      )}
 
       {/* Stats Grid — 2x2 on Mobile */}
       <motion.div variants={stagger(0, 0.08)} className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">

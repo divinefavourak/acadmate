@@ -20,6 +20,7 @@ export type LeaderboardEntry = {
   avatarConfig: unknown;
   avatarUrl: string | null;
   points: number;
+  premium: boolean;
 };
 
 const TTL = 600; // 10 min — good enough freshness without thrashing the DB
@@ -142,6 +143,7 @@ export class LeaderboardService {
         id: true,
         name: true,
         email: true,
+        plan: true,
         studentProfile: { select: { avatarConfig: true, avatarUrl: true } },
       },
     });
@@ -158,6 +160,7 @@ export class LeaderboardService {
         avatarConfig: user?.studentProfile?.avatarConfig ?? null,
         avatarUrl: user?.studentProfile?.avatarUrl ?? null,
         points: (g._sum.correct ?? 0) * 10,
+        premium: user?.plan === 'PREMIUM',
       };
     });
   }

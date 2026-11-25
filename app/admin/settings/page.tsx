@@ -6,6 +6,7 @@ import { apiClient, ApiError } from "@/lib/api/client";
 import EmailRemindersCard from "./EmailRemindersCard";
 import FreeQuotaCard from "./FreeQuotaCard";
 import PaymentCard from "./PaymentCard";
+import UtmeDateCard from "./UtmeDateCard";
 
 interface ExamAvailability {
   utme: boolean;
@@ -143,6 +144,8 @@ export default function ExamSettingsPage() {
       <FreeQuotaCard />
 
       <PaymentCard />
+
+      <UtmeDateCard />
 
       <EmailRemindersCard />
     </div>

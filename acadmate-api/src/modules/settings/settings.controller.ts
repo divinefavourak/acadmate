@@ -24,4 +24,10 @@ export class SettingsController {
   getPaymentDetails() {
     return this.settingsService.getPaymentDetails();
   }
+
+  @Get('utme-date')
+  @ApiOperation({ summary: 'Start date of the next UTME (null until announced)' })
+  getUtmeDate() {
+    return this.settingsService.getUtmeDate();
+  }
 }

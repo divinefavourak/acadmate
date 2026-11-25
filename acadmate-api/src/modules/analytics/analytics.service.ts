@@ -5,7 +5,7 @@ import { toUTCDay } from '../../common/utils/date.util';
 
 type TrendPoint  = { id: string; score: number; mode: string; date: Date };
 type SubjectPerf = { subjectId: string; name: string; correct: number; total: number; percentage: number };
-type WeakTopic   = { topicId: string; name: string; correct: number; total: number; percentage: number };
+type WeakTopic   = { topicId: string; subjectId: string | null; name: string; correct: number; total: number; percentage: number };
 
 export interface AnalyticsResult {
   totalTests: number;
@@ -14,7 +14,12 @@ export interface AnalyticsResult {
   recentTrend: TrendPoint[];
   subjectPerformance: SubjectPerf[];
   weakTopics: WeakTopic[];
+  /** All weak topics found. Free accounts get only the first in weakTopics. */
+  weakTopicsTotal?: number;
 }
+
+// The full weak-topic report is a Premium feature; Free sees the weakest one.
+const FREE_WEAK_TOPICS = 1;
 
 const CACHE_TTL = 60; // 60 s — matches the old in-memory TTL
 
@@ -30,8 +35,20 @@ export class AnalyticsService {
     await this.cache.delByPrefix(`analytics:${userId}:`);
   }
 
+  /** Analytics as this student may see them: Free gets one weak topic. */
+  async getForStudent(userId: string, limit: number = 100): Promise<AnalyticsResult> {
+    const [data, user] = await Promise.all([
+      this.getStudentAnalytics(userId, limit),
+      this.prisma.user.findUnique({ where: { id: userId }, select: { plan: true } }),
+    ]);
+    const total = data.weakTopics.length;
+    if (user?.plan === 'PREMIUM') return { ...data, weakTopicsTotal: total };
+    return { ...data, weakTopics: data.weakTopics.slice(0, FREE_WEAK_TOPICS), weakTopicsTotal: total };
+  }
+
   async getStudentAnalytics(userId: string, limit: number = 100): Promise<AnalyticsResult> {
-    const KEY = `analytics:${userId}:${limit}`;
+    // v2: weak topics now carry subjectId.
+    const KEY = `analytics:${userId}:${limit}:v2`;
 
     const cached = await this.cache.get<AnalyticsResult>(KEY);
     if (cached) return cached;
@@ -111,7 +128,7 @@ export class AnalyticsService {
       }
     }
 
-    const weakTopics = Object.values(topicAgg)
+    const weakList = Object.values(topicAgg)
       .filter((t) => t.total >= 3 && t.correct / t.total < 0.5)
       .map((t) => ({
         ...t,
@@ -119,6 +136,16 @@ export class AnalyticsService {
       }))
       .sort((a, b) => a.percentage - b.percentage)
       .slice(0, 10);
+    // The subject lets the dashboard link straight to a topic drill.
+    const topicSubjects = new Map(
+      (
+        await this.prisma.topic.findMany({
+          where: { id: { in: weakList.map((t) => t.topicId) } },
+          select: { id: true, subjectId: true },
+        })
+      ).map((t) => [t.id, t.subjectId]),
+    );
+    const weakTopics = weakList.map((t) => ({ ...t, subjectId: topicSubjects.get(t.topicId) ?? null }));
 
     const data: AnalyticsResult = {
       totalTests,

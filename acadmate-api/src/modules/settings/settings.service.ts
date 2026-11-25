@@ -67,6 +67,10 @@ export const DEFAULT_PAYMENT_DETAILS: PaymentDetails = {
   whatsappNumber: '2349031843486',
 };
 
+// The day the next UTME starts, for the dashboard countdown. Set by an admin
+// once JAMB announces it; null hides the countdown.
+export const UTME_DATE_KEY = 'utme_date';
+
 // Fail open: if nothing has ever been configured, everything is available.
 const DEFAULT_EXAM_AVAILABILITY: ExamAvailability = { utme: true, postUtme: true };
 
@@ -222,6 +226,24 @@ export class SettingsService {
       accountNumber: digits(v.accountNumber, d.accountNumber),
       whatsappNumber: digits(v.whatsappNumber, d.whatsappNumber),
     };
+  }
+
+  // ─── UTME date (countdown) ─────────────────────────────────────────────────
+
+  async getUtmeDate(): Promise<{ date: string | null }> {
+    const row = await this.prisma.appSetting.findUnique({ where: { key: UTME_DATE_KEY } });
+    const v = (row?.value ?? {}) as Record<string, unknown>;
+    return { date: typeof v.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v.date) ? v.date : null };
+  }
+
+  async setUtmeDate(date: string | null): Promise<{ date: string | null }> {
+    const value = { date } as Prisma.InputJsonObject;
+    await this.prisma.appSetting.upsert({
+      where: { key: UTME_DATE_KEY },
+      create: { key: UTME_DATE_KEY, value },
+      update: { value },
+    });
+    return { date };
   }
 
   // ─── Email reminders ───────────────────────────────────────────────────────
