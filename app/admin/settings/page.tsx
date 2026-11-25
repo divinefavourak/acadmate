@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Loader from "@/app/components/Loader";
 import { apiClient, ApiError } from "@/lib/api/client";
 import EmailRemindersCard from "./EmailRemindersCard";
+import FreeQuotaCard from "./FreeQuotaCard";
 
 interface ExamAvailability {
   utme: boolean;
@@ -137,6 +138,8 @@ export default function ExamSettingsPage() {
           })}
         </div>
       )}
+
+      <FreeQuotaCard />
 
       <EmailRemindersCard />
     </div>

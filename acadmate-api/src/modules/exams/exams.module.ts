@@ -6,9 +6,10 @@ import { ExamExpiryService } from './exam-expiry.service';
 import { ScoringService } from './scoring.service';
 import { AnalyticsModule } from '../analytics/analytics.module';
 import { SettingsModule } from '../settings/settings.module';
+import { QuotaModule } from '../quota/quota.module';
 
 @Module({
-  imports: [AnalyticsModule, SettingsModule],
+  imports: [AnalyticsModule, SettingsModule, QuotaModule],
   controllers: [ExamsController],
   providers: [ExamsService, ExamFactoryService, ExamExpiryService, ScoringService],
   exports: [ExamExpiryService, ScoringService, ExamFactoryService],

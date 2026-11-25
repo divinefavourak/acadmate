@@ -50,6 +50,20 @@ interface ExamAvailability {
   postUtme: boolean;
 }
 
+// GET /api/users/me/quota. perSubject is null when there's no lifetime limit
+// (Premium, or the admin hasn't switched it on).
+interface Quota {
+  plan: "FREE" | "PREMIUM";
+  perSubject: number | null;
+  used: Record<string, number>;
+}
+
+type Paywall = { kind: "premium" | "quota" } | null;
+
+// A paywall the server answered with, tied to the request that got it, so
+// switching subject while a start is pending can't move it onto another one.
+type ServerPaywall = { kind: "premium" | "quota"; mode: Mode; subjectId: string } | null;
+
 // MOCK/PRACTICE/TOPIC are "UTME" exams; POST_UTME is its own group.
 function modeAvailable(mode: Mode, availability: ExamAvailability | null): boolean {
   if (!availability) return true; // assume open until we know otherwise
@@ -79,6 +93,10 @@ export default function NewExamPage() {
   const [error, setError] = useState("");
   const [utmeComboCount, setUtmeComboCount] = useState<number | null>(null);
   const [availability, setAvailability] = useState<ExamAvailability | null>(null);
+  // Null until loaded, or if the API doesn't have the endpoint: the picker then
+  // behaves as before and the server's 402 is the only paywall signal.
+  const [quota, setQuota] = useState<Quota | null>(null);
+  const [paywall, setPaywall] = useState<ServerPaywall>(null);
   const preferredTopicRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -87,7 +105,9 @@ export default function NewExamPage() {
       apiClient<{ texts: ProseText[] }>("/api/prose"),
       apiClient<MeForExam>("/api/users/me"),
       apiClient<ExamAvailability>("/api/settings/exam-availability"),
-    ]).then(([sResult, pResult, meResult, availResult]) => {
+      apiClient<Quota>("/api/users/me/quota"),
+    ]).then(([sResult, pResult, meResult, availResult, quotaResult]) => {
+      if (quotaResult.status === "fulfilled") setQuota(quotaResult.value);
       const subjList = sResult.status === "fulfilled" ? (sResult.value.subjects ?? []) : [];
       const proseList = pResult.status === "fulfilled" ? (pResult.value.texts ?? []) : [];
       setSubjects(subjList);
@@ -154,8 +174,44 @@ export default function NewExamPage() {
     );
   }
 
+  const isFree = quota?.plan === "FREE";
+  const limited = isFree && quota?.perSubject != null;
+
+  // Free questions left in a subject, or null when there's no limit.
+  function freeLeft(subjectId: string): number | null {
+    if (!limited || !quota || quota.perSubject == null) return null;
+    return Math.max(0, quota.perSubject - (quota.used[subjectId] ?? 0));
+  }
+
+  const selectedLeft = mode === "PRACTICE" || mode === "TOPIC" ? freeLeft(selectedSubject) : null;
+  // Shown before the student presses Start, when we already know the answer.
+  const knownPaywall: Paywall =
+    isFree && (mode === "MOCK" || mode === "POST_UTME")
+      ? { kind: "premium" }
+      : selectedLeft === 0
+      ? { kind: "quota" }
+      : null;
+  const serverPaywall: Paywall =
+    paywall && paywall.mode === mode && (mode === "MOCK" || paywall.subjectId === selectedSubject)
+      ? { kind: paywall.kind }
+      : null;
+  const activePaywall = knownPaywall ?? serverPaywall;
+
+  function chooseMode(next: Mode) {
+    setMode(next);
+    setPaywall(null);
+    setError("");
+  }
+
+  function chooseSubject(id: string) {
+    setSelectedSubject(id);
+    setPaywall(null);
+    setError("");
+  }
+
   async function handleStart() {
     setError("");
+    setPaywall(null);
 
     if (!modeAvailable(mode, availability)) {
       setError(
@@ -189,6 +245,8 @@ export default function NewExamPage() {
     }
 
     setStarting(true);
+    // What this request is for; the selection may change while it's pending.
+    const requested = { mode, subjectId: selectedSubject };
 
     const body =
       mode === "MOCK"
@@ -209,7 +267,18 @@ export default function NewExamPage() {
       router.push(`/exam/${data.examSession.id}`);
     } catch (err) {
       if (err instanceof ApiError && err.status === 402) {
-        setError("__PAYWALL__");
+        if (err.body.error === "QUOTA_EXHAUSTED") {
+          setPaywall({ kind: "quota", ...requested });
+          // Our copy of the count was stale (another tab, or a session
+          // started elsewhere). Mark the requested subject as used up.
+          setQuota((q) =>
+            q && q.perSubject != null
+              ? { ...q, used: { ...q.used, [requested.subjectId]: q.perSubject } }
+              : q,
+          );
+        } else {
+          setPaywall({ kind: "premium", ...requested });
+        }
       } else {
         setError(err instanceof ApiError ? err.message : "Failed to start exam. Please try again.");
       }
@@ -221,15 +290,24 @@ export default function NewExamPage() {
   const otherSubjects = subjects.filter((s) => s.code !== "ENG");
   const remaining = 3 - selectedSubjectIds.length;
 
+  // What the Free plan gets in practice modes. Premium accounts see no note.
+  const freeNote =
+    quota?.plan === "PREMIUM"
+      ? ""
+      : quota?.perSubject != null
+      ? ` Free plan: ${quota.perSubject} questions per subject.`
+      : " (up to 20 questions on free plan)";
+
   const modeCards: { id: Mode; title: string; description: string; premium?: boolean }[] = [
     { id: "MOCK", title: "Full UTME Mock", description: "Timed exam across all 4 subjects, just like the real UTME.", premium: true },
-    { id: "PRACTICE", title: "Subject Practice", description: "Focus on a single subject at your own pace (up to 20 questions on free plan)." },
-    { id: "TOPIC", title: "Topic Drill", description: "Deep-dive into a specific topic within a subject (up to 20 questions on free plan)." },
+    { id: "PRACTICE", title: "Subject Practice", description: `Focus on a single subject at your own pace.${freeNote}` },
+    { id: "TOPIC", title: "Topic Drill", description: `Deep-dive into a specific topic within a subject.${freeNote}` },
     { id: "POST_UTME", title: "Post-UTME", description: "Practice with real past questions from your target institution.", premium: true },
   ];
 
   const startDisabled =
     starting ||
+    activePaywall !== null ||
     !modeAvailable(mode, availability) ||
     (mode === "MOCK"
       ? selectedSubjectIds.length !== 3
@@ -259,7 +337,7 @@ export default function NewExamPage() {
                 return (
                   <button
                     key={id}
-                    onClick={() => available && setMode(id)}
+                    onClick={() => available && chooseMode(id)}
                     disabled={!available}
                     aria-disabled={!available}
                     className={`p-4 rounded-xl border-2 text-left transition-all relative disabled:cursor-not-allowed ${
@@ -419,7 +497,7 @@ export default function NewExamPage() {
                   {subjects.map((s, i) => (
                     <button
                       key={s.id}
-                      onClick={() => setSelectedSubject(s.id)}
+                      onClick={() => chooseSubject(s.id)}
                       disabled={s._count.questions === 0}
                       className="flex flex-col items-center gap-2 group disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none"
                     >
@@ -427,17 +505,21 @@ export default function NewExamPage() {
                         color={SUBJECT_COLORS[i % SUBJECT_COLORS.length]}
                         size={1.05}
                         open={selectedSubject === s.id}
-                        onToggle={() => setSelectedSubject(s.id)}
+                        onToggle={() => chooseSubject(s.id)}
                       />
                       <span className={`text-xs font-medium text-center leading-tight transition-colors ${
                         selectedSubject === s.id ? "text-brand-400" : "text-slate-400 group-hover:text-slate-200"
                       }`}>
                         {s.name}
                       </span>
+                      <FreeLeftLabel left={freeLeft(s.id)} />
                     </button>
                   ))}
                 </div>
               )}
+              {limited ? (
+                <FreeSessionNote left={selectedLeft} subject={subjects.find((s) => s.id === selectedSubject)?.name} />
+              ) : (
               <div className="space-y-2">
                 <label className="text-sm font-medium">Number of Questions</label>
                 <div className="flex items-center gap-4">
@@ -456,6 +538,7 @@ export default function NewExamPage() {
                 </div>
                 <p className="text-xs text-slate-500">~{questionCount * 2} minutes</p>
               </div>
+              )}
             </div>
           )}
 
@@ -471,20 +554,21 @@ export default function NewExamPage() {
                     {subjects.map((s, i) => (
                       <button
                         key={s.id}
-                        onClick={() => setSelectedSubject(s.id)}
+                        onClick={() => chooseSubject(s.id)}
                         className="flex flex-col items-center gap-2 group focus:outline-none"
                       >
                         <Folder
                           color={SUBJECT_COLORS[i % SUBJECT_COLORS.length]}
                           size={1.05}
                           open={selectedSubject === s.id}
-                          onToggle={() => setSelectedSubject(s.id)}
+                          onToggle={() => chooseSubject(s.id)}
                         />
                         <span className={`text-xs font-medium text-center leading-tight transition-colors ${
                           selectedSubject === s.id ? "text-brand-400" : "text-slate-400 group-hover:text-slate-200"
                         }`}>
                           {s.name}
                         </span>
+                        <FreeLeftLabel left={freeLeft(s.id)} />
                       </button>
                     ))}
                   </div>
@@ -518,6 +602,9 @@ export default function NewExamPage() {
                 )}
               </div>
 
+              {limited ? (
+                <FreeSessionNote left={selectedLeft} subject={subjects.find((s) => s.id === selectedSubject)?.name} />
+              ) : (
               <div className="space-y-2">
                 <label className="text-sm font-medium">Number of Questions</label>
                 <div className="flex items-center gap-4">
@@ -535,6 +622,7 @@ export default function NewExamPage() {
                   </span>
                 </div>
               </div>
+              )}
             </div>
           )}
 
@@ -578,33 +666,21 @@ export default function NewExamPage() {
             </div>
           )}
 
-          {error && error !== "__PAYWALL__" && (
+          {error && (
             <div className="px-4 py-3 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-sm">
               {error}
             </div>
           )}
 
-          {error === "__PAYWALL__" && (
-            <div className="p-5 rounded-2xl bg-amber-500/8 border border-amber-500/25 space-y-3">
-              <div className="flex items-start gap-3">
-                <span className="text-2xl shrink-0">⭐</span>
-                <div>
-                  <p className="font-semibold text-amber-300 mb-1">Premium Required</p>
-                  <p className="text-sm text-slate-400">
-                    MOCK and Post-UTME exams are available on the Premium plan. Redeem an access code to unlock full access.
-                  </p>
-                </div>
-              </div>
-              <Link
-                href="/dashboard/upgrade"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 text-sm font-semibold rounded-xl transition-colors"
-              >
-                Redeem Access Code
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-              </Link>
-            </div>
-          )}
-
+          {activePaywall ? (
+            <UpgradePanel
+              paywall={activePaywall}
+              mode={mode}
+              subject={subjects.find((s) => s.id === selectedSubject)?.name}
+              perSubject={quota?.perSubject ?? null}
+              othersLeft={subjects.some((s) => s.id !== selectedSubject && (freeLeft(s.id) ?? 0) > 0)}
+            />
+          ) : (
           <button
             onClick={handleStart}
             disabled={startDisabled}
@@ -628,8 +704,75 @@ export default function NewExamPage() {
               </>
             )}
           </button>
+          )}
         </div>
       )}
+    </div>
+  );
+}
+
+// "7 free left" under a subject, for Free accounts while the limit is on.
+function FreeLeftLabel({ left }: { left: number | null }) {
+  if (left === null) return null;
+  return left > 0 ? (
+    <span className="-mt-1 text-[11px] font-semibold text-mint-600 dark:text-mint-400">{left} free left</span>
+  ) : (
+    <span className="-mt-1 text-[11px] font-semibold text-slate-400">Premium</span>
+  );
+}
+
+// Takes the place of the question-count slider for Free accounts: the session
+// is whatever they have left, up to the server's default length.
+function FreeSessionNote({ left, subject }: { left: number | null; subject?: string }) {
+  if (left === null || left === 0) return null;
+  return (
+    <div className="rounded-xl border border-mint-500/30 bg-mint-500/10 px-4 py-3 text-sm">
+      <p className="font-semibold text-slate-800 dark:text-slate-100">
+        {left} free question{left === 1 ? "" : "s"} left{subject ? ` in ${subject}` : ""}
+      </p>
+      <p className="mt-0.5 text-slate-600 dark:text-slate-400">
+        Each one is new to you. Premium has no limit and lets you choose how many to take.
+      </p>
+    </div>
+  );
+}
+
+// Shown in place of the Start button when the choice needs Premium.
+function UpgradePanel({
+  paywall,
+  mode,
+  subject,
+  perSubject,
+  othersLeft,
+}: {
+  paywall: NonNullable<Paywall>;
+  mode: Mode;
+  subject?: string;
+  perSubject: number | null;
+  othersLeft: boolean;
+}) {
+  const title =
+    paywall.kind === "quota"
+      ? `You’ve used your ${perSubject ?? ""} free ${subject ?? ""} questions`.replace(/\s+/g, " ")
+      : mode === "POST_UTME"
+      ? "Post-UTME papers are part of Premium"
+      : mode === "MOCK"
+      ? "Full UTME mocks are part of Premium"
+      : "This needs Premium";
+  const body =
+    paywall.kind === "quota"
+      ? `Premium unlocks every question in every subject, plus full timed mocks.${othersLeft ? " Your other subjects still have free questions." : ""}`
+      : "Premium is one payment. It unlocks full timed mocks, Post-UTME papers and every question in every subject.";
+  return (
+    <div role="status" className="rounded-2xl border border-brand-500/30 bg-brand-50/60 dark:bg-brand-900/20 p-5 space-y-4">
+      <div>
+        <p className="font-semibold text-lg text-slate-900 dark:text-white">{title}</p>
+        <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{body}</p>
+      </div>
+      <Link href="/dashboard/upgrade" className="btn-primary w-full flex items-center justify-center gap-2">
+        See Premium
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+      </Link>
     </div>
   );
 }

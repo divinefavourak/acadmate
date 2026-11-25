@@ -29,6 +29,20 @@ export interface EmailReminderSettings {
 export const DEFAULT_EMAIL_REMINDERS: EmailReminderSettings = { enabled: true, dailyLimit: 40 };
 export const MAX_REMINDERS_PER_DAY = 300;
 
+// Free-plan question limit (see QuotaService). Off until launch, because the
+// API is shared with the pre-launch live site, whose frontend predates it.
+// While off, free accounts keep the old rule: at most 20 questions a session.
+export const FREE_QUOTA_KEY = 'free_quota';
+
+export interface FreeQuotaSettings {
+  enabled: boolean;
+  /** Distinct questions a free account may see per subject, for life. */
+  perSubject: number;
+}
+
+export const DEFAULT_FREE_QUOTA: FreeQuotaSettings = { enabled: false, perSubject: 10 };
+export const MAX_FREE_PER_SUBJECT = 200;
+
 // Fail open: if nothing has ever been configured, everything is available.
 const DEFAULT_EXAM_AVAILABILITY: ExamAvailability = { utme: true, postUtme: true };
 
@@ -96,6 +110,55 @@ export class SettingsService {
         typeof v.postUtme === 'boolean'
           ? v.postUtme
           : DEFAULT_EXAM_AVAILABILITY.postUtme,
+    };
+  }
+
+  // ─── Free-plan question limit ──────────────────────────────────────────────
+  // Read on every free exam start, so cached like exam availability. A failed
+  // read falls back to the default (off): the old 20-a-session rule, which is
+  // safer than blocking students on a DB blip.
+
+  private readonly freeQuotaCacheKey = 'settings:free_quota';
+
+  async getFreeQuota(): Promise<FreeQuotaSettings> {
+    const cached = await this.cache.get<FreeQuotaSettings>(this.freeQuotaCacheKey);
+    if (cached) return cached;
+    let value: FreeQuotaSettings;
+    try {
+      const row = await this.prisma.appSetting.findUnique({ where: { key: FREE_QUOTA_KEY } });
+      value = this.normalizeFreeQuota(row?.value);
+    } catch (err) {
+      this.logger.warn(`Free-quota lookup failed, using the default: ${(err as Error).message}`);
+      return { ...DEFAULT_FREE_QUOTA };
+    }
+    await this.cache.set(this.freeQuotaCacheKey, value, this.cacheTtlSeconds);
+    return value;
+  }
+
+  async setFreeQuota(input: Partial<FreeQuotaSettings>): Promise<FreeQuotaSettings> {
+    // Merge onto the stored row, never the fail-open read above: after a DB
+    // blip that read says "off", and saving just the number would then switch
+    // an enabled limit off for good. A failed lookup fails the save instead.
+    const row = await this.prisma.appSetting.findUnique({ where: { key: FREE_QUOTA_KEY } });
+    const next = this.normalizeFreeQuota({ ...this.normalizeFreeQuota(row?.value), ...input });
+    const value = next as unknown as Prisma.InputJsonObject;
+    await this.prisma.appSetting.upsert({
+      where: { key: FREE_QUOTA_KEY },
+      create: { key: FREE_QUOTA_KEY, value },
+      update: { value },
+    });
+    await this.cache.set(this.freeQuotaCacheKey, next, this.cacheTtlSeconds);
+    return next;
+  }
+
+  private normalizeFreeQuota(raw: unknown): FreeQuotaSettings {
+    const v = (raw ?? {}) as Record<string, unknown>;
+    const n = typeof v.perSubject === 'number' && Number.isFinite(v.perSubject)
+      ? Math.floor(v.perSubject)
+      : DEFAULT_FREE_QUOTA.perSubject;
+    return {
+      enabled: typeof v.enabled === 'boolean' ? v.enabled : DEFAULT_FREE_QUOTA.enabled,
+      perSubject: Math.min(MAX_FREE_PER_SUBJECT, Math.max(1, n)),
     };
   }
 

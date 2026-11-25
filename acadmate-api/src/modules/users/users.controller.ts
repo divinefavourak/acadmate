@@ -24,6 +24,7 @@ import {
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser, JwtUser } from '../../common/decorators/current-user.decorator';
 import { UsersService } from './users.service';
+import { QuotaService } from '../quota/quota.service';
 
 class UpdateMeDto {
   @IsOptional() @IsString() name?: string;
@@ -54,7 +55,10 @@ class RedeemTokenDto {
 @UseGuards(JwtAuthGuard)
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly quotaService: QuotaService,
+  ) {}
 
   @Get('me')
   @ApiOperation({ summary: 'Get current user profile' })
@@ -96,5 +100,11 @@ export class UsersController {
   @ApiOperation({ summary: 'Get current user plan' })
   getMyPlan(@CurrentUser() user: JwtUser) {
     return this.usersService.getMyPlan(user.id);
+  }
+
+  @Get('me/quota')
+  @ApiOperation({ summary: 'Free questions used per subject (empty for Premium)' })
+  getMyQuota(@CurrentUser() user: JwtUser) {
+    return this.quotaService.summary(user.id);
   }
 }
