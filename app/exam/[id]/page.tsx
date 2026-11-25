@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, use } from "react";
+import { useState, useEffect, useCallback, useRef, use } from "react";
 import { useRouter } from "next/navigation";
 import { BrandMark } from "@/app/components/BrandMark";
 import Timer from "../components/Timer";
@@ -69,6 +69,10 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
   const [submitError, setSubmitError] = useState("");
   const [reportedQuestions, setReportedQuestions] = useState<Set<string>>(new Set());
   const [examStarted, setExamStarted] = useState(false);
+  // Submit dialog focus: "Keep working" gets focus on open, and focus goes back
+  // to whatever opened it on close (often an answer option).
+  const keepWorkingRef = useRef<HTMLButtonElement>(null);
+  const submitOpenerRef = useRef<HTMLElement | null>(null);
 
   // Fetch exam session
   useEffect(() => {
@@ -153,6 +157,7 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
   const handleSubmit = () => {
     if (submitting) return;
     setSubmitError("");
+    submitOpenerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setShowSubmitConfirm(true);
   };
 
@@ -256,6 +261,20 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
     return () => window.removeEventListener("keydown", onKey);
   });
 
+  // Move focus into the submit dialog when it opens, and back when it closes.
+  // Without this, pressing S while an answer option has focus left focus on that
+  // radio behind the dialog, where an arrow key would silently change the answer.
+  // The rest of the page is also made inert while the dialog is open (see <main>).
+  useEffect(() => {
+    if (showSubmitConfirm) {
+      keepWorkingRef.current?.focus();
+    } else if (submitOpenerRef.current) {
+      const opener = submitOpenerRef.current;
+      submitOpenerRef.current = null;
+      if (opener.isConnected) opener.focus();
+    }
+  }, [showSubmitConfirm]);
+
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -348,7 +367,9 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
       )}
 
       {/* Main Exam Area */}
-      <main className="flex-1 flex flex-col items-center min-w-0">
+      {/* inert while a dialog is open: nothing behind it can be focused, clicked
+          or changed with the keyboard (the dialogs render outside <main>). */}
+      <main className="flex-1 flex flex-col items-center min-w-0" inert={showSubmitConfirm || showMobileNav}>
         {/* Top Bar */}
         <header className="w-full flex items-center justify-between px-3 sm:px-8 py-2 sm:py-4 bg-white/80 dark:bg-navy-950/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 flex-shrink-0 gap-2">
           <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
@@ -651,6 +672,7 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
 
             <div className="mt-6 flex gap-3 justify-end">
               <button
+                ref={keepWorkingRef}
                 onClick={() => setShowSubmitConfirm(false)}
                 disabled={submitting}
                 className="btn-secondary px-4 py-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
@@ -670,7 +692,7 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
       )}
 
       {/* Right Sidebar — question navigator */}
-      <aside className="w-80 bg-white/90 dark:bg-navy-950/90 backdrop-blur-md border-l border-slate-200 dark:border-slate-800 flex-col hidden lg:flex">
+      <aside className="w-80 bg-white/90 dark:bg-navy-950/90 backdrop-blur-md border-l border-slate-200 dark:border-slate-800 flex-col hidden lg:flex" inert={showSubmitConfirm || showMobileNav}>
         <div className="p-6 border-b border-slate-200 dark:border-slate-800">
           <h3 className="font-bold text-lg">Question Navigator</h3>
           <p className="text-sm text-slate-500 mt-1">
