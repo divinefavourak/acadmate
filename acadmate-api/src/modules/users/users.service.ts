@@ -1,7 +1,21 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { EventsService } from '../events/events.service';
+import { MAX_REWARDED_REFERRALS, REFERRAL_BONUS } from '../quota/quota.service';
+
+// Unambiguous characters (no 0/O, 1/I/L) so a code read aloud still works.
+const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+const CODE_LENGTH = 6;
+// Only a new account can be credited to a friend, so an old account can't
+// claim a code later by re-running onboarding.
+const CLAIM_WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
+
+function newReferralCode(): string {
+  let code = '';
+  for (let i = 0; i < CODE_LENGTH; i++) code += CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)];
+  return code;
+}
 
 @Injectable()
 export class UsersService {
@@ -109,6 +123,8 @@ export class UsersService {
       utmeSubjectIds: string[];
       avatarConfig?: Record<string, unknown>;
       avatarUrl?: string;
+      /** A friend's referral code, from their invite link. */
+      referralCode?: string;
     },
   ) {
     const { name, age, institution, utmeSubjectIds, avatarConfig, avatarUrl } = dto;
@@ -160,7 +176,66 @@ export class UsersService {
       await this.syncUtmeSubjects(tx, profile.id, uniqueIds);
     });
 
+    if (dto.referralCode) await this.claimReferral(userId, dto.referralCode);
     return this.getMe(userId);
+  }
+
+  // ─── Referrals ─────────────────────────────────────────────────────────────
+
+  /**
+   * Credits a new student to the friend who invited them. Quietly does
+   * nothing for an unknown code, the student's own code, an account that
+   * already has a referrer, or one older than the claim window.
+   */
+  private async claimReferral(userId: string, rawCode: string): Promise<void> {
+    const code = rawCode.trim().toUpperCase().slice(0, 16);
+    if (!code) return;
+    const referrer = await this.prisma.user.findUnique({ where: { referralCode: code }, select: { id: true } });
+    if (!referrer || referrer.id === userId) return;
+    const { count } = await this.prisma.user.updateMany({
+      where: {
+        id: userId,
+        referredById: null,
+        createdAt: { gte: new Date(Date.now() - CLAIM_WINDOW_MS) },
+      },
+      data: { referredById: referrer.id },
+    });
+    if (count === 1) this.events.record('referral_signup', userId, { referrerId: referrer.id });
+  }
+
+  /** The student's invite code (made on first request) and what it has earned. */
+  async getReferral(userId: string) {
+    let user = await this.prisma.user.findUnique({ where: { id: userId }, select: { referralCode: true } });
+    if (!user) throw new NotFoundException('User not found');
+    for (let attempt = 0; !user.referralCode && attempt < 5; attempt++) {
+      try {
+        user = await this.prisma.user.update({
+          where: { id: userId },
+          data: { referralCode: newReferralCode() },
+          select: { referralCode: true },
+        });
+      } catch (err) {
+        // Code already taken by someone else: try another.
+        if ((err as { code?: string }).code !== 'P2002') throw err;
+      }
+    }
+    if (!user.referralCode) throw new ConflictException('Could not make an invite code. Try again.');
+
+    const [signedUp, joined] = await Promise.all([
+      this.prisma.user.count({ where: { referredById: userId } }),
+      this.prisma.user.count({ where: { referredById: userId, onboardedAt: { not: null } } }),
+    ]);
+    const rewarded = Math.min(joined, MAX_REWARDED_REFERRALS);
+    return {
+      code: user.referralCode,
+      path: `/register?ref=${user.referralCode}`,
+      signedUp,
+      joined,
+      rewarded,
+      bonusQuestions: rewarded * REFERRAL_BONUS,
+      perFriend: REFERRAL_BONUS,
+      maxFriends: MAX_REWARDED_REFERRALS,
+    };
   }
 
   // Replace the user's UTME subject combination in-place.

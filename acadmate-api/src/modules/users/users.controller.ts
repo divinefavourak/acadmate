@@ -20,6 +20,7 @@ import {
   ArrayMaxSize,
   Min,
   Max,
+  MaxLength,
 } from 'class-validator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser, JwtUser } from '../../common/decorators/current-user.decorator';
@@ -44,6 +45,7 @@ class CompleteOnboardingDto {
   @IsArray() @ArrayMinSize(2) @ArrayMaxSize(3) @IsString({ each: true }) utmeSubjectIds!: string[];
   @IsOptional() @IsObject() avatarConfig?: Record<string, unknown>;
   @IsOptional() @IsString() avatarUrl?: string;
+  @IsOptional() @IsString() @MaxLength(16) referralCode?: string;
 }
 
 class RedeemTokenDto {
@@ -106,5 +108,11 @@ export class UsersController {
   @ApiOperation({ summary: 'Free questions used per subject (empty for Premium)' })
   getMyQuota(@CurrentUser() user: JwtUser) {
     return this.quotaService.summary(user.id);
+  }
+
+  @Get('me/referral')
+  @ApiOperation({ summary: 'Invite code and link, and the bonus questions friends have earned' })
+  getMyReferral(@CurrentUser() user: JwtUser) {
+    return this.usersService.getReferral(user.id);
   }
 }

@@ -7,6 +7,7 @@ import StatCard from "./components/StatCard";
 import DailyCard from "./components/DailyCard";
 import CountdownCard from "./components/CountdownCard";
 import WeakTopicsCard from "./components/WeakTopicsCard";
+import InviteCard from "./components/InviteCard";
 import { PremiumBadge, PremiumCrown } from "@/app/components/PremiumBadge";
 import { track } from "@/lib/track";
 import Loader from "@/app/components/Loader";
@@ -115,6 +116,12 @@ export default function DashboardPage() {
             </span>
             <span className="shrink-0 font-semibold text-brand-600 dark:text-brand-400">See Premium</span>
           </Link>
+        </motion.div>
+      )}
+
+      {user && (
+        <motion.div variants={fadeUp}>
+          <InviteCard premium={premium} />
         </motion.div>
       )}
 
