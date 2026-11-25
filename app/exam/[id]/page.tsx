@@ -617,6 +617,7 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
           role="dialog"
           aria-modal="true"
           aria-labelledby="submit-confirm-title"
+          onKeyDown={trapTabInDialog}
         >
           <div
             className="absolute inset-0 bg-black/50 backdrop-blur-sm"
@@ -744,6 +745,31 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
       </aside>
     </div>
   );
+}
+
+/**
+ * Keeps Tab and Shift+Tab inside a modal: from the last control Tab wraps to
+ * the first, and from the first Shift+Tab wraps to the last. With the page
+ * behind made inert, focus would otherwise leave for the browser's own controls.
+ */
+function trapTabInDialog(e: React.KeyboardEvent<HTMLElement>) {
+  if (e.key !== "Tab") return;
+  const focusable = [
+    ...e.currentTarget.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    ),
+  ];
+  if (focusable.length === 0) return;
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  const current = document.activeElement;
+  if (e.shiftKey && (current === first || !e.currentTarget.contains(current))) {
+    e.preventDefault();
+    last.focus();
+  } else if (!e.shiftKey && (current === last || !e.currentTarget.contains(current))) {
+    e.preventDefault();
+    first.focus();
+  }
 }
 
 const SHORTCUTS: [string, string][] = [
