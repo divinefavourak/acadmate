@@ -26,6 +26,18 @@ export interface DailyStatus {
   };
 }
 
+/** Today in Lagos (UTC+1, no daylight saving), "YYYY-MM-DD". */
+function lagosToday() {
+  return new Date(Date.now() + 3_600_000).toISOString().slice(0, 10);
+}
+
+/** Milliseconds until the next Lagos midnight. */
+function msToLagosMidnight() {
+  const lagosNow = Date.now() + 3_600_000;
+  const DAY = 86_400_000;
+  return DAY - (lagosNow % DAY);
+}
+
 function streakNote(s: DailyStatus["streak"]) {
   if (s.activeToday) return "Done for today. See you tomorrow.";
   if (s.current > 0) return "Finish any exam today to keep it going.";
@@ -39,15 +51,47 @@ export default function DailyCard() {
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState("");
 
+  // Refresh when the Lagos day turns over: at midnight if the tab stays open,
+  // and when the student comes back to a tab left open overnight.
   useEffect(() => {
-    apiClient<DailyStatus>("/api/daily").then(setDaily).catch(() => setFailed(true));
+    let live = true;
+    let shownDay = "";
+    let timer = 0;
+    const load = () =>
+      apiClient<DailyStatus>("/api/daily")
+        .then((d) => {
+          if (!live) return;
+          shownDay = d.date;
+          setDaily(d);
+        })
+        .catch(() => {
+          if (live) setFailed(true);
+        });
+    const schedule = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        load();
+        schedule();
+      }, msToLagosMidnight() + 1_000);
+    };
+    const onVisible = () => {
+      if (document.visibilityState === "visible" && shownDay && shownDay !== lagosToday()) load();
+    };
+    load();
+    schedule();
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+    return () => {
+      live = false;
+      window.clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
+    };
   }, []);
 
+  // Always ask the server for today's session: it resumes one started today
+  // and never hands back yesterday's.
   async function start() {
-    if (daily?.sessionId) {
-      router.push(`/exam/${daily.sessionId}`);
-      return;
-    }
     setStarting(true);
     setError("");
     try {

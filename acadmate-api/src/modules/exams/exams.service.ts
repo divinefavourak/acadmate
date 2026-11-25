@@ -423,6 +423,7 @@ export class ExamsService {
             mode: true,
             subjectId: true,
             topicId: true,
+            school: true,
             questions: { orderBy: { position: 'asc' }, select: { questionId: true } },
             userAnswers: { select: { questionId: true, isCorrect: true } },
           },
@@ -433,7 +434,11 @@ export class ExamsService {
     if (result.userId !== userId) throw new ForbiddenException();
 
     const availability = await this.settings.getExamAvailability();
-    const isPostUtme = result.examSession.mode === 'POST_UTME';
+    // A retry keeps its source's school (only Post-UTME papers have one), so a
+    // retry of a retry still answers to the Post-UTME switch.
+    const isPostUtme =
+      result.examSession.mode === 'POST_UTME' ||
+      (result.examSession.mode === 'RETRY' && result.examSession.school != null);
     if (!(isPostUtme ? availability.postUtme : availability.utme)) {
       throw new ForbiddenException('These exams are turned off right now. Please check back soon.');
     }
@@ -472,6 +477,7 @@ export class ExamsService {
         mode: 'RETRY',
         subjectId: result.examSession.subjectId,
         topicId: result.examSession.topicId,
+        school: result.examSession.school,
         totalQuestions: questionIds.length,
         durationMinutes: Math.max(5, Math.ceil(questionIds.length * 1.5)),
         questions: { create: questionIds.map((questionId, position) => ({ questionId, position })) },
