@@ -3,6 +3,7 @@ import {
   ConflictException,
   UnauthorizedException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
@@ -15,6 +16,8 @@ import { normalizePhone, looksLikePhone } from '../../common/utils/phone.util';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
@@ -36,7 +39,7 @@ export class AuthService {
     }
 
     const passwordHash = await bcrypt.hash(dto.password, 12);
-    return this.prisma.user.create({
+    const user = await this.prisma.user.create({
       data: {
         name: dto.name,
         email: dto.email,
@@ -47,6 +50,8 @@ export class AuthService {
       },
       select: { id: true, name: true, email: true, role: true, createdAt: true },
     });
+    this.sendWelcome(user);
+    return user;
   }
 
   // ─── Login (by email or phone) ─────────────────────────────────────────────
@@ -101,6 +106,7 @@ export class AuthService {
           studentProfile: { select: { avatarUrl: true, avatarConfig: true } },
         },
       });
+      this.sendWelcome(user);
     } else if (image) {
       // Returning user: only adopt the Google picture if they haven't chosen
       // their own avatar yet, so we never clobber a custom one.
@@ -122,6 +128,22 @@ export class AuthService {
     }
 
     return this.issueToken(user);
+  }
+
+  // ─── Welcome email ─────────────────────────────────────────────────────────
+  /**
+   * Fire and forget: sign-up must never wait on, or fail because of, Gmail.
+   * welcomedAt is set only after a successful send, so a failed welcome can be
+   * retried later and a sent one is never repeated.
+   */
+  private sendWelcome(user: { id: string; email: string; name: string | null }) {
+    if (!this.mailService.isReady || !user.email) return;
+    void this.mailService
+      .sendWelcome(user.email, user.name)
+      .then(() => this.prisma.user.update({ where: { id: user.id }, data: { welcomedAt: new Date() } }))
+      .catch((err: unknown) =>
+        this.logger.warn(`Welcome email failed for user ${user.id}: ${err instanceof Error ? err.message : String(err)}`),
+      );
   }
 
   // ─── Forgot Password ──────────────────────────────────────────────────────

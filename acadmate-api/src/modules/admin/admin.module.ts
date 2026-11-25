@@ -17,14 +17,16 @@ import { AdminTokensController } from './tokens/admin-tokens.controller';
 import { AdminTokensService } from './tokens/admin-tokens.service';
 import { AdminBlogController } from './blog/admin-blog.controller';
 import { AdminSettingsController } from './settings/admin-settings.controller';
+import { AdminEmailRemindersController } from './settings/admin-email-reminders.controller';
 import { AdminNotesController } from './notes/admin-notes.controller';
 import { AdminNotesService } from './notes/admin-notes.service';
 import { BlogModule } from '../blog/blog.module';
 import { SettingsModule } from '../settings/settings.module';
 import { UploadModule } from '../upload/upload.module';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
-  imports: [BlogModule, SettingsModule, UploadModule],
+  imports: [BlogModule, SettingsModule, UploadModule, AuthModule],
   controllers: [
     AdminQuestionsController,
     AdminImportsController,
@@ -36,6 +38,7 @@ import { UploadModule } from '../upload/upload.module';
     AdminTokensController,
     AdminBlogController,
     AdminSettingsController,
+    AdminEmailRemindersController,
     AdminNotesController,
   ],
   providers: [

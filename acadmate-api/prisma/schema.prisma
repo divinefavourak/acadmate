@@ -23,6 +23,10 @@ model User {
   role          Role      @default(STUDENT)
   plan          Plan      @default(FREE)
   onboardedAt   DateTime?
+  // Engagement email (welcome on sign-up, occasional practice reminders).
+  welcomedAt     DateTime? // welcome email sent; stops a second one
+  lastReminderAt DateTime? // last practice reminder; reminders wait 14 days
+  emailOptOut    Boolean   @default(false) // unsubscribed from reminders
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 

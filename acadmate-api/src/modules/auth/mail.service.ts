@@ -1,5 +1,6 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { google } from 'googleapis';
+import { welcomeEmail, reminderEmail, type ReminderVariant } from './email-templates';
 
 type BlogPostForEmail = {
   slug: string;
@@ -79,13 +80,14 @@ export class MailService implements OnModuleInit {
     this.logger.log(`Gmail API configured: user=${gmailUser}, from="${from}"`);
   }
 
-  private async sendMail(to: string, subject: string, html: string) {
+  private async sendMail(to: string, subject: string, html: string, headers: Record<string, string> = {}) {
     if (!this.gmail) throw new Error('Gmail API not initialized');
 
     const raw = [
       `From: ${sanitizeHeader(this.from)}`,
       `To: ${sanitizeHeader(to)}`,
       `Subject: ${encodeRfc2047(sanitizeHeader(subject))}`,
+      ...Object.entries(headers).map(([k, v]) => `${sanitizeHeader(k)}: ${sanitizeHeader(v)}`),
       'MIME-Version: 1.0',
       'Content-Type: text/html; charset=utf-8',
       '',
@@ -106,10 +108,10 @@ export class MailService implements OnModuleInit {
     try {
       await this.sendMail(to, 'Reset your Acadmate password', `
         <div style="font-family:sans-serif;max-width:480px;margin:0 auto">
-          <h2 style="color:#4f46e5">Reset your password</h2>
+          <h2 style="color:#0874d4">Reset your password</h2>
           <p>Click the button below to set a new password. This link expires in <strong>1 hour</strong>.</p>
           <a href="${resetUrl}"
-             style="display:inline-block;padding:12px 24px;background:#4f46e5;color:#fff;border-radius:8px;text-decoration:none;font-weight:600;margin:16px 0">
+             style="display:inline-block;padding:12px 24px;background:#0874d4;color:#fff;border-radius:8px;text-decoration:none;font-weight:600;margin:16px 0">
             Reset Password
           </a>
           <p style="color:#64748b;font-size:13px">If you didn't request this, you can safely ignore this email.</p>
@@ -160,7 +162,7 @@ export class MailService implements OnModuleInit {
           ${coverHtml}
           <p style="color:#334155;line-height:1.6">${safeExcerpt}</p>
           <a href="${postUrl}"
-             style="display:inline-block;padding:12px 24px;background:#4f46e5;color:#fff;border-radius:8px;text-decoration:none;font-weight:600;margin:16px 0">
+             style="display:inline-block;padding:12px 24px;background:#0874d4;color:#fff;border-radius:8px;text-decoration:none;font-weight:600;margin:16px 0">
             Read the full post
           </a>
           <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0"/>
@@ -180,5 +182,32 @@ export class MailService implements OnModuleInit {
       );
       throw err;
     }
+  }
+
+  /** Whether emails can be sent at all (Gmail API configured). */
+  get isReady(): boolean {
+    return this.ready;
+  }
+
+  /** Sent once, right after sign-up. Throws on failure; callers decide whether that matters. */
+  async sendWelcome(to: string, name: string | null) {
+    if (!this.ready) throw new Error('Gmail API is not configured');
+    const { subject, html } = welcomeEmail(name);
+    await this.sendMail(to, subject, html);
+    this.logger.log(`Welcome email sent to ${maskEmail(to)}`);
+  }
+
+  /**
+   * A practice reminder. Carries List-Unsubscribe and List-Unsubscribe-Post
+   * (RFC 8058) so Gmail and other clients show their own one-click unsubscribe,
+   * which also keeps the sending account in good standing.
+   */
+  async sendReminder(to: string, name: string | null, variant: ReminderVariant, unsubscribeLink: string) {
+    if (!this.ready) throw new Error('Gmail API is not configured');
+    const { subject, html } = reminderEmail(variant, name, unsubscribeLink);
+    await this.sendMail(to, subject, html, {
+      'List-Unsubscribe': `<${unsubscribeLink}>`,
+      'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+    });
   }
 }
