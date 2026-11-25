@@ -265,15 +265,18 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
   // Without this, pressing S while an answer option has focus left focus on that
   // radio behind the dialog, where an arrow key would silently change the answer.
   // The rest of the page is also made inert while the dialog is open (see <main>).
+  // A strike warning can appear on top of the open dialog (the student left the
+  // tab). The warning takes focus while it shows, and the dialog is inert under
+  // it; when the warning closes, focus comes back to the dialog, not to <body>.
   useEffect(() => {
     if (showSubmitConfirm) {
-      keepWorkingRef.current?.focus();
+      if (!warning) keepWorkingRef.current?.focus();
     } else if (submitOpenerRef.current) {
       const opener = submitOpenerRef.current;
       submitOpenerRef.current = null;
       if (opener.isConnected) opener.focus();
     }
-  }, [showSubmitConfirm]);
+  }, [showSubmitConfirm, warning]);
 
   if (loading) {
     return (
@@ -618,6 +621,7 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
           aria-modal="true"
           aria-labelledby="submit-confirm-title"
           onKeyDown={trapTabInDialog}
+          inert={!!warning}
         >
           <div
             className="absolute inset-0 bg-black/50 backdrop-blur-sm"
@@ -798,7 +802,13 @@ function StrikeWarningModal({
 
 
   return (
-    <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+    <div
+      className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+      role="alertdialog"
+      aria-modal="true"
+      aria-labelledby="strike-warning-title"
+      onKeyDown={trapTabInDialog}
+    >
       <div className="w-full max-w-md bg-white dark:bg-slate-950 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
         {/* Coloured top bar */}
         <div className={`h-1.5 w-full ${isFinal ? "bg-red-600" : "bg-amber-500"}`} />
@@ -820,7 +830,7 @@ function StrikeWarningModal({
               )}
             </div>
             <div>
-              <h2 className="font-bold text-lg text-slate-900 dark:text-slate-100">
+              <h2 id="strike-warning-title" className="font-bold text-lg text-slate-900 dark:text-slate-100">
                 {isFinal ? "Exam Auto-Submitted" : `Strike ${strike} of ${2}`}
               </h2>
               <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">{reason}</p>
@@ -842,6 +852,7 @@ function StrikeWarningModal({
           {!isFinal && (
             <button
               onClick={onDismiss}
+              autoFocus
               className="w-full py-3 rounded-xl font-bold text-sm bg-brand-600 hover:bg-brand-700 text-white transition-colors"
             >
               I understand — return to exam
