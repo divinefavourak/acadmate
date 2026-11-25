@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { seenByUser } from '../quota/quota.service';
 
 // Post-UTME questions are institution past papers (examType = POST_UTME, tagged
 // with a school) and share subjects/topics with the general bank. Every UTME-side
@@ -33,10 +35,13 @@ export type MockExamInput = {
   proseTextId?: string;
 };
 
+// excludeSeenBy: a user id. Free accounts only get questions they haven't
+// been served before, so each of their free questions is a new one.
 export type PracticeExamInput = {
   mode: 'PRACTICE';
   subjectId: string;
   questionCount: number;
+  excludeSeenBy?: string;
 };
 
 export type TopicExamInput = {
@@ -44,6 +49,7 @@ export type TopicExamInput = {
   subjectId: string;
   topicId: string;
   questionCount: number;
+  excludeSeenBy?: string;
 };
 
 export type PostUtmeExamInput = {
@@ -86,9 +92,31 @@ export class ExamFactoryError extends Error {
   }
 }
 
+function unseenOnly(userId: string | undefined): Prisma.Sql {
+  return userId ? Prisma.sql`AND NOT ${seenByUser(userId)}` : Prisma.empty;
+}
+
 @Injectable()
 export class ExamFactoryService {
   constructor(private readonly prisma: PrismaService) {}
+
+  // Whether a subject or topic has any drawable question at all, ignoring
+  // what the user has seen. Tells "nothing here" apart from "you've had them all".
+  private async anyEligible(column: 'subjectId' | 'topicId', id: string): Promise<boolean> {
+    const rows = await this.prisma.$queryRaw<{ one: number }[]>`
+      SELECT 1 AS one FROM questions q
+      WHERE ${column === 'subjectId' ? Prisma.sql`q."subjectId"` : Prisma.sql`q."topicId"`} = ${id}
+        AND q."isPublished" = true
+        AND q."isFlagged" = false
+        AND q."examType" IS DISTINCT FROM 'POST_UTME'::"ExamType"
+        AND EXISTS (
+          SELECT 1 FROM question_options qo
+          WHERE qo."questionId" = q.id AND qo."isCorrect" = true
+        )
+      LIMIT 1
+    `;
+    return rows.length > 0;
+  }
 
   async build(input: ExamFactoryInput): Promise<ExamFactoryResult> {
     switch (input.mode) {
@@ -290,6 +318,7 @@ export class ExamFactoryService {
           SELECT 1 FROM question_options qo
           WHERE qo."questionId" = q.id AND qo."isCorrect" = true
         )
+        ${unseenOnly(input.excludeSeenBy)}
       ORDER BY RANDOM()
       LIMIT ${input.questionCount}
     `;
@@ -297,6 +326,12 @@ export class ExamFactoryService {
     const questionIds = fisherYates(rows.map((r) => r.id));
 
     if (questionIds.length === 0) {
+      if (input.excludeSeenBy && (await this.anyEligible('subjectId', input.subjectId))) {
+        throw new ExamFactoryError(
+          "You've already had every question we have in this subject. Premium lets you practise them again.",
+          422,
+        );
+      }
       throw new ExamFactoryError(
         'No questions available for this selection',
         422,
@@ -317,6 +352,7 @@ export class ExamFactoryService {
           SELECT 1 FROM question_options qo
           WHERE qo."questionId" = q.id AND qo."isCorrect" = true
         )
+        ${unseenOnly(input.excludeSeenBy)}
       ORDER BY RANDOM()
       LIMIT ${input.questionCount}
     `;
@@ -324,6 +360,12 @@ export class ExamFactoryService {
     const questionIds = fisherYates(rows.map((r) => r.id));
 
     if (questionIds.length === 0) {
+      if (input.excludeSeenBy && (await this.anyEligible('topicId', input.topicId))) {
+        throw new ExamFactoryError(
+          "You've already had every question in this topic. Pick another topic to use your free questions.",
+          422,
+        );
+      }
       throw new ExamFactoryError(
         'No questions available for this selection',
         422,

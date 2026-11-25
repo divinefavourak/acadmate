@@ -8,12 +8,19 @@ import {
   HttpStatus,
   BadRequestException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
   ExamFactoryService,
   ExamFactoryError,
+  ExamFactoryInput,
   PostUtmeExamInput,
 } from './exam-factory.service';
+import {
+  QuotaService,
+  LEGACY_FREE_SESSION_CAP,
+  PAYWALL_CODES,
+} from '../quota/quota.service';
 import { ExamExpiryService } from './exam-expiry.service';
 import { ScoringService } from './scoring.service';
 import { AnalyticsService } from '../analytics/analytics.service';
@@ -38,6 +45,7 @@ export class ExamsService {
     private readonly analyticsService: AnalyticsService,
     private readonly cache: CacheService,
     private readonly settings: SettingsService,
+    private readonly quota: QuotaService,
   ) {}
 
   // ─── POST /exams ──────────────────────────────────────────────────────────
@@ -60,18 +68,37 @@ export class ExamsService {
       where: { id: userId },
       select: { plan: true },
     });
+    const isFree = user?.plan === 'FREE';
 
-    if (user?.plan === 'FREE') {
-      if (input.mode === 'MOCK' || input.mode === 'POST_UTME') {
-        throw new HttpException(
-          'MOCK and Post-UTME exams require a Premium plan. Redeem an access code to unlock full access.',
-          HttpStatus.PAYMENT_REQUIRED,
-        );
+    if (isFree && (input.mode === 'MOCK' || input.mode === 'POST_UTME')) {
+      throw new HttpException(
+        {
+          message: 'Full mock exams and Post-UTME papers are part of Premium.',
+          error: PAYWALL_CODES.premiumMode,
+        },
+        HttpStatus.PAYMENT_REQUIRED,
+      );
+    }
+
+    // A topic drill draws by topic, so the topic has to belong to the subject
+    // it is filed under. Otherwise the session (and a free account's quota
+    // check) would be booked against the wrong subject.
+    if (input.mode === 'TOPIC') {
+      const topic = await this.prisma.topic.findUnique({
+        where: { id: input.topicId },
+        select: { subjectId: true },
+      });
+      if (!topic) throw new NotFoundException('Topic not found');
+      if (topic.subjectId !== input.subjectId) {
+        throw new BadRequestException('That topic belongs to a different subject.');
       }
-      const count = (input as any).questionCount;
-      if (typeof count === 'number' && count > 20) {
-        (input as any).questionCount = 20;
-      }
+    }
+
+    // Null while the admin switch is off; free accounts then keep the old
+    // 20-a-session cap.
+    const freeLimit = isFree ? await this.quota.freeLimit() : null;
+    if (isFree && freeLimit === null && 'questionCount' in input && input.questionCount) {
+      input.questionCount = Math.min(input.questionCount, LEGACY_FREE_SESSION_CAP);
     }
 
     let factoryInput: any;
@@ -112,43 +139,78 @@ export class ExamsService {
     }
 
     try {
-      const { questionIds, durationMinutes } =
-        await this.examFactory.build(factoryInput);
-
-      const examSession = await this.prisma.examSession.create({
-        data: {
-          userId,
-          mode: input.mode,
-          subjectId: 'subjectId' in input ? input.subjectId : undefined,
-          topicId: 'topicId' in input ? input.topicId : undefined,
-          school: 'school' in input ? input.school : undefined,
-          totalQuestions: questionIds.length,
-          durationMinutes,
-          // expiresAt is set by POST /exams/:id/start when the user clicks Begin
-          questions: {
-            create: questionIds.map((qid, idx) => ({
-              questionId: qid,
-              position: idx,
-            })),
+      if (isFree && freeLimit !== null) {
+        // Free accounts: count, draw and create under a per-user lock, so
+        // sessions started at the same moment can't both spend the same
+        // allowance.
+        return await this.prisma.$transaction(
+          async (tx) => {
+            await this.quota.lockUser(tx, userId);
+            const used = await this.quota.usedInSubject(userId, factoryInput.subjectId, tx);
+            const remaining = freeLimit - used;
+            if (remaining <= 0) {
+              throw new HttpException(
+                {
+                  message: `You've used your ${freeLimit} free questions in this subject. Premium unlocks every question.`,
+                  error: PAYWALL_CODES.quotaExhausted,
+                },
+                HttpStatus.PAYMENT_REQUIRED,
+              );
+            }
+            factoryInput.questionCount = Math.min(factoryInput.questionCount, remaining);
+            factoryInput.excludeSeenBy = userId;
+            return this.createFromFactory(userId, input, factoryInput, tx);
           },
-        },
-        select: {
-          id: true,
-          mode: true,
-          totalQuestions: true,
-          durationMinutes: true,
-          expiresAt: true,
-          startedAt: true,
-        },
-      });
-
-      return { examSession };
+          { timeout: 15_000 },
+        );
+      }
+      return await this.createFromFactory(userId, input, factoryInput, this.prisma);
     } catch (err) {
       if (err instanceof ExamFactoryError) {
         throw new HttpException(err.message, err.statusHint);
       }
       throw err;
     }
+  }
+
+  // Draws the questions and saves the session. `db` is the transaction when a
+  // free account's quota lock is held, so the session is written under it.
+  private async createFromFactory(
+    userId: string,
+    input: CreateExamInput,
+    factoryInput: ExamFactoryInput,
+    db: Prisma.TransactionClient | PrismaService,
+  ) {
+    const { questionIds, durationMinutes } = await this.examFactory.build(factoryInput);
+
+    const examSession = await db.examSession.create({
+      data: {
+        userId,
+        mode: input.mode,
+        subjectId: 'subjectId' in input ? input.subjectId : undefined,
+        topicId: 'topicId' in input ? input.topicId : undefined,
+        school: 'school' in input ? input.school : undefined,
+        totalQuestions: questionIds.length,
+        durationMinutes,
+        // expiresAt is set by POST /exams/:id/start when the user clicks Begin
+        questions: {
+          create: questionIds.map((qid, idx) => ({
+            questionId: qid,
+            position: idx,
+          })),
+        },
+      },
+      select: {
+        id: true,
+        mode: true,
+        totalQuestions: true,
+        durationMinutes: true,
+        expiresAt: true,
+        startedAt: true,
+      },
+    });
+
+    return { examSession };
   }
 
   // ─── POST /exams/:id/start ────────────────────────────────────────────────
