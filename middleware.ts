@@ -124,9 +124,11 @@ export default async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  // Static files skip the gate entirely. icon.svg and apple-icon.png are served
-  // from app/ by the metadata file conventions, and brand/ holds the logo files.
+  // Static files skip the gate entirely: anything under public/, the app/ icon
+  // files, robots.txt and the sitemaps. Matching on the extension means a new
+  // public folder can't be locked behind /login by accident (brand/, logos/ and
+  // theme-init.js all were). Page and API routes never end in these extensions.
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|icon.svg|apple-icon.png|manifest.json|robots.txt|sitemap|images/|brand/).*)",
+    "/((?!_next/static|_next/image|.*\\.(?:ico|png|jpe?g|gif|webp|avif|svg|js|css|json|txt|xml|woff2?|pdf)$).*)",
   ],
 };

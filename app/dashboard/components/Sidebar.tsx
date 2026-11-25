@@ -6,6 +6,7 @@ import { BrandMark } from "@/app/components/BrandMark";
 import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "@/lib/api/auth";
 import UserMenu from "./UserMenu";
+import { ThemeToggle } from "@/app/components/ThemeToggle";
 
 export const navItems: { href: string; label: string; icon: React.ReactNode; exact?: boolean }[] = [
   {
@@ -129,7 +130,7 @@ export default function Sidebar() {
     <aside
       className={`${
         collapsed ? "w-20" : "w-64"
-      } shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-black/50 backdrop-blur-md flex-col hidden md:flex transition-[width] duration-300 ease-in-out`}
+      } shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white/60 dark:bg-slate-900/40 backdrop-blur-md flex-col hidden md:flex transition-[width] duration-300 ease-in-out`}
     >
       <div className={`flex items-center p-4 ${collapsed ? "justify-center" : "justify-between"}`}>
         {!collapsed && (
@@ -179,6 +180,10 @@ export default function Sidebar() {
         ) : (
           <UserMenu />
         )}
+        <ThemeToggle
+          label={!collapsed}
+          className={`w-full flex items-center ${collapsed ? "justify-center" : "gap-3"} px-4 py-3 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 font-medium transition-colors`}
+        />
         {signOutError && !collapsed && (
           <p className="text-xs text-red-500 px-4 py-1">Sign-out failed. Please try again.</p>
         )}
