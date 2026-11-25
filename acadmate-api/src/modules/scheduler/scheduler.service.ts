@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { ExamExpiryService } from '../exams/exam-expiry.service';
 import { PastQuestionsService } from '../past-questions/past-questions.service';
+import { EngagementService } from '../engagement/engagement.service';
 
 @Injectable()
 export class SchedulerService {
@@ -10,6 +11,7 @@ export class SchedulerService {
   constructor(
     private readonly examExpiry: ExamExpiryService,
     private readonly pastQuestions: PastQuestionsService,
+    private readonly engagement: EngagementService,
   ) {}
 
   @Cron(CronExpression.EVERY_MINUTE)
@@ -40,6 +42,20 @@ export class SchedulerService {
         'assignPastQuestionSlugs cron failed',
         err instanceof Error ? err.stack : String(err),
       );
+    }
+  }
+
+  /**
+   * Practice reminders: one random batch a day at 10:00 Lagos time, when
+   * students are likely to read it. Batch size and on/off are in app_settings
+   * (Admin, Settings), so this needs no deploy to tune or pause.
+   */
+  @Cron('0 10 * * *', { name: 'practiceReminders', timeZone: 'Africa/Lagos' })
+  async sendPracticeReminders() {
+    try {
+      await this.engagement.sendReminderBatch();
+    } catch (err) {
+      this.logger.error('sendPracticeReminders cron failed', err instanceof Error ? err.stack : String(err));
     }
   }
 }

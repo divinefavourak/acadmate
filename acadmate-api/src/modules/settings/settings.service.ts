@@ -14,6 +14,21 @@ export interface ExamAvailability {
   postUtme: boolean;
 }
 
+// Practice-reminder emails (see EngagementService). Stored under this key so an
+// admin can pause them or change the daily batch without a deploy.
+export const EMAIL_REMINDERS_KEY = 'email_reminders';
+
+export interface EmailReminderSettings {
+  enabled: boolean;
+  /** Reminders sent per daily run. Gmail caps the whole account per day
+   *  (about 500 on a personal account, 2,000 on Workspace), and blog alerts
+   *  and password resets share that allowance, so keep this well below it. */
+  dailyLimit: number;
+}
+
+export const DEFAULT_EMAIL_REMINDERS: EmailReminderSettings = { enabled: true, dailyLimit: 40 };
+export const MAX_REMINDERS_PER_DAY = 300;
+
 // Fail open: if nothing has ever been configured, everything is available.
 const DEFAULT_EXAM_AVAILABILITY: ExamAvailability = { utme: true, postUtme: true };
 
@@ -81,6 +96,34 @@ export class SettingsService {
         typeof v.postUtme === 'boolean'
           ? v.postUtme
           : DEFAULT_EXAM_AVAILABILITY.postUtme,
+    };
+  }
+
+  // ─── Email reminders ───────────────────────────────────────────────────────
+  // Read once a day by the reminder job, so no cache.
+
+  async getEmailReminders(): Promise<EmailReminderSettings> {
+    const row = await this.prisma.appSetting.findUnique({ where: { key: EMAIL_REMINDERS_KEY } });
+    return this.normalizeReminders(row?.value);
+  }
+
+  async setEmailReminders(input: Partial<EmailReminderSettings>): Promise<EmailReminderSettings> {
+    const next = this.normalizeReminders({ ...(await this.getEmailReminders()), ...input });
+    const value = next as unknown as Prisma.InputJsonObject;
+    await this.prisma.appSetting.upsert({
+      where: { key: EMAIL_REMINDERS_KEY },
+      create: { key: EMAIL_REMINDERS_KEY, value },
+      update: { value },
+    });
+    return next;
+  }
+
+  private normalizeReminders(raw: unknown): EmailReminderSettings {
+    const v = (raw ?? {}) as Record<string, unknown>;
+    const limit = typeof v.dailyLimit === 'number' && Number.isFinite(v.dailyLimit) ? Math.floor(v.dailyLimit) : DEFAULT_EMAIL_REMINDERS.dailyLimit;
+    return {
+      enabled: typeof v.enabled === 'boolean' ? v.enabled : DEFAULT_EMAIL_REMINDERS.enabled,
+      dailyLimit: Math.min(MAX_REMINDERS_PER_DAY, Math.max(0, limit)),
     };
   }
 }
