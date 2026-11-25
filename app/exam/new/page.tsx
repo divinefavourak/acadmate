@@ -60,6 +60,10 @@ interface Quota {
 
 type Paywall = { kind: "premium" | "quota" } | null;
 
+// A paywall the server answered with, tied to the request that got it, so
+// switching subject while a start is pending can't move it onto another one.
+type ServerPaywall = { kind: "premium" | "quota"; mode: Mode; subjectId: string } | null;
+
 // MOCK/PRACTICE/TOPIC are "UTME" exams; POST_UTME is its own group.
 function modeAvailable(mode: Mode, availability: ExamAvailability | null): boolean {
   if (!availability) return true; // assume open until we know otherwise
@@ -92,7 +96,7 @@ export default function NewExamPage() {
   // Null until loaded, or if the API doesn't have the endpoint: the picker then
   // behaves as before and the server's 402 is the only paywall signal.
   const [quota, setQuota] = useState<Quota | null>(null);
-  const [paywall, setPaywall] = useState<Paywall>(null);
+  const [paywall, setPaywall] = useState<ServerPaywall>(null);
   const preferredTopicRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -187,7 +191,11 @@ export default function NewExamPage() {
       : selectedLeft === 0
       ? { kind: "quota" }
       : null;
-  const activePaywall = knownPaywall ?? paywall;
+  const serverPaywall: Paywall =
+    paywall && paywall.mode === mode && (mode === "MOCK" || paywall.subjectId === selectedSubject)
+      ? { kind: paywall.kind }
+      : null;
+  const activePaywall = knownPaywall ?? serverPaywall;
 
   function chooseMode(next: Mode) {
     setMode(next);
@@ -237,6 +245,8 @@ export default function NewExamPage() {
     }
 
     setStarting(true);
+    // What this request is for; the selection may change while it's pending.
+    const requested = { mode, subjectId: selectedSubject };
 
     const body =
       mode === "MOCK"
@@ -258,16 +268,16 @@ export default function NewExamPage() {
     } catch (err) {
       if (err instanceof ApiError && err.status === 402) {
         if (err.body.error === "QUOTA_EXHAUSTED") {
-          setPaywall({ kind: "quota" });
+          setPaywall({ kind: "quota", ...requested });
           // Our copy of the count was stale (another tab, or a session
-          // started elsewhere). Mark the subject as used up.
+          // started elsewhere). Mark the requested subject as used up.
           setQuota((q) =>
             q && q.perSubject != null
-              ? { ...q, used: { ...q.used, [selectedSubject]: q.perSubject } }
+              ? { ...q, used: { ...q.used, [requested.subjectId]: q.perSubject } }
               : q,
           );
         } else {
-          setPaywall({ kind: "premium" });
+          setPaywall({ kind: "premium", ...requested });
         }
       } else {
         setError(err instanceof ApiError ? err.message : "Failed to start exam. Please try again.");

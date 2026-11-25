@@ -96,14 +96,17 @@ function unseenOnly(userId: string | undefined): Prisma.Sql {
   return userId ? Prisma.sql`AND NOT ${seenByUser(userId)}` : Prisma.empty;
 }
 
+/** The shared Prisma client, or an interactive transaction. */
+type Db = PrismaService | Prisma.TransactionClient;
+
 @Injectable()
 export class ExamFactoryService {
   constructor(private readonly prisma: PrismaService) {}
 
   // Whether a subject or topic has any drawable question at all, ignoring
   // what the user has seen. Tells "nothing here" apart from "you've had them all".
-  private async anyEligible(column: 'subjectId' | 'topicId', id: string): Promise<boolean> {
-    const rows = await this.prisma.$queryRaw<{ one: number }[]>`
+  private async anyEligible(db: Db, column: 'subjectId' | 'topicId', id: string): Promise<boolean> {
+    const rows = await db.$queryRaw<{ one: number }[]>`
       SELECT 1 AS one FROM questions q
       WHERE ${column === 'subjectId' ? Prisma.sql`q."subjectId"` : Prisma.sql`q."topicId"`} = ${id}
         AND q."isPublished" = true
@@ -118,29 +121,34 @@ export class ExamFactoryService {
     return rows.length > 0;
   }
 
-  async build(input: ExamFactoryInput): Promise<ExamFactoryResult> {
+  /**
+   * `db` defaults to the shared pool. A free account's start passes its
+   * transaction, so the draw runs on the connection that already holds the
+   * quota lock instead of needing a second one from the pool.
+   */
+  async build(input: ExamFactoryInput, db: Db = this.prisma): Promise<ExamFactoryResult> {
     switch (input.mode) {
       case 'MOCK':
-        return this.buildMock(input);
+        return this.buildMock(input, db);
       case 'PRACTICE':
-        return this.buildPractice(input);
+        return this.buildPractice(input, db);
       case 'TOPIC':
-        return this.buildTopic(input);
+        return this.buildTopic(input, db);
       case 'POST_UTME':
-        return this.buildPostUtme(input);
+        return this.buildPostUtme(input, db);
       case 'LIVE':
-        return this.buildLive(input);
+        return this.buildLive(input, db);
     }
   }
 
   // ─── Live session paper ──────────────────────────────────────────────────
   // Evenly distributes questionCount across the chosen subjects. When no
   // subjects are chosen, draws from the entire published bank.
-  private async buildLive(input: LiveExamInput): Promise<ExamFactoryResult> {
+  private async buildLive(input: LiveExamInput, db: Db): Promise<ExamFactoryResult> {
     const desiredCount = Math.max(1, input.questionCount);
 
     if (input.subjectIds.length === 0) {
-      const rows = await this.prisma.$queryRaw<{ id: string }[]>`
+      const rows = await db.$queryRaw<{ id: string }[]>`
         SELECT q.id FROM questions q
         WHERE q."isPublished" = true
           AND q."isFlagged" = false
@@ -173,7 +181,7 @@ export class ExamFactoryService {
     // no-subject Live draw never leaks school-specific papers unintentionally.
     const batches = await Promise.all(
       buckets.map(({ subjectId }) =>
-        this.prisma.$queryRaw<{ id: string }[]>`
+        db.$queryRaw<{ id: string }[]>`
           SELECT q.id FROM questions q
           WHERE q."subjectId" = ${subjectId}
             AND q."isPublished" = true
@@ -210,8 +218,8 @@ export class ExamFactoryService {
     return { questionIds: fisherYates(collected), durationMinutes: 0 };
   }
 
-  private async buildMock(input: MockExamInput): Promise<ExamFactoryResult> {
-    const english = await this.prisma.subject.findFirst({
+  private async buildMock(input: MockExamInput, db: Db): Promise<ExamFactoryResult> {
+    const english = await db.subject.findFirst({
       where: { code: ENGLISH_CODE, isActive: true },
       select: { id: true },
     });
@@ -232,7 +240,7 @@ export class ExamFactoryService {
 
     let proseId = input.proseTextId ?? null;
     if (!proseId) {
-      const randomProse = await this.prisma.proseText.findFirst({
+      const randomProse = await db.proseText.findFirst({
         where: { isPublished: true },
         select: { id: true },
       });
@@ -240,7 +248,7 @@ export class ExamFactoryService {
     }
 
     const [engRows, proseRows] = await Promise.all([
-      this.prisma.$queryRaw<{ id: string }[]>`
+      db.$queryRaw<{ id: string }[]>`
         SELECT q.id FROM questions q
         WHERE q."subjectId" = ${english.id}
           AND q."isPublished" = true
@@ -255,7 +263,7 @@ export class ExamFactoryService {
         LIMIT ${UTME_ENGLISH_QUESTIONS}
       `,
       proseId
-        ? this.prisma.$queryRaw<{ id: string }[]>`
+        ? db.$queryRaw<{ id: string }[]>`
             SELECT q.id FROM questions q
             WHERE q."proseTextId" = ${proseId}
               AND q."isPublished" = true
@@ -273,7 +281,7 @@ export class ExamFactoryService {
 
     const subjectBatches = await Promise.all(
       input.subjectIds.map((sid) =>
-        this.prisma.$queryRaw<{ id: string }[]>`
+        db.$queryRaw<{ id: string }[]>`
           SELECT q.id FROM questions q
           WHERE q."subjectId" = ${sid}
             AND q."isPublished" = true
@@ -307,8 +315,9 @@ export class ExamFactoryService {
 
   private async buildPractice(
     input: PracticeExamInput,
+    db: Db,
   ): Promise<ExamFactoryResult> {
-    const rows = await this.prisma.$queryRaw<{ id: string }[]>`
+    const rows = await db.$queryRaw<{ id: string }[]>`
       SELECT q.id FROM questions q
       WHERE q."subjectId" = ${input.subjectId}
         AND q."isPublished" = true
@@ -326,7 +335,7 @@ export class ExamFactoryService {
     const questionIds = fisherYates(rows.map((r) => r.id));
 
     if (questionIds.length === 0) {
-      if (input.excludeSeenBy && (await this.anyEligible('subjectId', input.subjectId))) {
+      if (input.excludeSeenBy && (await this.anyEligible(db, 'subjectId', input.subjectId))) {
         throw new ExamFactoryError(
           "You've already had every question we have in this subject. Premium lets you practise them again.",
           422,
@@ -341,8 +350,8 @@ export class ExamFactoryService {
     return { questionIds, durationMinutes: input.questionCount * 2 };
   }
 
-  private async buildTopic(input: TopicExamInput): Promise<ExamFactoryResult> {
-    const rows = await this.prisma.$queryRaw<{ id: string }[]>`
+  private async buildTopic(input: TopicExamInput, db: Db): Promise<ExamFactoryResult> {
+    const rows = await db.$queryRaw<{ id: string }[]>`
       SELECT q.id FROM questions q
       WHERE q."topicId" = ${input.topicId}
         AND q."isPublished" = true
@@ -360,7 +369,7 @@ export class ExamFactoryService {
     const questionIds = fisherYates(rows.map((r) => r.id));
 
     if (questionIds.length === 0) {
-      if (input.excludeSeenBy && (await this.anyEligible('topicId', input.topicId))) {
+      if (input.excludeSeenBy && (await this.anyEligible(db, 'topicId', input.topicId))) {
         throw new ExamFactoryError(
           "You've already had every question in this topic. Pick another topic to use your free questions.",
           422,
@@ -377,11 +386,12 @@ export class ExamFactoryService {
 
   private async buildPostUtme(
     input: PostUtmeExamInput,
+    db: Db,
   ): Promise<ExamFactoryResult> {
     // Resolve the fixed-by-code subjects (English, Math, General Knowledge).
     // GEN may not be seeded yet — missing fixed subjects are silently skipped
     // so the feature still ships a useful paper.
-    const fixed = await this.prisma.subject.findMany({
+    const fixed = await db.subject.findMany({
       where: { code: { in: ['ENG', 'MTH', 'GEN'] }, isActive: true },
       select: { id: true, code: true },
     });
@@ -410,7 +420,7 @@ export class ExamFactoryService {
     const batches = await Promise.all(
       buckets.map(({ subjectId }) =>
         yearFilter != null
-          ? this.prisma.$queryRaw<{ id: string }[]>`
+          ? db.$queryRaw<{ id: string }[]>`
               SELECT q.id FROM questions q
               WHERE q."school" = ${input.school}
                 AND q."examType" = 'POST_UTME'::"ExamType"
@@ -425,7 +435,7 @@ export class ExamFactoryService {
               ORDER BY RANDOM()
               LIMIT ${desiredCount}
             `
-          : this.prisma.$queryRaw<{ id: string }[]>`
+          : db.$queryRaw<{ id: string }[]>`
               SELECT q.id FROM questions q
               WHERE q."school" = ${input.school}
                 AND q."examType" = 'POST_UTME'::"ExamType"
