@@ -27,6 +27,9 @@ model User {
   welcomedAt     DateTime? // welcome email sent; stops a second one
   lastReminderAt DateTime? // last practice reminder; reminders wait 14 days
   emailOptOut    Boolean   @default(false) // unsubscribed from reminders
+  // Where we send mail when the sign-in address can't receive it (e.g. an
+  // admin who signs in as admin@acadmate.ng). Sign-in always uses `email`.
+  deliveryEmail  String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 

@@ -102,12 +102,12 @@ export class EngagementService {
     if (limit <= 0) return [];
     const exclude = excludeIds.length ? Prisma.sql`AND u.id NOT IN (${Prisma.join(excludeIds)})` : Prisma.empty;
     return this.prisma.$queryRaw<Candidate[]>`
-      SELECT u.id, u.email, u.name, u.plan::text AS plan, u."lastReminderAt"
+      SELECT u.id, COALESCE(NULLIF(u."deliveryEmail", ''), u.email) AS email, u.name, u.plan::text AS plan, u."lastReminderAt"
       FROM users u
       WHERE u.role::text = 'STUDENT'
         AND u.plan::text = ${plan}
         AND u."emailOptOut" = false
-        AND u.email <> ''
+        AND COALESCE(NULLIF(u."deliveryEmail", ''), u.email) <> ''
         AND u."createdAt" < now() - make_interval(days => ${NEW_USER_GRACE_DAYS}::int)
         AND (u."lastReminderAt" IS NULL OR u."lastReminderAt" < now() - make_interval(days => ${COOLDOWN_DAYS}::int))
         AND NOT EXISTS (

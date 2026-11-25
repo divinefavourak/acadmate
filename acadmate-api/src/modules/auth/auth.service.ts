@@ -10,6 +10,7 @@ import * as bcrypt from 'bcryptjs';
 import * as crypto from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { MailService } from './mail.service';
+import { mailAddress } from '../../common/utils/mail-address';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { normalizePhone, looksLikePhone } from '../../common/utils/phone.util';
@@ -165,7 +166,7 @@ export class AuthService {
     const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:3000';
     const resetUrl = `${frontendUrl}/reset-password?token=${token}`;
 
-    await this.mailService.sendPasswordReset(email, resetUrl);
+    await this.mailService.sendPasswordReset(mailAddress(user), resetUrl);
     return { ok: true };
   }
 

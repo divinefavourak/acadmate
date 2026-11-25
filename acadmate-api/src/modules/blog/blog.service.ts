@@ -8,6 +8,7 @@ import {
 import { Prisma, BlogCategory } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { MailService } from '../auth/mail.service';
+import { mailAddress } from '../../common/utils/mail-address';
 import { CacheService } from '../../cache/cache.service';
 
 const VALID_CATEGORIES: BlogCategory[] = [
@@ -352,7 +353,7 @@ export class BlogService {
 
     const recipients = await this.prisma.user.findMany({
       where: { plan: 'PREMIUM', email: { not: '' } },
-      select: { email: true, name: true },
+      select: { email: true, deliveryEmail: true, name: true },
     });
 
     this.logger.log(
@@ -375,7 +376,7 @@ export class BlogService {
 
     const results = await Promise.allSettled(
       recipients.map((r) =>
-        this.mailService.sendBlogNotification(r.email, r.name, post),
+        this.mailService.sendBlogNotification(mailAddress(r), r.name, post),
       ),
     );
 
