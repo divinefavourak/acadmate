@@ -3,7 +3,7 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { MailService } from '../auth/mail.service';
 import { SettingsService } from '../settings/settings.service';
-import { reminderVariantsFor, type ReminderVariant } from '../auth/email-templates';
+import { pickReminderVariant, type BlogTeaser } from '../auth/email-templates';
 import { unsubscribeUrl } from '../../common/utils/unsubscribe-token';
 
 type Plan = 'FREE' | 'PREMIUM';
@@ -16,8 +16,9 @@ const COOLDOWN_DAYS = 14; // at most one reminder a fortnight per person
 const FREE_SHARE = 0.8; // most of the batch goes to Free users
 const SEND_GAP_MS = 1500; // pace sends so Gmail doesn't see a burst
 
+const BLOG_POSTS_PER_EMAIL = 2; // latest posts shown under each letter
+
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-const pick = <T>(items: T[]): T => items[Math.floor(Math.random() * items.length)];
 
 export interface ReminderRunResult {
   enabled: boolean;
@@ -54,15 +55,16 @@ export class EngagementService {
       const batch = await this.pickBatch(dailyLimit);
       result.picked = batch.length;
       if (batch.length === 0) return result;
+      const posts = await this.latestBlogPosts();
 
       for (const user of batch) {
         // Claim each person just before their send, not the whole batch up front:
         // if the run stops early, the people never reached stay eligible.
         // Claiming before (not after) the send means a crash can't email anyone twice.
         await this.setLastReminder(user.id, new Date());
-        const variant: ReminderVariant = pick(reminderVariantsFor(user.plan));
+        const variant = pickReminderVariant(user.id, user.plan);
         try {
-          await this.mail.sendReminder(user.email, user.name, variant, unsubscribeUrl(user.id));
+          await this.mail.sendReminder(user.email, user.name, variant, unsubscribeUrl(user.id), posts);
           result.sent++;
         } catch (err) {
           result.failed++;
@@ -100,12 +102,12 @@ export class EngagementService {
     if (limit <= 0) return [];
     const exclude = excludeIds.length ? Prisma.sql`AND u.id NOT IN (${Prisma.join(excludeIds)})` : Prisma.empty;
     return this.prisma.$queryRaw<Candidate[]>`
-      SELECT u.id, u.email, u.name, u.plan::text AS plan, u."lastReminderAt"
+      SELECT u.id, COALESCE(NULLIF(u."deliveryEmail", ''), u.email) AS email, u.name, u.plan::text AS plan, u."lastReminderAt"
       FROM users u
       WHERE u.role::text = 'STUDENT'
         AND u.plan::text = ${plan}
         AND u."emailOptOut" = false
-        AND u.email <> ''
+        AND COALESCE(NULLIF(u."deliveryEmail", ''), u.email) <> ''
         AND u."createdAt" < now() - make_interval(days => ${NEW_USER_GRACE_DAYS}::int)
         AND (u."lastReminderAt" IS NULL OR u."lastReminderAt" < now() - make_interval(days => ${COOLDOWN_DAYS}::int))
         AND NOT EXISTS (
@@ -115,6 +117,24 @@ export class EngagementService {
         ${exclude}
       ORDER BY random()
       LIMIT ${limit}`;
+  }
+
+  /**
+   * The newest published posts, for the "From the blog" block. Uses the blog's
+   * own rule for "published". A failure here only drops the block.
+   */
+  async latestBlogPosts(): Promise<BlogTeaser[]> {
+    try {
+      return await this.prisma.blogPost.findMany({
+        where: { publishedAt: { not: null, lte: new Date() } },
+        orderBy: { publishedAt: 'desc' },
+        take: BLOG_POSTS_PER_EMAIL,
+        select: { slug: true, title: true, excerpt: true },
+      });
+    } catch (err) {
+      this.logger.warn(`Couldn't load blog posts for reminders: ${err instanceof Error ? err.message : String(err)}`);
+      return [];
+    }
   }
 
   private setLastReminder(userId: string, at: Date | null) {

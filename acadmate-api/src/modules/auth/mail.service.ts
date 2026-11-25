@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { google } from 'googleapis';
-import { welcomeEmail, reminderEmail, type ReminderVariant } from './email-templates';
+import { welcomeEmail, reminderEmail, type BlogTeaser, type ReminderVariant } from './email-templates';
 
 type BlogPostForEmail = {
   slug: string;
@@ -202,9 +202,15 @@ export class MailService implements OnModuleInit {
    * (RFC 8058) so Gmail and other clients show their own one-click unsubscribe,
    * which also keeps the sending account in good standing.
    */
-  async sendReminder(to: string, name: string | null, variant: ReminderVariant, unsubscribeLink: string) {
+  async sendReminder(
+    to: string,
+    name: string | null,
+    variant: ReminderVariant,
+    unsubscribeLink: string,
+    posts: BlogTeaser[] = [],
+  ) {
     if (!this.ready) throw new Error('Gmail API is not configured');
-    const { subject, html } = reminderEmail(variant, name, unsubscribeLink);
+    const { subject, html } = reminderEmail(variant, name, unsubscribeLink, posts);
     await this.sendMail(to, subject, html, {
       'List-Unsubscribe': `<${unsubscribeLink}>`,
       'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',

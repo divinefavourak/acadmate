@@ -25,8 +25,8 @@ const INVALID = page(
   para('It may have been cut off when it was copied. Use the link in the email itself, or message us on WhatsApp and we’ll stop the reminders for you.') + home,
 );
 const DONE = page(
-  'You won’t get reminders any more',
-  para('We’ve stopped practice reminder emails for your account. You’ll still get emails you ask for, like password resets.') + home,
+  'You won’t get these emails any more',
+  para('We’ve stopped study letters and practice reminders for your account. You’ll still get emails you ask for, like password resets.') + home,
 );
 
 /**
@@ -53,7 +53,7 @@ export class EngagementController {
     return res.send(
       page(
         'Stop practice reminders?',
-        para('We email a short practice reminder now and then, at most once every two weeks. You can stop them here.') +
+        para('We send a study letter now and then, at most once every two weeks. You can stop them here.') +
           `<form method="post" action="${escapeHtml(action)}" style="margin:0 0 20px">
             <button type="submit" style="padding:12px 20px;background:#0874d4;color:#fff;border:0;border-radius:8px;font-weight:700;font-size:15px;cursor:pointer">Stop reminders</button>
           </form>` +
