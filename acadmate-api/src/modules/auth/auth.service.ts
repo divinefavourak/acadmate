@@ -10,6 +10,7 @@ import * as bcrypt from 'bcryptjs';
 import * as crypto from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { MailService } from './mail.service';
+import { EventsService } from '../events/events.service';
 import { mailAddress } from '../../common/utils/mail-address';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -23,6 +24,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly mailService: MailService,
+    private readonly events: EventsService,
   ) {}
 
   // ─── Register ────────────────────────────────────────────────────────────
@@ -52,6 +54,7 @@ export class AuthService {
       select: { id: true, name: true, email: true, role: true, createdAt: true },
     });
     this.sendWelcome(user);
+    this.events.record('signup', user.id, { method: 'email' });
     return user;
   }
 
@@ -108,6 +111,7 @@ export class AuthService {
         },
       });
       this.sendWelcome(user);
+      this.events.record('signup', user.id, { method: 'google' });
     } else if (image) {
       // Returning user: only adopt the Google picture if they haven't chosen
       // their own avatar yet, so we never clobber a custom one.

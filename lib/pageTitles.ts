@@ -70,6 +70,7 @@ const ROUTES: [RegExp, string][] = [
   [/^\/admin\/notes$/, "Topic Notes"],
   [/^\/admin\/notifications$/, "Notifications"],
   [/^\/admin\/tokens$/, "Access Tokens"],
+  [/^\/admin\/funnel$/, "Funnel"],
   [/^\/admin\/settings$/, "Settings"],
   [/^\/admin\/leaderboard\/post-utme$/, "Post-UTME Leaderboard"],
   [/^\/admin\/leaderboard$/, "Leaderboard"],

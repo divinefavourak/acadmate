@@ -26,6 +26,7 @@ import { MockExamModule } from './modules/mock-exam/mock-exam.module';
 import { PastQuestionsModule } from './modules/past-questions/past-questions.module';
 import { EngagementModule } from './modules/engagement/engagement.module';
 import { DailyModule } from './modules/daily/daily.module';
+import { EventsModule } from './modules/events/events.module';
 import { HealthController } from './health.controller';
 import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
 import { CacheModule } from './cache/cache.module';
@@ -66,6 +67,7 @@ import { CacheModule } from './cache/cache.module';
     PastQuestionsModule,
     EngagementModule,
     DailyModule,
+    EventsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

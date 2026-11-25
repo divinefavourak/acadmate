@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { apiClient, ApiError } from "@/lib/api/client";
 import Loader from "@/app/components/Loader";
+import { track } from "@/lib/track";
 
 type Plan = "FREE" | "PREMIUM";
 
@@ -40,7 +41,9 @@ export default function UpgradePage() {
       apiClient<{ freePerSubject?: number | null }>("/api/users/me/quota"),
     ])
       .then(([p, me, pay, quota]) => {
-        setPlan(p.status === "fulfilled" ? p.value.plan : "FREE");
+        const plan = p.status === "fulfilled" ? p.value.plan : "FREE";
+        setPlan(plan);
+        if (plan === "FREE") track("upgrade_view");
         if (me.status === "fulfilled") setEmail(me.value.email ?? "");
         if (pay.status === "fulfilled") setPayment(pay.value);
         if (quota.status === "fulfilled") setFreePerSubject(quota.value.freePerSubject ?? null);
@@ -147,6 +150,7 @@ function PaySteps({ payment, email }: { payment: PaymentDetails | null; email: s
         </p>
         <a
           href={whatsappLink(whatsapp, `Hi Acadmate, I'd like to get Premium.${emailPart}`)}
+          onClick={() => track("ask_click")}
           target="_blank"
           rel="noopener noreferrer"
           className="btn-primary w-full flex items-center justify-center gap-2"
@@ -185,6 +189,7 @@ function PaySteps({ payment, email }: { payment: PaymentDetails | null; email: s
           </p>
           <a
             href={whatsappLink(whatsapp, paidText)}
+            onClick={() => track("paid_click", { price: price! })}
             target="_blank"
             rel="noopener noreferrer"
             className="btn-primary mt-3 w-full flex items-center justify-center gap-2"

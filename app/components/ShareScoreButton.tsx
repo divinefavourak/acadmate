@@ -2,13 +2,23 @@
 
 import { useEffect, useState } from "react";
 import { renderScoreCard, shareScoreCard, whatsappShareLink, type ScoreCard } from "@/lib/shareScore";
+import { track } from "@/lib/track";
 
 /**
  * "Share my score". Phones get the share sheet with the score image attached.
  * Where files can't be shared (most desktops), it falls back to a WhatsApp
  * message and a download of the image.
  */
-export default function ShareScoreButton({ card, className = "" }: { card: Omit<ScoreCard, "text"> & { text: (url: string) => string }; className?: string }) {
+export default function ShareScoreButton({
+  card,
+  kind = "result",
+  className = "",
+}: {
+  card: Omit<ScoreCard, "text"> & { text: (url: string) => string };
+  /** For the funnel: which share button this was. */
+  kind?: "daily" | "result";
+  className?: string;
+}) {
   const [busy, setBusy] = useState(false);
   const [fallback, setFallback] = useState<{ url: string; text: string } | null>(null);
   const [error, setError] = useState("");
@@ -23,6 +33,7 @@ export default function ShareScoreButton({ card, className = "" }: { card: Omit<
       const full: ScoreCard = { ...card, text: card.text(origin) };
       const image = await renderScoreCard(full, window.location.host);
       const outcome = await shareScoreCard(full, image);
+      track("share_click", { kind, outcome });
       if (outcome === "fallback") setFallback({ url: URL.createObjectURL(image), text: full.text });
     } catch {
       setError("Couldn’t make the image. Try again.");

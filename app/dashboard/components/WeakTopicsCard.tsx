@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { PremiumCrown } from "@/app/components/PremiumBadge";
+import { track } from "@/lib/track";
 
 export interface WeakTopic {
   topicId: string;
@@ -73,6 +74,7 @@ export default function WeakTopicsCard({
       {hidden > 0 && (
         <Link
           href="/dashboard/upgrade"
+          onClick={() => track("upgrade_click", { from: "weak_topics", hidden })}
           className="mt-4 flex items-center gap-2 rounded-xl border border-amber-400/40 bg-amber-400/10 px-3 py-2.5 text-sm font-medium text-amber-800 dark:text-amber-200 hover:bg-amber-400/20"
         >
           <PremiumCrown />

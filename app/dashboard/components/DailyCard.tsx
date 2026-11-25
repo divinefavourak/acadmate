@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { apiClient, ApiError } from "@/lib/api/client";
 import ShareScoreButton from "@/app/components/ShareScoreButton";
+import { track } from "@/lib/track";
 
 // GET /api/daily
 export interface DailyStatus {
@@ -84,6 +85,7 @@ export default function DailyCard() {
               See answers
             </Link>
             <ShareScoreButton
+              kind="daily"
               card={{
                 headline: `${daily.correct}/${daily.total}`,
                 label: "Today’s daily challenge",
@@ -114,7 +116,7 @@ export default function DailyCard() {
               {streak.freezeUsedThisWeek ? "Streak freeze used this week" : "Streak freeze ready this week"}
             </p>
           ) : (
-            <Link href="/dashboard/upgrade" className="mt-1 inline-block text-xs font-medium text-brand-600 dark:text-brand-400 hover:underline">
+            <Link href="/dashboard/upgrade" onClick={() => track("upgrade_click", { from: "streak_freeze" })} className="mt-1 inline-block text-xs font-medium text-brand-600 dark:text-brand-400 hover:underline">
               Premium forgives one missed day a week
             </Link>
           )}

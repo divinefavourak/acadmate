@@ -8,6 +8,7 @@ import DailyCard from "./components/DailyCard";
 import CountdownCard from "./components/CountdownCard";
 import WeakTopicsCard from "./components/WeakTopicsCard";
 import { PremiumBadge, PremiumCrown } from "@/app/components/PremiumBadge";
+import { track } from "@/lib/track";
 import Loader from "@/app/components/Loader";
 import { fadeUp, stagger } from "@/lib/motion";
 import { useUser } from "@/app/context/UserContext";
@@ -104,6 +105,7 @@ export default function DashboardPage() {
         <motion.div variants={fadeUp}>
           <Link
             href="/dashboard/upgrade"
+            onClick={() => track("upgrade_click", { from: "dashboard_strip" })}
             className="flex items-center gap-3 rounded-2xl border border-amber-300/50 dark:border-amber-400/25 bg-amber-50/70 dark:bg-amber-400/5 px-4 py-3 text-sm hover:border-amber-400 transition-colors"
           >
             <PremiumCrown size={18} />

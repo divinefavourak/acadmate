@@ -1,10 +1,14 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { EventsService } from '../events/events.service';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly events: EventsService,
+  ) {}
 
   // GET /users/me — mirrors /api/me
   async getMe(userId: string) {
@@ -199,6 +203,7 @@ export class UsersService {
       }
       await tx.user.update({ where: { id: userId }, data: { plan: 'PREMIUM' } });
     });
+    this.events.record('premium_granted', userId, { via: 'code' });
 
     return { success: true, message: 'Access code redeemed successfully! You now have Premium access.' };
   }
