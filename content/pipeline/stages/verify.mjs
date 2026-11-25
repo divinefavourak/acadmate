@@ -45,7 +45,7 @@ export async function runVerify({ exam, subjects, origin, limit, budget, dryRun,
 
   // Keyless rows the policy lets Sonnet answer never need Opus; settle them before building requests.
   const current = loadRows();
-  const settled = applyKeylessPolicy(current, keyless);
+  const settled = applyKeylessPolicy(current, keyless, { exam, subjects });
   if (settled) {
     if (!dryRun) saveRows(current);
     log.info(keyless === 'opus'
