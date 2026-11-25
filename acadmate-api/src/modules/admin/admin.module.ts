@@ -24,9 +24,10 @@ import { BlogModule } from '../blog/blog.module';
 import { SettingsModule } from '../settings/settings.module';
 import { UploadModule } from '../upload/upload.module';
 import { AuthModule } from '../auth/auth.module';
+import { EngagementModule } from '../engagement/engagement.module';
 
 @Module({
-  imports: [BlogModule, SettingsModule, UploadModule, AuthModule],
+  imports: [BlogModule, SettingsModule, UploadModule, AuthModule, EngagementModule],
   controllers: [
     AdminQuestionsController,
     AdminImportsController,

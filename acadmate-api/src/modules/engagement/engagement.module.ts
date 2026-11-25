@@ -3,12 +3,13 @@ import { AuthModule } from '../auth/auth.module';
 import { SettingsModule } from '../settings/settings.module';
 import { EngagementService } from './engagement.service';
 import { EngagementController } from './engagement.controller';
+import { EmailAssetsController } from './email-assets.controller';
 
-// Practice reminders and their unsubscribe endpoint. The welcome email lives in
-// AuthService, since it fires at sign-up.
+// Fortnightly letters, their unsubscribe endpoint and the email logo. The
+// welcome email lives in AuthService, since it fires at sign-up.
 @Module({
   imports: [AuthModule, SettingsModule],
-  controllers: [EngagementController],
+  controllers: [EngagementController, EmailAssetsController],
   providers: [EngagementService],
   exports: [EngagementService],
 })

@@ -8,15 +8,14 @@ import { CurrentUser, type JwtUser } from '../../../common/decorators/current-us
 import { MAX_REMINDERS_PER_DAY, SettingsService } from '../../settings/settings.service';
 import { MailService } from '../../auth/mail.service';
 import { PrismaService } from '../../../prisma/prisma.service';
-import type { ReminderVariant } from '../../auth/email-templates';
+import { ALL_REMINDER_VARIANTS } from '../../auth/email-templates';
 import { unsubscribeUrl } from '../../../common/utils/unsubscribe-token';
+import { EngagementService } from '../../engagement/engagement.service';
 
 class UpdateEmailRemindersDto {
   @IsOptional() @IsBoolean() enabled?: boolean;
   @IsOptional() @IsInt() @Min(0) @Max(MAX_REMINDERS_PER_DAY) dailyLimit?: number;
 }
-
-const ALL_VARIANTS: ReminderVariant[] = ['practice', 'pastPapers', 'weakTopics', 'premiumMock'];
 
 @ApiTags('admin')
 @ApiBearerAuth()
@@ -28,6 +27,7 @@ export class AdminEmailRemindersController {
     private readonly settings: SettingsService,
     private readonly mail: MailService,
     private readonly prisma: PrismaService,
+    private readonly engagement: EngagementService,
   ) {}
 
   @Get()
@@ -42,17 +42,18 @@ export class AdminEmailRemindersController {
     return this.settings.setEmailReminders(dto);
   }
 
-  /** Sends the welcome email and one of each reminder to the admin asking, to preview them. */
+  /** Sends the welcome email and one of each letter (expired ones too) to the admin asking, to preview them. */
   @Post('test')
   @HttpCode(200)
-  @ApiOperation({ summary: 'Email yourself the welcome email and every reminder' })
+  @ApiOperation({ summary: 'Email yourself the welcome email and every letter' })
   async test(@CurrentUser() admin: JwtUser) {
     const me = await this.prisma.user.findUnique({ where: { id: admin.id }, select: { email: true, name: true } });
     if (!me?.email) return { sent: 0 };
+    const posts = await this.engagement.latestBlogPosts();
     await this.mail.sendWelcome(me.email, me.name);
-    for (const variant of ALL_VARIANTS) {
-      await this.mail.sendReminder(me.email, me.name, variant, unsubscribeUrl(admin.id));
+    for (const variant of ALL_REMINDER_VARIANTS) {
+      await this.mail.sendReminder(me.email, me.name, variant, unsubscribeUrl(admin.id), posts);
     }
-    return { sent: 1 + ALL_VARIANTS.length, to: me.email };
+    return { sent: 1 + ALL_REMINDER_VARIANTS.length, to: me.email };
   }
 }
