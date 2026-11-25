@@ -25,9 +25,10 @@ type Db = Prisma.TransactionClient | PrismaService;
  * `q`. It is the single definition of "seen" for both counting the quota and
  * drawing new free questions, so the two can never disagree.
  *
- * Every non-live session counts, open or submitted, so starting several
- * sessions at once can't stretch the allowance. Live sessions are admin-run
- * events and don't use it up.
+ * Every session counts, open or submitted, so starting several sessions at
+ * once can't stretch the allowance. Three kinds don't use it up: live sessions
+ * (admin-run events), the daily challenge (outside the quota by design) and
+ * retries, whose questions were all served before in the session retried.
  */
 export function seenByUser(userId: string): Prisma.Sql {
   return Prisma.sql`EXISTS (
@@ -35,6 +36,7 @@ export function seenByUser(userId: string): Prisma.Sql {
     JOIN exam_sessions es ON es.id = esq."examSessionId"
     WHERE es."userId" = ${userId}
       AND es."liveSessionId" IS NULL
+      AND es.mode NOT IN ('DAILY'::"ExamMode", 'RETRY'::"ExamMode")
       AND esq."questionId" = q.id
   )`;
 }
@@ -88,6 +90,7 @@ export class QuotaService {
       JOIN exam_sessions es ON es.id = esq."examSessionId"
       JOIN questions q ON q.id = esq."questionId"
       WHERE es."userId" = ${userId} AND es."liveSessionId" IS NULL
+        AND es.mode NOT IN ('DAILY'::"ExamMode", 'RETRY'::"ExamMode")
       GROUP BY q."subjectId"
     `;
     return {

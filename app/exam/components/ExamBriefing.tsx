@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { BrandMark } from "@/app/components/BrandMark";
 import { useCoarsePointer } from "../hooks/useCoarsePointer";
+import { modeLabel } from "@/lib/examModes";
 
 interface Props {
   mode: string;
@@ -59,7 +60,7 @@ export default function ExamBriefing({ mode, totalQuestions, durationMinutes, on
           <BrandMark size={48} />
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-500 mb-1">Acadmate CBT</p>
-            <h1 className="text-2xl font-bold">{MODE_LABEL[mode] ?? mode}</h1>
+            <h1 className="text-2xl font-bold">{MODE_LABEL[mode] ?? modeLabel(mode)}</h1>
             <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">
               {totalQuestions} questions &nbsp;·&nbsp; {durationMinutes} minutes
             </p>
