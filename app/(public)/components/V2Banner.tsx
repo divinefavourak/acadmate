@@ -1,7 +1,11 @@
 import Link from "next/link";
 
-/** Announcement bar at the top of the landing page. It sits inside the sticky header, so it stays on screen. */
-export default function V2Banner() {
+/**
+ * Announcement bar at the top of the landing page. It sits inside the sticky header, so it stays on screen.
+ * `total` is the live public question count; without it the banner leaves the number out.
+ */
+export default function V2Banner({ total }: { total?: number }) {
+  const count = total ? `${total.toLocaleString("en-NG")} ` : "";
   return (
     <div
       role="region"
@@ -16,9 +20,9 @@ export default function V2Banner() {
           </span>
           <span className="font-extrabold uppercase tracking-wide">Acadmate v2 is coming!</span>{" "}
           {/* Phones get the short version: the banner stays pinned, so it has to stay small. */}
-          <span className="text-white/90 sm:hidden">3,400+ checked JAMB questions live.</span>
+          <span className="text-white/90 sm:hidden">{count}checked JAMB questions live.</span>
           <span className="text-white/90 hidden sm:inline">
-            A fresh new look, and 3,400+ checked JAMB past questions with explanations are already live.
+            A fresh new look, and {count}checked JAMB past questions with answers are already live.
           </span>
         </p>
         <Link

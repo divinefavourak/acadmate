@@ -32,7 +32,7 @@ export const metadata: Metadata = {
   // ── Core ────────────────────────────────────────────────────────────────
   metadataBase: new URL(SITE_URL),
   title: {
-    default: `${SITE_NAME} – Free JAMB CBT Practice & Post-UTME Past Questions in Nigeria`,
+    default: `${SITE_NAME}: JAMB Past Questions with Answers and Free CBT Practice`,
     template: `%s | ${SITE_NAME}`,
   },
   description: SITE_DESCRIPTION,
@@ -41,15 +41,13 @@ export const metadata: Metadata = {
     "JAMB past questions",
     "JAMB CBT practice",
     "UTME practice",
-    "Post-UTME past questions",
+    "JAMB past questions and answers",
     "JAMB preparation Nigeria",
     "free JAMB practice",
-    "Post-UTME UNILAG",
-    "Post-UTME UI",
-    "Post-UTME OAU",
     "Nigerian student exam prep",
     "JAMB study tips",
     "scholarships Nigeria",
+    "school news Nigeria",
   ],
   authors: [{ name: "Acadmate Business Consult", url: SITE_URL }],
   creator: "Acadmate Business Consult",
@@ -81,14 +79,14 @@ export const metadata: Metadata = {
     locale: "en_NG",
     url: SITE_URL,
     siteName: SITE_NAME,
-    title: `${SITE_NAME} – Free JAMB CBT Practice & Post-UTME Past Questions`,
+    title: `${SITE_NAME}: JAMB Past Questions with Answers and Free CBT Practice`,
     description: SITE_DESCRIPTION,
     images: [
       {
         url: canonicalUrl(DEFAULT_OG_IMAGE),
         width: 1200,
         height: 630,
-        alt: `${SITE_NAME} – JAMB CBT Practice for Nigerian Students`,
+        alt: `${SITE_NAME}: JAMB past questions, with answers`,
       },
     ],
   },
@@ -96,7 +94,7 @@ export const metadata: Metadata = {
   // ── Twitter / X card defaults ────────────────────────────────────────────
   twitter: {
     card: "summary_large_image",
-    title: `${SITE_NAME} – Free JAMB CBT Practice`,
+    title: `${SITE_NAME}: JAMB Past Questions with Answers and Free CBT Practice`,
     description: SITE_DESCRIPTION,
     images: [canonicalUrl(DEFAULT_OG_IMAGE)],
   },

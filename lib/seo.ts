@@ -6,8 +6,8 @@ export const SITE_NAME = "Acadmate";
 export const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ?? "https://acadmate.com.ng";
 export const SITE_DESCRIPTION =
-  "Free JAMB CBT practice and Post-UTME past questions for Nigerian students. " +
-  "8,600+ questions across 11 subjects. Practice online, track your progress, and ace your exams.";
+  "Free JAMB past questions with answers, by subject and year. Practise them in a timed CBT, " +
+  "track your progress, and read school news, scholarships and study tips.";
 
 // 1200x630 share image, built by scripts/brand/build.mjs.
 export const DEFAULT_OG_IMAGE = "/brand/og.png";

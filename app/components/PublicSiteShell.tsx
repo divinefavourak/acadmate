@@ -28,9 +28,12 @@ const linkClass = (active: boolean) =>
  */
 export function PublicSiteShell({
   active,
+  banner,
   children,
 }: {
   active?: NavKey;
+  /** Announcement bar pinned above the header (inside it, so it stays on screen). */
+  banner?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
@@ -41,6 +44,7 @@ export function PublicSiteShell({
       </div>
 
       <header className="sticky top-0 z-50 border-b border-black/5 dark:border-white/5 bg-white/80 dark:bg-navy-950/80 backdrop-blur-xl">
+        {banner}
         <div className="max-w-6xl mx-auto px-4 md:px-6 h-16 flex items-center justify-between gap-4">
           <Link href="/" className="flex items-center gap-2.5 shrink-0">
             <BrandMark size={32} priority />
