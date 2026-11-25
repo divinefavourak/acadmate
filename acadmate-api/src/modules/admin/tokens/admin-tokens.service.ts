@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 
 function generateCode(): string {
@@ -29,6 +30,62 @@ export class AdminTokensService {
     });
 
     return { token };
+  }
+
+  /**
+   * Make a student Premium after checking their payment receipt. It records a
+   * token already redeemed by them, so the grant shows on this page and the
+   * usual Revoke button undoes it.
+   */
+  async grantByEmail(adminId: string, email: string, note?: string) {
+    const matches = await this.prisma.user.findMany({
+      where: { email: { equals: email.trim(), mode: 'insensitive' } },
+      select: { id: true, name: true, email: true, plan: true },
+      take: 2,
+    });
+    if (matches.length === 0) {
+      throw new NotFoundException(`No account uses ${email.trim()}. Ask the student which email they signed up with.`);
+    }
+    if (matches.length > 1) {
+      throw new ConflictException('More than one account matches that email. Type it exactly as the student signed up.');
+    }
+    const user = matches[0];
+    if (user.plan === 'PREMIUM') {
+      throw new ConflictException(`${user.email} already has Premium.`);
+    }
+
+    const label = `Granted by email${note?.trim() ? `: ${note.trim()}` : ''}`;
+    return this.prisma.$transaction(async (tx) => {
+      // A student can hold one redeemed token (usedById is unique). If an
+      // earlier one was revoked, switch that back on instead of adding another.
+      const existing = await tx.accessToken.findUnique({ where: { usedById: user.id } });
+      if (existing) {
+        await tx.accessToken.update({
+          where: { id: existing.id },
+          data: { revokedAt: null, note: existing.note ? `${existing.note} · ${label}` : label },
+        });
+      } else {
+        await tx.accessToken.create({
+          data: {
+            code: await this.freeCode(tx),
+            note: label,
+            generatedById: adminId,
+            usedById: user.id,
+            usedAt: new Date(),
+          },
+        });
+      }
+      await tx.user.update({ where: { id: user.id }, data: { plan: 'PREMIUM' } });
+      return { granted: true, user: { id: user.id, name: user.name, email: user.email } };
+    });
+  }
+
+  private async freeCode(tx: Prisma.TransactionClient): Promise<string> {
+    for (let i = 0; i < 10; i++) {
+      const code = generateCode();
+      if (!(await tx.accessToken.findUnique({ where: { code } }))) return code;
+    }
+    throw new ConflictException('Could not generate a unique code. Try again.');
   }
 
   async listTokens(limit = 50, offset = 0) {

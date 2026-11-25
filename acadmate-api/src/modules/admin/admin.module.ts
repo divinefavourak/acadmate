@@ -19,6 +19,7 @@ import { AdminBlogController } from './blog/admin-blog.controller';
 import { AdminSettingsController } from './settings/admin-settings.controller';
 import { AdminEmailRemindersController } from './settings/admin-email-reminders.controller';
 import { AdminFreeQuotaController } from './settings/admin-free-quota.controller';
+import { AdminPaymentController } from './settings/admin-payment.controller';
 import { AdminNotesController } from './notes/admin-notes.controller';
 import { AdminNotesService } from './notes/admin-notes.service';
 import { BlogModule } from '../blog/blog.module';
@@ -42,6 +43,7 @@ import { EngagementModule } from '../engagement/engagement.module';
     AdminSettingsController,
     AdminEmailRemindersController,
     AdminFreeQuotaController,
+    AdminPaymentController,
     AdminNotesController,
   ],
   providers: [
