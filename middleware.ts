@@ -124,7 +124,10 @@ export default async function middleware(req: NextRequest) {
 }
 
 export const config = {
+  // Static files skip the gate entirely: anything under public/, the app/ icon
+  // file, robots.txt and the sitemaps. Before this, the favicon (app/icon.jpg)
+  // and /theme-init.js were redirected to /login for logged-out visitors.
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|manifest.json|robots.txt|sitemap|images/).*)",
+    "/((?!_next/static|_next/image|.*\.(?:ico|png|jpe?g|gif|webp|avif|svg|js|css|json|txt|xml|woff2?|pdf)$).*)",
   ],
 };
