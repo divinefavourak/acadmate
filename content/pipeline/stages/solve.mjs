@@ -50,13 +50,14 @@ For every question (q1, q2, …) return one result with its id:
 
 export async function runSolve({ exam, subjects, origin, limit, budget, dryRun, wait = true, allowPartial = false, keyless = KEYLESS_POLICY }) {
   ingestPolicy = keyless;
+  ingestScope = { exam, subjects };
   log.stage("Claude answers each question (without seeing the booklet's answer)");
   await collect(STAGE, ingest, { wait: false, dryRun }); // results that finished while we were away
 
   // Apply the chosen keyless policy to rows already solved, not only to results arriving now.
   if (!dryRun) {
     const current = loadRows();
-    if (applyKeylessPolicy(current, keyless)) saveRows(current);
+    if (applyKeylessPolicy(current, keyless, { exam, subjects })) saveRows(current);
   }
 
   const flying = rowsInFlight(STAGE);
@@ -152,21 +153,26 @@ function ingest(customId, outcome) {
       tally.toOpus++;
     }
   }
-  applyKeylessPolicy(rows, ingestPolicy);
+  applyKeylessPolicy(rows, ingestPolicy, ingestScope);
   saveRows(rows);
 }
 
 let ingestPolicy = KEYLESS_POLICY;
+let ingestScope = {};
 
 /**
  * Rows with no booklet answer, waiting for Opus only because there was nothing to compare with: accept Sonnet's
  * answer when the policy allows. Generated questions and booklet/Sonnet disagreements always stay with Opus.
  * Runs on ingest and at the start of solve/verify, so changing the policy also applies to rows already queued.
+ * Only rows in the run's exam and --subjects are touched, so a cheaper policy for one subject group
+ * doesn't settle another group's questions, and a later strict run doesn't reopen this group's.
  */
-export function applyKeylessPolicy(rows, policy = KEYLESS_POLICY) {
+export function applyKeylessPolicy(rows, policy = KEYLESS_POLICY, { exam, subjects } = {}) {
   if (!['sonnet-unless-low', 'sonnet', 'opus'].includes(policy)) {
     throw new Error(`--keyless must be sonnet-unless-low, sonnet or opus (got "${policy}")`);
   }
+  const inScope = (r) => (!exam || inExam(r, exam)) && (!subjects || subjects.includes(r.subject));
+  rows = rows.filter(inScope);
   if (policy === 'opus') {
     // Switching to the strict policy: answers Sonnet gave alone go back for an Opus check.
     let reopened = 0;
