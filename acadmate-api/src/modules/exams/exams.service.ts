@@ -181,7 +181,7 @@ export class ExamsService {
     factoryInput: ExamFactoryInput,
     db: Prisma.TransactionClient | PrismaService,
   ) {
-    const { questionIds, durationMinutes } = await this.examFactory.build(factoryInput);
+    const { questionIds, durationMinutes } = await this.examFactory.build(factoryInput, db);
 
     const examSession = await db.examSession.create({
       data: {

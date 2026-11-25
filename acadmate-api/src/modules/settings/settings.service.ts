@@ -136,7 +136,11 @@ export class SettingsService {
   }
 
   async setFreeQuota(input: Partial<FreeQuotaSettings>): Promise<FreeQuotaSettings> {
-    const next = this.normalizeFreeQuota({ ...(await this.getFreeQuota()), ...input });
+    // Merge onto the stored row, never the fail-open read above: after a DB
+    // blip that read says "off", and saving just the number would then switch
+    // an enabled limit off for good. A failed lookup fails the save instead.
+    const row = await this.prisma.appSetting.findUnique({ where: { key: FREE_QUOTA_KEY } });
+    const next = this.normalizeFreeQuota({ ...this.normalizeFreeQuota(row?.value), ...input });
     const value = next as unknown as Prisma.InputJsonObject;
     await this.prisma.appSetting.upsert({
       where: { key: FREE_QUOTA_KEY },
