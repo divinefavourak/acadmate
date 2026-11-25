@@ -75,7 +75,24 @@ function isUnderRoute(pathname: string, routes: readonly string[]): boolean {
   return routes.some((r) => pathname === r || pathname.startsWith(`${r}/`));
 }
 
+/**
+ * True on the pre-launch beta site (beta.acadmate.com.ng). It runs the same
+ * code as the live site, so it is kept out of search results: otherwise Google
+ * would see two copies of every past-question page.
+ */
+function isBetaHost(req: NextRequest): boolean {
+  return (req.headers.get("host") ?? "").toLowerCase().startsWith("beta.");
+}
+
 export default async function middleware(req: NextRequest) {
+  const res = await gate(req);
+  // A header rather than robots.txt: a crawler blocked by robots.txt never
+  // sees noindex, and can still list the bare URLs.
+  if (isBetaHost(req)) res.headers.set("X-Robots-Tag", "noindex, nofollow");
+  return res;
+}
+
+async function gate(req: NextRequest): Promise<NextResponse> {
   const { pathname } = req.nextUrl;
 
   // Static assets and Next.js internals bypass all policy checks.

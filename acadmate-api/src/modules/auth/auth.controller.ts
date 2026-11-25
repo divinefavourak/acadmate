@@ -8,6 +8,8 @@ import { AuthGuard } from '@nestjs/passport';
 import { IsEmail, IsString, MinLength } from 'class-validator';
 import { Response, Request } from 'express';
 import { AuthService } from './auth.service';
+import { GoogleAuthGuard } from './google-auth.guard';
+import { resolveReturnOrigin } from '../../common/utils/allowed-origins';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 
@@ -67,12 +69,12 @@ export class AuthController {
   // ─── Google OAuth ────────────────────────────────────────────────────────
 
   @Get('google')
-  @UseGuards(AuthGuard('google'))
+  @UseGuards(GoogleAuthGuard)
   @ApiOperation({ summary: 'Redirect to Google OAuth consent screen' })
   googleAuth() { /* Passport handles the redirect */ }
 
   @Get('google/callback')
-  @UseGuards(AuthGuard('google'))
+  @UseGuards(GoogleAuthGuard)
   @ApiOperation({ summary: 'Google OAuth callback — issues JWT and redirects to frontend' })
   async googleCallback(@Req() req: Request, @Res() res: Response) {
     const profile = req.user as {
@@ -83,7 +85,9 @@ export class AuthController {
     };
     const result = await this.authService.googleLogin(profile);
 
-    const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:3000';
+    // Back to the site that started sign-in (live or beta), checked against
+    // ALLOWED_ORIGINS. Anything else goes to FRONTEND_URL.
+    const frontendUrl = resolveReturnOrigin(req.query.state);
     res.redirect(`${frontendUrl}/auth/callback?role=${result.user.role}#token=${encodeURIComponent(result.accessToken)}`);
   }
 
