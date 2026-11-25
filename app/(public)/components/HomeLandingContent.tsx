@@ -2,7 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Bricolage_Grotesque } from "next/font/google";
 import { categoryLabel, type BlogCategory } from "@/app/blog/categories";
-import { HUB_PATH, roughCount, subjectPath, yearRange, type HubData } from "@/lib/pastQuestions";
+import { HUB_PATH, aboutCount, capitalise, subjectPath, yearRange, type HubData } from "@/lib/pastQuestions";
 import { TryQuestion, type DemoQuestion } from "./TryQuestion";
 import { PaperFinder } from "./PaperFinder";
 
@@ -28,7 +28,7 @@ const H2 = "font-display text-3xl font-extrabold tracking-tight md:text-5xl";
 /**
  * Landing page body. Students land wanting a paper or a practice session, so the
  * hero opens with a paper finder and the page then lets them try a real question
- * on a CBT screen. Counts are rounded down (roughCount) so the copy never
+ * on a CBT screen. Counts are rounded down (aboutCount) so the copy never
  * overstates and doesn't go stale. Sections with no data are left out.
  */
 export default function HomeLandingContent({
@@ -41,7 +41,7 @@ export default function HomeLandingContent({
   recentPosts?: RecentBlogPost[];
 }) {
   const subjects = hub?.subjects ?? [];
-  const count = hub ? roughCount(hub.total) : null;
+  const count = hub ? capitalise(aboutCount(hub.total)) : null;
   const finderSubjects = subjects.map((s) => ({
     slug: s.slug,
     name: s.name,
@@ -66,7 +66,7 @@ export default function HomeLandingContent({
               Practise JAMB the way you’ll sit it.
             </h1>
             <p className="mt-5 max-w-xl text-lg leading-relaxed text-slate-200">
-              {count ? `Over ${count} real past questions with answers, ` : "Real past questions with answers, "}
+              {count ? `${count} real past questions with answers, ` : "Real past questions with answers, "}
               free to read. Then practise them on a timed CBT screen and see your score straight away.
             </p>
 
@@ -89,7 +89,7 @@ export default function HomeLandingContent({
             <div aria-hidden className="absolute inset-8 rounded-full bg-white/10 ring-1 ring-white/15" />
             <Image src="/brand/mark-dark.svg" alt="" width={360} height={360} priority className="relative mx-auto h-auto w-full p-6" />
             <Badge className="absolute -left-6 top-10" tone="bg-[#feb12c] text-navy-900">
-              {count ? `Over ${count} questions` : "Real past questions"}
+              {count ? `${count} questions` : "Real past questions"}
             </Badge>
             <Badge className="absolute -right-4 top-1/2" tone="bg-white text-navy-900">
               Answers free, no account

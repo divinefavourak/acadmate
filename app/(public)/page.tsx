@@ -4,7 +4,7 @@ import type { DemoQuestion } from "./components/TryQuestion";
 import V2Banner from "./components/V2Banner";
 import { PublicSiteShell } from "@/app/components/PublicSiteShell";
 import { buildMetadata, webSiteSchema, organizationSchema, SITE_NAME } from "@/lib/seo";
-import { getHub, getYear, roughCount, type HubData, type PublicQuestion } from "@/lib/pastQuestions";
+import { getHub, getYear, aboutCount, type HubData, type PublicQuestion } from "@/lib/pastQuestions";
 
 // Counts and the demo questions come from the API; refresh hourly like the
 // past-question pages they describe.
@@ -88,7 +88,7 @@ async function getRecentBlogPosts(): Promise<RecentBlogPost[]> {
 export async function generateMetadata(): Promise<Metadata> {
   const hub = await safeHub();
   const description = hub
-    ? `Free JAMB past questions with answers: over ${roughCount(hub.total)} questions in ` +
+    ? `Free JAMB past questions with answers: ${aboutCount(hub.total)} questions in ` +
       `${hub.subjects.length} subjects. Practise them on a timed CBT, get worked explanations, ` +
       `and read school news, scholarships and study tips.`
     : "Free JAMB past questions with answers. Practise them on a timed CBT, get worked explanations, " +
@@ -112,7 +112,7 @@ export default async function HomePage() {
   const [questions, recentPosts] = await Promise.all([getDemoQuestions(hub), getRecentBlogPosts()]);
 
   return (
-    <PublicSiteShell active="home" bleed banner={<V2Banner count={hub ? roughCount(hub.total) : undefined} />}>
+    <PublicSiteShell active="home" bleed banner={<V2Banner count={hub ? aboutCount(hub.total) : undefined} />}>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{

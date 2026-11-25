@@ -45,9 +45,6 @@
   --color-navy-900: #0d1d2f; /* the logo's own navy */
 
   --font-sans: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
-  /* Headline face. Only pages that load Bricolage Grotesque (the landing page)
-     define --font-bricolage; everywhere else font-display falls back to Outfit. */
-  --font-display: var(--font-bricolage, var(--font-outfit)), ui-sans-serif, system-ui, sans-serif;
 }
 
 /* Semantic colours, switched by the .dark class. Use these (bg-background,
@@ -71,6 +68,11 @@ html.dark {
 }
 
 @theme inline {
+  /* Headline face. Inline, so font-display reads the variables on the element
+     using it: only the landing page defines --font-bricolage (Bricolage
+     Grotesque); everywhere else it falls back to Outfit. In a plain @theme the
+     var() would resolve once at :root, where --font-bricolage doesn't exist. */
+  --font-display: var(--font-bricolage, var(--font-outfit)), ui-sans-serif, system-ui, sans-serif;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-surface: var(--surface);

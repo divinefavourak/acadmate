@@ -5,6 +5,9 @@
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 
+/** Longest wait for one API call before giving up. */
+const API_TIMEOUT_MS = 10_000;
+
 /** ISR window for every past-question page and sitemap, in seconds. */
 export const PQ_REVALIDATE = 3600;
 
@@ -84,6 +87,9 @@ async function getJson<T>(path: string): Promise<T | null> {
   if (!API_URL) throw new Error("NEXT_PUBLIC_API_URL is not set");
   const res = await fetch(`${API_URL}/api/public/past-questions${path}`, {
     next: { revalidate: PQ_REVALIDATE },
+    // A hung API must not hang the build or an ISR refresh. Timing out throws,
+    // so ISR keeps the last good page and the landing page drops its numbers.
+    signal: AbortSignal.timeout(API_TIMEOUT_MS),
   });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`Past questions API returned ${res.status} for ${path}`);
@@ -144,7 +150,22 @@ export function truncate(text: string, max: number): string {
  * A rounded-down count for marketing copy, so it never overstates and doesn't
  * need changing every time a batch is published: 3,379 → "3,000", 940 → "900".
  */
-export function roughCount(n: number): string {
+function roundDown(n: number): number {
   const step = n >= 1000 ? 1000 : n >= 100 ? 100 : 10;
-  return (Math.floor(n / step) * step).toLocaleString("en-NG");
+  return Math.floor(n / step) * step;
 }
+
+export function roughCount(n: number): string {
+  return roundDown(n).toLocaleString("en-NG");
+}
+
+/**
+ * roughCount as a phrase that is always true: "over 3,000" when the real count
+ * is higher than the rounded one, plain "3,000" when it is exactly that.
+ */
+export function aboutCount(n: number): string {
+  return n > roundDown(n) ? `over ${roughCount(n)}` : roughCount(n);
+}
+
+/** "over 3,000" → "Over 3,000", for the start of a sentence. */
+export const capitalise = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);

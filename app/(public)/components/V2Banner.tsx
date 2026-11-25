@@ -2,10 +2,10 @@ import Link from "next/link";
 
 /**
  * Announcement bar at the top of the landing page. It sits inside the sticky header, so it stays on screen.
- * `count` is a rounded question count ("3,000"); without it the banner leaves the number out.
+ * `count` is a rounded count phrase ("over 3,000", from aboutCount); without it the banner leaves the number out.
  */
 export default function V2Banner({ count }: { count?: string }) {
-  const over = count ? `over ${count} ` : "";
+  const over = count ? `${count} ` : "";
   return (
     <div
       role="region"
@@ -20,7 +20,7 @@ export default function V2Banner({ count }: { count?: string }) {
           </span>
           <span className="font-extrabold uppercase tracking-wide">Acadmate v2 is coming!</span>{" "}
           {/* Phones get the short version: the banner stays pinned, so it has to stay small. */}
-          <span className="text-white/90 sm:hidden">{count ? `Over ${count}` : "Checked"} JAMB questions live.</span>
+          <span className="text-white/90 sm:hidden">{count ? count.charAt(0).toUpperCase() + count.slice(1) : "Checked"} JAMB questions live.</span>
           <span className="text-white/90 hidden sm:inline">
             A fresh new look, and {over}checked JAMB past questions with answers are already live.
           </span>
