@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { BrandMark } from "@/app/components/BrandMark";
+import { useCoarsePointer } from "../hooks/useCoarsePointer";
 
 interface Props {
   mode: string;
@@ -14,8 +15,9 @@ const MODE_LABEL: Record<string, string> = {
   PRACTICE: "Practice Session",
 };
 
+// The fullscreen rule is desktop-only: phones skip fullscreen (see useCoarsePointer).
+const FULLSCREEN_RULE = { icon: "🖥️", text: "This exam runs in fullscreen. Exiting fullscreen counts as a violation." };
 const RULES = [
-  { icon: "🖥️", text: "This exam runs in fullscreen. Exiting fullscreen counts as a violation." },
   { icon: "🔄", text: "Switching tabs or apps is detected. Stay on this page for the entire session." },
   { icon: "⚠️", text: "You have 2 strikes. Exhausting them auto-submits your exam immediately." },
   { icon: "🚫", text: "Copying, cutting, and right-clicking are disabled during the exam." },
@@ -25,14 +27,20 @@ const RULES = [
 export default function ExamBriefing({ mode, totalQuestions, durationMinutes, onStart }: Props) {
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState("");
+  const touch = useCoarsePointer();
+  const rules = touch ? RULES : [FULLSCREEN_RULE, ...RULES];
 
   async function handleBegin() {
     setStarting(true);
     setStartError("");
-    try {
-      await document.documentElement.requestFullscreen();
-    } catch {
-      // User declined or browser doesn't support — proceed anyway.
+    // Fullscreen on desktop only: on phones it drops on scroll or when the
+    // keyboard opens and can force rotation, which caused false strikes.
+    if (!touch) {
+      try {
+        await document.documentElement.requestFullscreen();
+      } catch {
+        // User declined or browser doesn't support — proceed anyway.
+      }
     }
     try {
       await onStart();
@@ -62,7 +70,7 @@ export default function ExamBriefing({ mode, totalQuestions, durationMinutes, on
         <div className="rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.04] p-6 space-y-4">
           <h2 className="font-semibold text-base">Before you begin</h2>
           <ul className="space-y-3">
-            {RULES.map((rule, i) => (
+            {rules.map((rule, i) => (
               <li key={i} className="flex items-start gap-3 text-sm text-slate-600 dark:text-slate-300">
                 <span className="text-base leading-5 flex-shrink-0">{rule.icon}</span>
                 <span>{rule.text}</span>

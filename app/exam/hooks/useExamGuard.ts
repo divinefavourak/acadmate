@@ -4,6 +4,25 @@ import { useState, useEffect, useRef, useCallback } from "react";
 
 const MAX_STRIKES = 2;
 
+// Keyboard Lock API (Chrome and Edge on desktop). In fullscreen the browser
+// normally takes Esc for itself and leaves fullscreen before the page sees the
+// key, which the guard then counts as a strike. Locking Esc while fullscreen
+// sends a tap to the page instead (so it can close the submit dialog) and makes
+// leaving fullscreen a deliberate press-and-hold. Firefox and Safari don't
+// support it, so there Esc still exits fullscreen as before.
+type KeyboardLock = { lock?: (keys?: string[]) => Promise<void>; unlock?: () => void };
+const keyboardApi = () => (navigator as Navigator & { keyboard?: KeyboardLock }).keyboard;
+function lockEscape() {
+  keyboardApi()?.lock?.(["Escape"]).catch(() => {});
+}
+function unlockKeys() {
+  try {
+    keyboardApi()?.unlock?.();
+  } catch {
+    // Not supported: nothing was locked.
+  }
+}
+
 export type ViolationType = "tab" | "fullscreen";
 
 export interface StrikeWarning {
@@ -42,6 +61,7 @@ export function useExamGuard(
   // done first so the resulting fullscreenchange doesn't count as a violation.
   const exitFullscreen = useCallback(() => {
     doneRef.current = true;
+    unlockKeys();
     const doc = document as Document & {
       webkitFullscreenElement?: Element;
       webkitExitFullscreen?: () => void;
@@ -84,6 +104,7 @@ export function useExamGuard(
     if (alreadyFs) {
       fullscreenEverRef.current = true;
       setIsFullscreen(true);
+      lockEscape();
     } else {
       requestFullscreen();
     }
@@ -97,8 +118,10 @@ export function useExamGuard(
       setIsFullscreen(fs);
       if (fs) {
         fullscreenEverRef.current = true;
-      } else if (fullscreenEverRef.current) {
-        issueStrike("fullscreen");
+        lockEscape();
+      } else {
+        unlockKeys();
+        if (fullscreenEverRef.current) issueStrike("fullscreen");
       }
     };
     document.addEventListener("fullscreenchange", onChange);
@@ -106,6 +129,7 @@ export function useExamGuard(
     return () => {
       document.removeEventListener("fullscreenchange", onChange);
       document.removeEventListener("webkitfullscreenchange", onChange);
+      unlockKeys();
     };
   }, [enabled, issueStrike, requireFullscreen]);
 

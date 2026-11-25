@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, use } from "react";
+import { useState, useEffect, useCallback, useRef, use } from "react";
 import { useRouter } from "next/navigation";
 import { BrandMark } from "@/app/components/BrandMark";
 import Timer from "../components/Timer";
@@ -11,6 +11,7 @@ import Loader from "@/app/components/Loader";
 import { apiClient } from "@/lib/api/client";
 import { useExamGuard } from "../hooks/useExamGuard";
 import type { StrikeWarning } from "../hooks/useExamGuard";
+import { useCoarsePointer } from "../hooks/useCoarsePointer";
 import ExamBriefing from "../components/ExamBriefing";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -68,6 +69,10 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
   const [submitError, setSubmitError] = useState("");
   const [reportedQuestions, setReportedQuestions] = useState<Set<string>>(new Set());
   const [examStarted, setExamStarted] = useState(false);
+  // Submit dialog focus: "Keep working" gets focus on open, and focus goes back
+  // to whatever opened it on close (often an answer option).
+  const keepWorkingRef = useRef<HTMLButtonElement>(null);
+  const submitOpenerRef = useRef<HTMLElement | null>(null);
 
   // Fetch exam session
   useEffect(() => {
@@ -152,6 +157,7 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
   const handleSubmit = () => {
     if (submitting) return;
     setSubmitError("");
+    submitOpenerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setShowSubmitConfirm(true);
   };
 
@@ -202,8 +208,75 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, router, submitting]);
 
+  // Phones skip fullscreen: it drops on scroll or when the keyboard opens and can
+  // force rotation, which gave false strikes. Tab and app switching still counts.
+  const touch = useCoarsePointer();
   const { strikes, warning, isFullscreen, dismissWarning, requestFullscreen, exitFullscreen } =
-    useExamGuard(session !== null && examStarted, handleAutoSubmit);
+    useExamGuard(session !== null && examStarted, handleAutoSubmit, { requireFullscreen: !touch });
+
+  // Keyboard shortcuts, as in the JAMB CBT: A–E answer, N next, P previous.
+  // Plus M to mark for review and S to open the submit dialog. Arrow keys are
+  // left alone on purpose: on a focused option they already move between the
+  // radio buttons, so they would change the answer by accident.
+  useEffect(() => {
+    if (!session || !examStarted) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
+      const target = e.target as HTMLElement | null;
+      const typing =
+        target?.isContentEditable ||
+        target?.tagName === "TEXTAREA" ||
+        (target?.tagName === "INPUT" && (target as HTMLInputElement).type !== "radio");
+      if (typing) return;
+      if (e.key === "Escape") {
+        if (showSubmitConfirm && !submitting) setShowSubmitConfirm(false);
+        if (showMobileNav) setShowMobileNav(false);
+        return;
+      }
+      // Dialogs and the calculator own the keyboard while open.
+      if (showSubmitConfirm || showMobileNav || showCalculator || warning || submitting) return;
+
+      const q = session.questions[currentIndex]?.question;
+      if (!q) return;
+      const key = e.key.toUpperCase();
+      const option = q.options.find((o) => o.label.toUpperCase() === key);
+      if (option) {
+        e.preventDefault();
+        handleOptionSelect(option.id);
+      } else if (key === "N") {
+        e.preventDefault();
+        setCurrentIndex((i) => Math.min(session.questions.length - 1, i + 1));
+      } else if (key === "P") {
+        e.preventDefault();
+        setCurrentIndex((i) => Math.max(0, i - 1));
+      } else if (key === "M") {
+        e.preventDefault();
+        toggleMarkReview(q.id);
+      } else if (key === "S") {
+        e.preventDefault();
+        handleSubmit();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+
+  // Move focus into the submit dialog when it opens, and back when it closes.
+  // Without this, pressing S while an answer option has focus left focus on that
+  // radio behind the dialog, where an arrow key would silently change the answer.
+  // The rest of the page is also made inert while the dialog is open (see <main>).
+  // A strike warning can appear on top of the open dialog (the student left the
+  // tab). The warning takes focus while it shows, and the dialog is inert under
+  // it; when the warning closes, focus comes back to the dialog, not to <body>.
+  useEffect(() => {
+    if (showSubmitConfirm) {
+      if (!warning) keepWorkingRef.current?.focus();
+    } else if (submitOpenerRef.current) {
+      const opener = submitOpenerRef.current;
+      submitOpenerRef.current = null;
+      if (opener.isConnected) opener.focus();
+    }
+  }, [showSubmitConfirm, warning]);
 
   if (loading) {
     return (
@@ -272,7 +345,7 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
                 <h3 className="font-bold text-base">Question Navigator</h3>
                 <p className="text-xs text-slate-500 mt-0.5">
                   {answeredIndexes.length} of {questions.length} answered
-                  {markedIndexes.length > 0 && ` · ${markedIndexes.length} flagged`}
+                  {markedIndexes.length > 0 && `, ${markedIndexes.length} marked for review`}
                 </p>
               </div>
               <button onClick={() => setShowMobileNav(false)} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800">
@@ -289,7 +362,7 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
             <div className="flex items-center gap-4 mt-4 text-xs text-slate-500 flex-wrap">
               <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-brand-600 inline-block" />Current</span>
               <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-emerald-400 inline-block" />Answered</span>
-              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-amber-400 inline-block" />Flagged</span>
+              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-amber-400 inline-block" />Marked for review</span>
               <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-slate-200 dark:bg-slate-700 border border-slate-300 inline-block" />Unanswered</span>
             </div>
           </div>
@@ -297,7 +370,9 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
       )}
 
       {/* Main Exam Area */}
-      <main className="flex-1 flex flex-col items-center min-w-0">
+      {/* inert while a dialog is open: nothing behind it can be focused, clicked
+          or changed with the keyboard (the dialogs render outside <main>). */}
+      <main className="flex-1 flex flex-col items-center min-w-0" inert={showSubmitConfirm || showMobileNav}>
         {/* Top Bar */}
         <header className="w-full flex items-center justify-between px-3 sm:px-8 py-2 sm:py-4 bg-white/80 dark:bg-navy-950/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 flex-shrink-0 gap-2">
           <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
@@ -335,7 +410,7 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
 
           {/* Fullscreen nudge + strike counter */}
           <div className="flex items-center gap-2 flex-shrink-0">
-            {!isFullscreen && (
+            {!touch && !isFullscreen && (
               <button
                 onClick={requestFullscreen}
                 title="Enter fullscreen"
@@ -368,10 +443,11 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
             <div className="mb-5 sm:mb-6 rounded-3xl bg-brand-600 dark:bg-brand-950/70 dark:border dark:border-brand-500/30 text-white p-5 sm:p-8 shadow-lg shadow-brand-600/15">
               <div className="flex items-center gap-2 mb-4 flex-wrap">
                 <div className="ml-auto flex items-center gap-2">
-                  {/* Bookmark — mark for review */}
+                  {/* Mark for review (M) */}
                   <button
                     onClick={() => toggleMarkReview(currentQ.id)}
-                    title={isCurrentMarked ? "Remove bookmark" : "Bookmark for review"}
+                    title={isCurrentMarked ? "Unmark (M)" : "Mark for review (M)"}
+                    aria-pressed={isCurrentMarked}
                     className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all border ${
                       isCurrentMarked
                         ? "bg-amber-400 border-amber-400 text-amber-950"
@@ -381,7 +457,7 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
                     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill={isCurrentMarked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>
                     </svg>
-                    {isCurrentMarked ? "Saved" : "Save"}
+                    {isCurrentMarked ? "Marked" : "Mark for review"}
                   </button>
                   {/* Flag — report bad question */}
                   <button
@@ -544,6 +620,8 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
           role="dialog"
           aria-modal="true"
           aria-labelledby="submit-confirm-title"
+          onKeyDown={trapTabInDialog}
+          inert={!!warning}
         >
           <div
             className="absolute inset-0 bg-black/50 backdrop-blur-sm"
@@ -585,7 +663,7 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
               )}
               {markedIndexes.length > 0 && (
                 <div className="flex justify-between">
-                  <span className="text-slate-500 dark:text-slate-400">Flagged for review</span>
+                  <span className="text-slate-500 dark:text-slate-400">Marked for review</span>
                   <span className="font-semibold text-amber-600 dark:text-amber-400">
                     {markedIndexes.length}
                   </span>
@@ -599,6 +677,7 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
 
             <div className="mt-6 flex gap-3 justify-end">
               <button
+                ref={keepWorkingRef}
                 onClick={() => setShowSubmitConfirm(false)}
                 disabled={submitting}
                 className="btn-secondary px-4 py-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
@@ -618,12 +697,12 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
       )}
 
       {/* Right Sidebar — question navigator */}
-      <aside className="w-80 bg-white/90 dark:bg-navy-950/90 backdrop-blur-md border-l border-slate-200 dark:border-slate-800 flex-col hidden lg:flex">
+      <aside className="w-80 bg-white/90 dark:bg-navy-950/90 backdrop-blur-md border-l border-slate-200 dark:border-slate-800 flex-col hidden lg:flex" inert={showSubmitConfirm || showMobileNav}>
         <div className="p-6 border-b border-slate-200 dark:border-slate-800">
           <h3 className="font-bold text-lg">Question Navigator</h3>
           <p className="text-sm text-slate-500 mt-1">
             {answeredIndexes.length} of {questions.length} answered
-            {markedIndexes.length > 0 && ` · ${markedIndexes.length} flagged`}
+            {markedIndexes.length > 0 && `, ${markedIndexes.length} marked for review`}
           </p>
         </div>
 
@@ -647,18 +726,63 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
             </div>
             <div className="flex items-center gap-3">
               <div className="w-3 h-3 rounded-full bg-amber-400"></div>
-              <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Flagged for Review</span>
+              <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Marked for review</span>
             </div>
             <div className="flex items-center gap-3">
               <div className="w-3 h-3 rounded-full bg-slate-200 dark:bg-slate-700 border border-slate-300 dark:border-slate-600"></div>
               <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Unanswered</span>
             </div>
           </div>
+
+          <div className="mt-4 p-4 rounded-xl border border-slate-200 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400">
+            <p className="font-semibold text-slate-700 dark:text-slate-300 mb-2">Keyboard</p>
+            <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5">
+              {SHORTCUTS.map(([keys, action]) => (
+                <div key={keys} className="contents">
+                  <dt><kbd className="font-sans font-semibold px-1.5 py-0.5 rounded border border-slate-300 dark:border-slate-700">{keys}</kbd></dt>
+                  <dd>{action}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
         </div>
       </aside>
     </div>
   );
 }
+
+/**
+ * Keeps Tab and Shift+Tab inside a modal: from the last control Tab wraps to
+ * the first, and from the first Shift+Tab wraps to the last. With the page
+ * behind made inert, focus would otherwise leave for the browser's own controls.
+ */
+function trapTabInDialog(e: React.KeyboardEvent<HTMLElement>) {
+  if (e.key !== "Tab") return;
+  const focusable = [
+    ...e.currentTarget.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    ),
+  ];
+  if (focusable.length === 0) return;
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  const current = document.activeElement;
+  if (e.shiftKey && (current === first || !e.currentTarget.contains(current))) {
+    e.preventDefault();
+    last.focus();
+  } else if (!e.shiftKey && (current === last || !e.currentTarget.contains(current))) {
+    e.preventDefault();
+    first.focus();
+  }
+}
+
+const SHORTCUTS: [string, string][] = [
+  ["A–D", "Choose an answer"],
+  ["N", "Next question"],
+  ["P", "Previous question"],
+  ["M", "Mark for review"],
+  ["S", "Submit"],
+];
 
 // ─── Strike Warning Modal ─────────────────────────────────────────────────────
 
@@ -673,11 +797,18 @@ function StrikeWarningModal({
 
   const reason =
     type === "tab"
-      ? "You switched to another tab or window"
+      ? "You left the exam page (another tab or app)"
       : "You exited fullscreen mode";
 
+
   return (
-    <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+    <div
+      className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+      role="alertdialog"
+      aria-modal="true"
+      aria-labelledby="strike-warning-title"
+      onKeyDown={trapTabInDialog}
+    >
       <div className="w-full max-w-md bg-white dark:bg-slate-950 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
         {/* Coloured top bar */}
         <div className={`h-1.5 w-full ${isFinal ? "bg-red-600" : "bg-amber-500"}`} />
@@ -699,7 +830,7 @@ function StrikeWarningModal({
               )}
             </div>
             <div>
-              <h2 className="font-bold text-lg text-slate-900 dark:text-slate-100">
+              <h2 id="strike-warning-title" className="font-bold text-lg text-slate-900 dark:text-slate-100">
                 {isFinal ? "Exam Auto-Submitted" : `Strike ${strike} of ${2}`}
               </h2>
               <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">{reason}</p>
@@ -721,6 +852,7 @@ function StrikeWarningModal({
           {!isFinal && (
             <button
               onClick={onDismiss}
+              autoFocus
               className="w-full py-3 rounded-xl font-bold text-sm bg-brand-600 hover:bg-brand-700 text-white transition-colors"
             >
               I understand — return to exam

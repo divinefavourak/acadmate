@@ -25,7 +25,8 @@ export const viewport: Viewport = {
   themeColor: "#0874d4",
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
+  // No maximumScale: students must be able to pinch-zoom small print, diagrams
+  // and maths in questions (and blocking zoom fails WCAG 1.4.4).
 };
 
 export const metadata: Metadata = {
