@@ -139,3 +139,12 @@ export function truncate(text: string, max: number): string {
   const space = cut.lastIndexOf(" ");
   return `${(space > max * 0.6 ? cut.slice(0, space) : cut).replace(/[\s,.;:]+$/, "")}…`;
 }
+
+/**
+ * A rounded-down count for marketing copy, so it never overstates and doesn't
+ * need changing every time a batch is published: 3,379 → "3,000", 940 → "900".
+ */
+export function roughCount(n: number): string {
+  const step = n >= 1000 ? 1000 : n >= 100 ? 100 : 10;
+  return (Math.floor(n / step) * step).toLocaleString("en-NG");
+}

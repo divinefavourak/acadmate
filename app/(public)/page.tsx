@@ -1,14 +1,12 @@
 import type { Metadata } from "next";
-import HomeLandingContent, {
-  type RecentBlogPost,
-  type SampleQuestion,
-} from "./components/HomeLandingContent";
+import HomeLandingContent, { type RecentBlogPost } from "./components/HomeLandingContent";
+import type { DemoQuestion } from "./components/TryQuestion";
 import V2Banner from "./components/V2Banner";
 import { PublicSiteShell } from "@/app/components/PublicSiteShell";
 import { buildMetadata, webSiteSchema, organizationSchema, SITE_NAME } from "@/lib/seo";
-import { getHub, getYear, type HubData, type PublicQuestion } from "@/lib/pastQuestions";
+import { getHub, getYear, roughCount, type HubData, type PublicQuestion } from "@/lib/pastQuestions";
 
-// Numbers and the sample question come from the API; refresh hourly like the
+// Counts and the demo questions come from the API; refresh hourly like the
 // past-question pages they describe.
 export const revalidate = 3600;
 
@@ -38,18 +36,37 @@ function isShowcase(q: PublicQuestion): boolean {
   );
 }
 
-/** One real question from the biggest subject's latest paper. */
-async function getSample(hub: HubData | null): Promise<SampleQuestion | null> {
-  const subject = [...(hub?.subjects ?? [])].sort((a, b) => b.total - a.total)[0];
-  const latest = Math.max(...(subject?.years.map((y) => y.year) ?? []));
-  if (!subject || !Number.isFinite(latest)) return null;
-  try {
-    const page = await getYear(subject.slug, latest, 1);
-    const question = page?.questions.find(isShowcase);
-    return question ? { subjectName: subject.name, question } : null;
-  } catch {
-    return null;
-  }
+const DEMO_SUBJECTS = 5;
+
+/**
+ * Questions for the hero CBT demo: one from the latest paper of each of the
+ * biggest subjects, so the demo shows the range. Subjects with no plain-text
+ * question on that page are skipped.
+ */
+async function getDemoQuestions(hub: HubData | null): Promise<DemoQuestion[]> {
+  const subjects = [...(hub?.subjects ?? [])].sort((a, b) => b.total - a.total).slice(0, DEMO_SUBJECTS);
+  const picked = await Promise.all(
+    subjects.map(async (subject): Promise<DemoQuestion | null> => {
+      const latest = Math.max(...subject.years.map((y) => y.year));
+      if (!Number.isFinite(latest)) return null;
+      try {
+        const q = (await getYear(subject.slug, latest, 1))?.questions.find(isShowcase);
+        return q
+          ? {
+              slug: q.slug,
+              subjectName: subject.name,
+              year: q.year,
+              text: q.plainText,
+              options: q.options.map((o) => ({ label: o.label, text: o.plainText })),
+              answer: q.answer,
+            }
+          : null;
+      } catch {
+        return null;
+      }
+    }),
+  );
+  return picked.filter((q): q is DemoQuestion => q !== null);
 }
 
 async function getRecentBlogPosts(): Promise<RecentBlogPost[]> {
@@ -71,10 +88,10 @@ async function getRecentBlogPosts(): Promise<RecentBlogPost[]> {
 export async function generateMetadata(): Promise<Metadata> {
   const hub = await safeHub();
   const description = hub
-    ? `Free JAMB past questions with answers: ${hub.total.toLocaleString("en-NG")} questions in ` +
-      `${hub.subjects.length} subjects. Practise them in a timed CBT, get worked explanations, ` +
+    ? `Free JAMB past questions with answers: over ${roughCount(hub.total)} questions in ` +
+      `${hub.subjects.length} subjects. Practise them on a timed CBT, get worked explanations, ` +
       `and read school news, scholarships and study tips.`
-    : "Free JAMB past questions with answers. Practise them in a timed CBT, get worked explanations, " +
+    : "Free JAMB past questions with answers. Practise them on a timed CBT, get worked explanations, " +
       "and read school news, scholarships and study tips.";
   return {
     ...buildMetadata({
@@ -92,17 +109,17 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function HomePage() {
   const hub = await safeHub();
-  const [sample, recentPosts] = await Promise.all([getSample(hub), getRecentBlogPosts()]);
+  const [questions, recentPosts] = await Promise.all([getDemoQuestions(hub), getRecentBlogPosts()]);
 
   return (
-    <PublicSiteShell active="home" banner={<V2Banner total={hub?.total} />}>
+    <PublicSiteShell active="home" bleed banner={<V2Banner count={hub ? roughCount(hub.total) : undefined} />}>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
           __html: JSON.stringify([organizationSchema(), webSiteSchema()]),
         }}
       />
-      <HomeLandingContent hub={hub} sample={sample} recentPosts={recentPosts} />
+      <HomeLandingContent hub={hub} questions={questions} recentPosts={recentPosts} />
     </PublicSiteShell>
   );
 }

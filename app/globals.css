@@ -45,6 +45,9 @@
   --color-navy-900: #0d1d2f; /* the logo's own navy */
 
   --font-sans: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
+  /* Headline face. Only pages that load Bricolage Grotesque (the landing page)
+     define --font-bricolage; everywhere else font-display falls back to Outfit. */
+  --font-display: var(--font-bricolage, var(--font-outfit)), ui-sans-serif, system-ui, sans-serif;
 }
 
 /* Semantic colours, switched by the .dark class. Use these (bg-background,
@@ -131,6 +134,13 @@ body {
 .btn-secondary:hover {
   background-color: var(--surface);
   border-color: var(--color-brand-500);
+}
+
+/* The gold star on a correct answer in the landing-page CBT demo. */
+@keyframes star-pop {
+  0% { transform: scale(0) rotate(-90deg); opacity: 0; }
+  60% { transform: scale(1.35) rotate(12deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0); }
 }
 
 @keyframes blob {

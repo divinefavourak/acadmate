@@ -29,11 +29,14 @@ const linkClass = (active: boolean) =>
 export function PublicSiteShell({
   active,
   banner,
+  bleed = false,
   children,
 }: {
   active?: NavKey;
   /** Announcement bar pinned above the header (inside it, so it stays on screen). */
   banner?: React.ReactNode;
+  /** Let the page run edge to edge and set its own widths (the landing page). */
+  bleed?: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -117,11 +120,11 @@ export function PublicSiteShell({
         </div>
       </header>
 
-      <main className="relative z-10 flex-1 max-w-6xl w-full mx-auto px-4 md:px-6 py-8 md:py-14">
+      <main className={`relative z-10 flex-1 w-full ${bleed ? "" : "max-w-6xl mx-auto px-4 md:px-6 py-8 md:py-14"}`}>
         {children}
       </main>
 
-      <footer className="relative z-10 border-t border-black/5 dark:border-white/5 py-8 mt-12 text-sm text-slate-500">
+      <footer className={`relative z-10 border-t border-black/5 dark:border-white/5 py-8 text-sm text-slate-500 ${bleed ? "" : "mt-12"}`}>
         <div className="max-w-6xl mx-auto px-4 md:px-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <nav className="flex flex-wrap justify-center gap-x-5 gap-y-2" aria-label="Footer">
             {[...NAV, ...LEGAL].map((item) => (
