@@ -7,7 +7,7 @@ import { reminderVariantsFor, type ReminderVariant } from '../auth/email-templat
 import { unsubscribeUrl } from '../../common/utils/unsubscribe-token';
 
 type Plan = 'FREE' | 'PREMIUM';
-type Candidate = { id: string; email: string; name: string | null; plan: Plan };
+type Candidate = { id: string; email: string; name: string | null; plan: Plan; lastReminderAt: Date | null };
 
 // Who can get a reminder, and how often.
 const NEW_USER_GRACE_DAYS = 3; // let new sign-ups settle in first
@@ -55,15 +55,11 @@ export class EngagementService {
       result.picked = batch.length;
       if (batch.length === 0) return result;
 
-      // Claim the batch before sending, so a crash or a second run can't email
-      // the same people twice. A failed send still counts against the cooldown:
-      // better to skip someone once than to retry into a quota error every day.
-      await this.prisma.user.updateMany({
-        where: { id: { in: batch.map((u) => u.id) } },
-        data: { lastReminderAt: new Date() },
-      });
-
       for (const user of batch) {
+        // Claim each person just before their send, not the whole batch up front:
+        // if the run stops early, the people never reached stay eligible.
+        // Claiming before (not after) the send means a crash can't email anyone twice.
+        await this.setLastReminder(user.id, new Date());
         const variant: ReminderVariant = pick(reminderVariantsFor(user.plan));
         try {
           await this.mail.sendReminder(user.email, user.name, variant, unsubscribeUrl(user.id));
@@ -72,8 +68,11 @@ export class EngagementService {
           result.failed++;
           const message = err instanceof Error ? err.message : String(err);
           this.logger.warn(`Reminder failed for user ${user.id}: ${message}`);
-          // Out of daily quota: every further send would fail too.
+          // Out of daily quota: this send didn't happen and every further one
+          // would fail too. Give this person their old cooldown back and stop.
+          // Any other failure keeps the claim, so a bad address isn't retried daily.
           if (/quota|rate limit|429/i.test(message)) {
+            await this.setLastReminder(user.id, user.lastReminderAt);
             result.stoppedEarly = true;
             break;
           }
@@ -101,7 +100,7 @@ export class EngagementService {
     if (limit <= 0) return [];
     const exclude = excludeIds.length ? Prisma.sql`AND u.id NOT IN (${Prisma.join(excludeIds)})` : Prisma.empty;
     return this.prisma.$queryRaw<Candidate[]>`
-      SELECT u.id, u.email, u.name, u.plan::text AS plan
+      SELECT u.id, u.email, u.name, u.plan::text AS plan, u."lastReminderAt"
       FROM users u
       WHERE u.role::text = 'STUDENT'
         AND u.plan::text = ${plan}
@@ -116,6 +115,10 @@ export class EngagementService {
         ${exclude}
       ORDER BY random()
       LIMIT ${limit}`;
+  }
+
+  private setLastReminder(userId: string, at: Date | null) {
+    return this.prisma.user.update({ where: { id: userId }, data: { lastReminderAt: at } });
   }
 
   /** Sets the opt-out flag. Returns false for an unknown user. */
