@@ -4,7 +4,8 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { SettingsService } from './settings.service';
 
 // Read-only, student-facing view of platform settings. The exam picker uses
-// this to grey out exam groups the admin has switched off.
+// this to grey out exam groups the admin has switched off, and the upgrade
+// page reads the payment details from it.
 @ApiTags('settings')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
@@ -16,5 +17,11 @@ export class SettingsController {
   @ApiOperation({ summary: 'Which exam groups are currently open to students' })
   getExamAvailability() {
     return this.settingsService.getExamAvailability();
+  }
+
+  @Get('payment')
+  @ApiOperation({ summary: 'Premium price, bank details and WhatsApp number for the upgrade page' })
+  getPaymentDetails() {
+    return this.settingsService.getPaymentDetails();
   }
 }

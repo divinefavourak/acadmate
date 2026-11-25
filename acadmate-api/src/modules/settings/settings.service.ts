@@ -43,6 +43,30 @@ export interface FreeQuotaSettings {
 export const DEFAULT_FREE_QUOTA: FreeQuotaSettings = { enabled: false, perSubject: 10 };
 export const MAX_FREE_PER_SUBJECT = 200;
 
+// How students pay for Premium: a bank transfer, then an "I've paid" message
+// on WhatsApp. An admin grants Premium after checking the receipt.
+export const PAYMENT_DETAILS_KEY = 'payment_details';
+
+export interface PaymentDetails {
+  /** One payment, in naira. Null until the owner sets it. */
+  priceNaira: number | null;
+  bankName: string;
+  accountName: string;
+  /** NUBAN, 10 digits, or empty. */
+  accountNumber: string;
+  /** International format, digits only (2348012345678). */
+  whatsappNumber: string;
+}
+
+// The WhatsApp number the old upgrade page linked to.
+export const DEFAULT_PAYMENT_DETAILS: PaymentDetails = {
+  priceNaira: null,
+  bankName: '',
+  accountName: '',
+  accountNumber: '',
+  whatsappNumber: '2349031843486',
+};
+
 // Fail open: if nothing has ever been configured, everything is available.
 const DEFAULT_EXAM_AVAILABILITY: ExamAvailability = { utme: true, postUtme: true };
 
@@ -159,6 +183,44 @@ export class SettingsService {
     return {
       enabled: typeof v.enabled === 'boolean' ? v.enabled : DEFAULT_FREE_QUOTA.enabled,
       perSubject: Math.min(MAX_FREE_PER_SUBJECT, Math.max(1, n)),
+    };
+  }
+
+  // ─── Premium payment details ───────────────────────────────────────────────
+  // Read by the upgrade page only, so no cache.
+
+  async getPaymentDetails(): Promise<PaymentDetails> {
+    const row = await this.prisma.appSetting.findUnique({ where: { key: PAYMENT_DETAILS_KEY } });
+    return this.normalizePayment(row?.value);
+  }
+
+  async setPaymentDetails(input: Partial<PaymentDetails>): Promise<PaymentDetails> {
+    const next = this.normalizePayment({ ...(await this.getPaymentDetails()), ...input });
+    const value = next as unknown as Prisma.InputJsonObject;
+    await this.prisma.appSetting.upsert({
+      where: { key: PAYMENT_DETAILS_KEY },
+      create: { key: PAYMENT_DETAILS_KEY, value },
+      update: { value },
+    });
+    return next;
+  }
+
+  private normalizePayment(raw: unknown): PaymentDetails {
+    const v = (raw ?? {}) as Record<string, unknown>;
+    const text = (x: unknown, fallback: string, max = 80) =>
+      typeof x === 'string' ? x.trim().slice(0, max) : fallback;
+    const digits = (x: unknown, fallback: string) =>
+      typeof x === 'string' ? x.replace(/\D/g, '').slice(0, 15) : fallback;
+    const d = DEFAULT_PAYMENT_DETAILS;
+    const price = typeof v.priceNaira === 'number' && Number.isFinite(v.priceNaira) && v.priceNaira > 0
+      ? Math.round(v.priceNaira)
+      : null;
+    return {
+      priceNaira: v.priceNaira === undefined ? d.priceNaira : price,
+      bankName: text(v.bankName, d.bankName),
+      accountName: text(v.accountName, d.accountName, 120),
+      accountNumber: digits(v.accountNumber, d.accountNumber),
+      whatsappNumber: digits(v.whatsappNumber, d.whatsappNumber),
     };
   }
 
