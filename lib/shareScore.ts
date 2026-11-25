@@ -113,7 +113,10 @@ export type ShareOutcome = "shared" | "cancelled" | "fallback";
 
 /**
  * Native share sheet with the image where the browser can share files
- * (most phones). Otherwise the caller shows the WhatsApp link and a download.
+ * (most phones). Call it straight from the tap, with the image already drawn.
+ * Anything but "shared" means the caller should offer WhatsApp and a
+ * download: AbortError covers both "closed the sheet" and "nowhere to share",
+ * so it can't be treated as a plain cancel.
  */
 export async function shareScoreCard(card: ScoreCard, image: Blob): Promise<ShareOutcome> {
   const file = new File([image], "acadmate-score.png", { type: "image/png" });

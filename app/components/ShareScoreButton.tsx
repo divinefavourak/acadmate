@@ -1,33 +1,62 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { renderScoreCard, shareScoreCard, whatsappShareLink, type ScoreCard } from "@/lib/shareScore";
+
+type CardInput = Omit<ScoreCard, "text"> & { text: (url: string) => string };
 
 /**
  * "Share my score". Phones get the share sheet with the score image attached.
- * Where files can't be shared (most desktops), it falls back to a WhatsApp
- * message and a download of the image.
+ *
+ * The image is drawn ahead of time, not on the tap: browsers (Safari above
+ * all) only allow the share sheet for a moment after a tap, and fonts, the
+ * logo and PNG encoding can take longer than that. If the sheet is closed,
+ * has nowhere to share, or files can't be shared at all (most desktops), the
+ * WhatsApp message and a download of the image are shown instead.
  */
-export default function ShareScoreButton({ card, className = "" }: { card: Omit<ScoreCard, "text"> & { text: (url: string) => string }; className?: string }) {
-  const [busy, setBusy] = useState(false);
+export default function ShareScoreButton({ card, className = "" }: { card: CardInput; className?: string }) {
+  const [prepared, setPrepared] = useState<{ key: string; full: ScoreCard; image: Blob } | null>(null);
   const [fallback, setFallback] = useState<{ url: string; text: string } | null>(null);
   const [error, setError] = useState("");
+  const cardRef = useRef(card);
+  useEffect(() => {
+    cardRef.current = card;
+  });
+
+  // Redraw only when what's on the card changes (the streak can arrive late).
+  const key = JSON.stringify([card.headline, card.label, card.detail ?? "", card.streak ?? 0]);
+
+  useEffect(() => {
+    let live = true;
+    // After the page has settled, so drawing doesn't compete with first paint.
+    const timer = window.setTimeout(() => {
+      const c = cardRef.current;
+      const full: ScoreCard = { ...c, text: c.text(window.location.origin) };
+      renderScoreCard(full, window.location.host)
+        .then((image) => {
+          if (live) setPrepared({ key, full, image });
+        })
+        .catch(() => {
+          if (live) setError("Couldn’t make the image.");
+        });
+    }, 300);
+    return () => {
+      live = false;
+      window.clearTimeout(timer);
+    };
+  }, [key]);
 
   useEffect(() => () => { if (fallback) URL.revokeObjectURL(fallback.url); }, [fallback]);
 
+  const ready = prepared?.key === key ? prepared : null;
+
   async function share() {
-    setBusy(true);
+    if (!ready) return;
     setError("");
-    try {
-      const origin = window.location.origin;
-      const full: ScoreCard = { ...card, text: card.text(origin) };
-      const image = await renderScoreCard(full, window.location.host);
-      const outcome = await shareScoreCard(full, image);
-      if (outcome === "fallback") setFallback({ url: URL.createObjectURL(image), text: full.text });
-    } catch {
-      setError("Couldn’t make the image. Try again.");
-    } finally {
-      setBusy(false);
+    // No await before this call: the share sheet needs the tap to be fresh.
+    const outcome = await shareScoreCard(ready.full, ready.image);
+    if (outcome !== "shared") {
+      setFallback({ url: URL.createObjectURL(ready.image), text: ready.full.text });
     }
   }
 
@@ -36,14 +65,14 @@ export default function ShareScoreButton({ card, className = "" }: { card: Omit<
       <button
         type="button"
         onClick={share}
-        disabled={busy}
+        disabled={!ready}
         className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-mint-500/40 bg-mint-500/10 px-4 py-2.5 text-sm font-semibold text-mint-700 dark:text-mint-300 hover:bg-mint-500/20 disabled:opacity-60 transition-colors"
       >
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
           <line x1="8.59" x2="15.42" y1="13.51" y2="17.49" /><line x1="15.41" x2="8.59" y1="6.51" y2="10.49" />
         </svg>
-        {busy ? "Making your image…" : "Share my score"}
+        {ready ? "Share my score" : error ? "Share unavailable" : "Preparing…"}
       </button>
       {error && <p role="alert" className="mt-2 text-xs text-red-600 dark:text-red-400">{error}</p>}
       {fallback && (
