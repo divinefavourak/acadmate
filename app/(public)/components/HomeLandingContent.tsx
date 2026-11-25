@@ -1,20 +1,14 @@
-"use client";
-
-import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { BrandMark } from "@/app/components/BrandMark";
-import { motion } from "framer-motion";
-import MobileNav from "@/app/components/layout/MobileNav";
-import V2Banner from "./V2Banner";
-import {
-  ChatBubbleLeftRightIcon,
-  GlobeAltIcon,
-} from "@heroicons/react/24/outline";
-import { fadeUp, fadeIn, scaleIn, stagger, slideInLeft, slideInRight } from "@/lib/motion";
+import { Bricolage_Grotesque } from "next/font/google";
 import { categoryLabel, type BlogCategory } from "@/app/blog/categories";
+import { HUB_PATH, aboutCount, capitalise, subjectPath, yearRange, type HubData } from "@/lib/pastQuestions";
+import { TryQuestion, type DemoQuestion } from "./TryQuestion";
+import { PaperFinder } from "./PaperFinder";
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+// Headline face for the landing page only. Chunky and a little quirky, close to
+// the weight of the logo's wordmark; body text stays in the site's Outfit.
+const display = Bricolage_Grotesque({ subsets: ["latin"], variable: "--font-bricolage", display: "swap" });
 
 export interface RecentBlogPost {
   id: string;
@@ -27,557 +21,459 @@ export interface RecentBlogPost {
   author: { name: string | null } | null;
 }
 
-// ─── Nav config ──────────────────────────────────────────────────────────────
+const WHATSAPP_URL = "https://wa.me/2349031843486";
+const WRAP = "mx-auto w-full max-w-6xl px-4 md:px-6";
+const H2 = "font-display text-3xl font-extrabold tracking-tight md:text-5xl";
 
-const landingNavItems = [
-  { href: "#features", label: "Features", icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m11 17 2 2 4-4"/><path d="m11 9 2 2 4-4"/><path d="M7 17h.01"/><path d="M7 11h.01"/><path d="M7 5h.01"/><path d="M3 21h18"/><path d="M3 3h18"/></svg> },
-  { href: "/past-questions", label: "Past Questions", icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg> },
-  { href: "#subjects", label: "Subjects", icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg> },
-  { href: "/blog", label: "Blog", icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg> },
-  { href: "#pricing", label: "Pricing", icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg> },
-  { href: "#prose", label: "Literature", icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg> },
-];
-
-const footerSocials = [
-  { name: "WhatsApp", href: "https://wa.me/2349031843486", icon: ChatBubbleLeftRightIcon },
-  { name: "Website", href: "/", icon: GlobeAltIcon },
-];
-
-// ─── Component ───────────────────────────────────────────────────────────────
-
+/**
+ * Landing page body. Students land wanting a paper or a practice session, so the
+ * hero opens with a paper finder and the page then lets them try a real question
+ * on a CBT screen. Counts are rounded down (aboutCount) so the copy never
+ * overstates and doesn't go stale. Sections with no data are left out.
+ */
 export default function HomeLandingContent({
+  hub,
+  questions,
   recentPosts = [],
 }: {
+  hub: HubData | null;
+  questions: DemoQuestion[];
   recentPosts?: RecentBlogPost[];
 }) {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const subjects = hub?.subjects ?? [];
+  const count = hub ? capitalise(aboutCount(hub.total)) : null;
+  const finderSubjects = subjects.map((s) => ({
+    slug: s.slug,
+    name: s.name,
+    years: s.years.map((y) => y.year).sort((a, b) => b - a),
+  }));
+  const [featured, ...morePosts] = recentPosts;
 
   return (
-    // overflow-clip, not overflow-hidden: hidden makes this div a scroll container, which stops the sticky header sticking.
-    <div className="flex flex-col min-h-screen bg-navy-950 text-white relative overflow-clip">
-      {/* Subtle background gradient */}
-      <div className="pointer-events-none fixed inset-0 z-0">
-        <div className="absolute top-0 left-1/4 w-150 h-150 bg-brand-600/10 rounded-full blur-[120px]" />
-        <div className="absolute bottom-0 right-1/4 w-100 h-100 bg-mint-600/10 rounded-full blur-[100px]" />
-      </div>
-
-      {/* Nav, with the v2 announcement pinned above it */}
-      <header className="sticky top-0 z-50 border-b border-white/5 bg-navy-950/80 backdrop-blur-xl">
-        <V2Banner />
-        <div className="max-w-7xl mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5">
-            <BrandMark size={32} tone="dark" />
-            <span className="text-lg font-bold tracking-tight">Acadmate</span>
-          </Link>
-
-          <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-400" aria-label="Main navigation">
-            {landingNavItems.map((item) => (
-              <Link key={item.href} href={item.href} className="hover:text-white transition-colors">
-                {item.label}
-              </Link>
-            ))}
-          </nav>
-
-          <div className="flex items-center gap-3">
-            <Link href="/login" className="hidden sm:inline-flex text-sm font-medium text-slate-400 hover:text-white transition-colors px-4 py-2">
-              Sign In
-            </Link>
-            <Link href="/register" className="text-sm font-semibold bg-brand-600 hover:bg-brand-500 text-white px-5 py-2.5 rounded-xl transition-colors">
-              Register free
-            </Link>
-            <button
-              className="md:hidden p-2 text-slate-400"
-              onClick={() => setIsMenuOpen(true)}
-              aria-label="Open menu"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <MobileNav isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} navItems={landingNavItems} />
-
+    <div className={display.variable}>
       {/* ── HERO ── */}
-      <section className="relative z-10 max-w-7xl mx-auto px-4 md:px-6 pt-16 pb-8 md:pt-24 md:pb-16">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-          {/* Left: copy */}
-          <motion.div
-            variants={stagger(0.1, 0.12)}
-            initial="hidden"
-            animate="visible"
-          >
-            <motion.div variants={fadeUp} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-400 text-xs font-semibold uppercase tracking-wider mb-6">
-              🎓 Nigeria&apos;s Student Success Platform
-            </motion.div>
-
-            <motion.h1 variants={fadeUp} className="text-4xl md:text-6xl font-extrabold tracking-tight leading-[1.08] mb-6">
-              Ace your exams.<br />
-              <span className="bg-linear-to-r from-brand-400 to-mint-400 bg-clip-text text-transparent">
-                Go further.
-              </span>
-            </motion.h1>
-
-            <motion.p variants={fadeUp} className="text-lg text-slate-400 mb-8 leading-relaxed max-w-xl">
-              JAMB &amp; Post-UTME practice, school news, scholarship alerts, and career guides — everything a Nigerian student needs, in one place.
-            </motion.p>
-
-            <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-10">
-              <Link href="/register" className="flex-1 sm:flex-none text-center bg-brand-600 hover:bg-brand-500 text-white font-bold px-8 py-4 rounded-2xl transition-all hover:shadow-lg hover:shadow-brand-500/25 text-base">
-                Start Practising Free
-              </Link>
-              <Link href="#features" className="flex-1 sm:flex-none text-center border border-white/10 hover:border-white/20 text-slate-300 hover:text-white font-medium px-8 py-4 rounded-2xl transition-all text-base bg-white/5">
-                See Features
-              </Link>
-            </motion.div>
-
-            {/* Social proof */}
-            <motion.div variants={stagger(0, 0.1)} className="flex flex-wrap gap-8 pt-4 border-t border-white/5">
-              {[
-                { val: "8,600+", label: "Past Questions" },
-                { val: "11", label: "Subjects" },
-                { val: "6", label: "Post-UTME Schools" },
-                { val: "Blog", label: "News & Guides" },
-              ].map((s) => (
-                <motion.div key={s.label} variants={fadeUp}>
-                  <p className="text-2xl font-extrabold text-white">{s.val}</p>
-                  <p className="text-xs text-slate-500 mt-0.5">{s.label}</p>
-                </motion.div>
-              ))}
-            </motion.div>
-          </motion.div>
-
-          {/* Right: photos */}
-          <motion.div
-            variants={slideInRight}
-            initial="hidden"
-            animate="visible"
-            className="relative"
-          >
-            <div className="relative rounded-2xl overflow-hidden border border-white/10 shadow-2xl shadow-black/40 aspect-4/3">
-              <Image
-                src="/images/520596414_739489019062965_5923685459460735498_n.jpg"
-                alt="Nigerian students taking JAMB CBT exam in a computer lab"
-                fill
-                className="object-cover"
-                priority
-                sizes="(max-width: 1024px) 100vw, 50vw"
-              />
-              <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent" />
-              <div className="absolute bottom-4 left-4 right-4">
-                <div className="flex items-center gap-2 bg-black/60 backdrop-blur-sm rounded-xl px-4 py-2.5 border border-white/10 w-fit">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-                  <span className="text-xs font-medium text-white">Real CBT exam conditions</span>
-                </div>
-              </div>
-            </div>
-
-            <motion.div
-              initial={{ opacity: 0, x: -20, y: 20 }}
-              animate={{ opacity: 1, x: 0, y: 0 }}
-              transition={{ delay: 0.6, duration: 0.5, ease: "easeOut" }}
-              className="absolute -bottom-6 -left-6 w-44 md:w-52 rounded-xl overflow-hidden border-2 border-brand-500/50 shadow-xl shadow-brand-500/10 hidden sm:block"
-            >
-              <Image
-                src="/images/520231975_1062352099320762_1989502761018549539_n.jpg"
-                alt="Nigerian student studying and practising for JAMB"
-                width={208}
-                height={156}
-                className="object-cover w-full h-full"
-                sizes="208px"
-              />
-              <div className="absolute inset-0 bg-linear-to-t from-black/50 to-transparent" />
-              <div className="absolute bottom-2 left-2 right-2 text-xs font-semibold text-white drop-shadow">
-                Practice → Confidence
-              </div>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.7, duration: 0.4, ease: "easeOut" }}
-              className="absolute -top-4 -right-4 bg-navy-950 border border-white/10 rounded-2xl px-4 py-3 shadow-xl hidden md:block"
-            >
-              <p className="text-xs text-slate-400 mb-0.5">Average Score Gain</p>
-              <p className="text-2xl font-extrabold text-emerald-400">+47pts</p>
-            </motion.div>
-          </motion.div>
+      <section className="relative overflow-hidden bg-navy-900 text-white">
+        {/* The logo's blue-to-green sweep, plus a faint grid like the CBT question palette. */}
+        <div aria-hidden className="pointer-events-none absolute inset-0">
+          <div className="absolute -right-40 -top-40 h-[38rem] w-[38rem] rounded-full bg-[conic-gradient(from_200deg,#1a91f0,#16b985,#8cd851,#1a91f0)] opacity-35 blur-3xl" />
+          <div className="absolute -bottom-48 -left-32 h-[26rem] w-[26rem] rounded-full bg-brand-600/40 blur-3xl" />
+          <div className="absolute inset-0 bg-[radial-gradient(rgba(255,255,255,0.09)_1px,transparent_1px)] [background-size:22px_22px] [mask-image:linear-gradient(to_bottom,black,transparent_85%)]" />
         </div>
-      </section>
 
-      {/* ── FEATURES ── */}
-      <section id="features" className="relative z-10 max-w-7xl mx-auto px-4 md:px-6 py-20 md:py-32">
-        <motion.div
-          className="text-center mb-14"
-          variants={fadeUp}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, amount: 0.5 }}
-        >
-          <h2 className="text-3xl md:text-5xl font-bold mb-4">Everything a Nigerian student needs</h2>
-          <p className="text-slate-400 max-w-xl mx-auto">Exam prep, school news, scholarship alerts, and career resources — all in one platform.</p>
-        </motion.div>
-        <motion.div
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"
-          variants={stagger(0.1, 0.1)}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, amount: 0.1 }}
-        >
-          {[
-            { icon: "⏱️", title: "Timed CBT Engine", desc: "Simulate the exact timing and pressure of the real JAMB exam. 2-hour mock tests, subject-by-subject practice, topic drills." },
-            { icon: "📚", title: "Real Past Questions", desc: "8,600+ curated JAMB questions from 1978–2024. Every subject, every year — all with verified answers." },
-            { icon: "💡", title: "Step-by-Step Solutions", desc: "Instant, detailed explanations for every question. Understand why, not just what." },
-            { icon: "📊", title: "Deep Analytics", desc: "Spot your weak topics before exam day. Track your score trend and subject accuracy over time." },
-            { icon: "🎓", title: "Post-UTME Prep", desc: "Practice with real Post-UTME past papers from UNILAG, UI, OAU, UNIBEN, ABU and UNN. Timed 30-minute sessions, 40 questions." },
-            { icon: "🏆", title: "Leaderboard", desc: "See how you rank among all students nationally. Separate UTME and Post-UTME boards updated in real time." },
-            { icon: "🎯", title: "Topic Mastery", desc: "Drill specific topics until they’re perfect. Identify gaps and close them systematically." },
-            { icon: "📖", title: "Literature Guide", desc: "Full summaries, character breakdowns and predicted questions for The Lekki Headmaster and other UTME prose." },
-            { icon: "🔐", title: "Google Sign-In", desc: "Register or sign in with your Google account in one click — no password required." },
-            { icon: "📰", title: "Blog & School News", desc: "Stay informed with JAMB updates, university announcements, and study tips written by our team." },
-            { icon: "🎓", title: "Scholarship Alerts", desc: "Never miss a funding opportunity. We publish local and international scholarship announcements for Nigerian students." },
-            { icon: "💼", title: "Career Guidance", desc: "Explore career paths, course requirements, and university admission insights to plan beyond the exam." },
-          ].map((f, i) => (
-            <motion.div
-              key={i}
-              variants={fadeUp}
-              whileHover={{ y: -4, transition: { duration: 0.2 } }}
-              className="group relative bg-white/3 border border-white/8 hover:border-white/15 rounded-2xl p-6 transition-colors hover:bg-white/6 cursor-default"
-            >
-              <div className="text-3xl mb-4">{f.icon}</div>
-              <h3 className="text-lg font-bold mb-2">{f.title}</h3>
-              <p className="text-sm text-slate-400 leading-relaxed">{f.desc}</p>
-            </motion.div>
-          ))}
-        </motion.div>
-      </section>
-
-      {/* ── PRICING ── */}
-      <section id="pricing" className="relative z-10 max-w-7xl mx-auto px-4 md:px-6 py-20 md:py-32">
-        <motion.div
-          className="text-center mb-14"
-          variants={fadeUp}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, amount: 0.5 }}
-        >
-          <h2 className="text-3xl md:text-5xl font-bold mb-4">Simple, honest pricing</h2>
-          <p className="text-slate-400 max-w-lg mx-auto">Start free. Upgrade when you&apos;re ready to go all in.</p>
-        </motion.div>
-        <motion.div
-          className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto"
-          variants={stagger(0.1, 0.15)}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, amount: 0.1 }}
-        >
-          {/* Free plan */}
-          <motion.div variants={fadeUp} className="bg-white/3 border border-white/8 rounded-2xl p-8 space-y-6">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-1">Free</p>
-              <p className="text-4xl font-extrabold">₦0</p>
-              <p className="text-slate-400 text-sm mt-2">Start practising instantly, no card needed.</p>
-            </div>
-            <ul className="space-y-3">
-              {[
-                "Subject Practice (up to 20 questions)",
-                "Topic Drills (up to 20 questions)",
-                "AI-powered explanations",
-                "Analytics & score tracking",
-                "Literature guide",
-                "Leaderboard access",
-              ].map((item) => (
-                <li key={item} className="flex items-center gap-2.5 text-sm text-slate-300">
-                  <span className="w-4 h-4 rounded-full bg-emerald-500/15 text-emerald-400 flex items-center justify-center text-xs shrink-0">✓</span>
-                  {item}
-                </li>
-              ))}
-            </ul>
-            <Link href="/register" className="block text-center border border-white/10 hover:border-white/20 text-slate-300 font-semibold px-6 py-3 rounded-xl transition-colors">
-              Get Started Free
-            </Link>
-          </motion.div>
-
-          {/* Premium plan */}
-          <motion.div variants={fadeUp} className="relative bg-brand-600 rounded-2xl p-8 space-y-6 shadow-2xl shadow-brand-500/20">
-            <div className="absolute top-4 right-4 px-2.5 py-1 rounded-full bg-white/15 text-white text-xs font-bold">
-              Most Popular
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-widest text-brand-200 mb-1">Premium</p>
-              <p className="text-4xl font-extrabold text-white">Contact Us</p>
-              <p className="text-brand-200 text-sm mt-2">Pay once, full access — no subscription.</p>
-            </div>
-            <ul className="space-y-3">
-              {[
-                "Everything in Free",
-                "Full UTME Mock Exams (160 questions, 2 hrs)",
-                "Post-UTME Papers — 6 top universities",
-                "Unlimited question count per session",
-                "Priority WhatsApp support",
-              ].map((item) => (
-                <li key={item} className="flex items-center gap-2.5 text-sm text-white">
-                  <span className="w-4 h-4 rounded-full bg-white/20 text-white flex items-center justify-center text-xs shrink-0">✓</span>
-                  {item}
-                </li>
-              ))}
-            </ul>
-            <a
-              href="https://wa.me/2349031843486"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block text-center bg-white text-brand-700 font-bold px-6 py-3 rounded-xl hover:bg-brand-50 transition-colors"
-            >
-              Pay via WhatsApp
-            </a>
-          </motion.div>
-        </motion.div>
-      </section>
-
-      {/* ── SUBJECTS ── */}
-      <section id="subjects" className="relative z-10 max-w-7xl mx-auto px-4 md:px-6 py-20 md:py-32">
-        <motion.div
-          className="rounded-[2.5rem] bg-brand-500/5 border border-brand-500/10 p-10 md:p-16"
-          variants={scaleIn}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, amount: 0.2 }}
-        >
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-5xl font-bold mb-4">All Major JAMB Subjects</h2>
-            <p className="text-slate-400">Comprehensive question banks across every department combination.</p>
-          </div>
-          <motion.div
-            className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"
-            variants={stagger(0.05, 0.06)}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.1 }}
-          >
-            {[
-              { name: "Mathematics", icon: "📐" },
-              { name: "English Language", icon: "✏️" },
-              { name: "Biology", icon: "🧬" },
-              { name: "Chemistry", icon: "⚗️" },
-              { name: "Physics", icon: "⚡" },
-              { name: "Economics", icon: "📈" },
-              { name: "Government", icon: "🏛️" },
-              { name: "Literature", icon: "📖" },
-              { name: "Commerce", icon: "💼" },
-              { name: "Accounts", icon: "🧾" },
-              { name: "CRK", icon: "✝️" },
-              { name: "More soon…", icon: "🔜" },
-            ].map((s, i) => (
-              <motion.div
-                key={i}
-                variants={fadeUp}
-                className="flex items-center gap-3 bg-white/3 border border-white/8 rounded-xl p-4 hover:border-brand-500/30 transition-colors group"
-              >
-                <span className="text-xl">{s.icon}</span>
-                <span className="text-sm font-semibold text-slate-200 group-hover:text-white transition-colors">{s.name}</span>
-              </motion.div>
-            ))}
-          </motion.div>
-        </motion.div>
-      </section>
-
-      {/* ── LITERATURE SPOTLIGHT ── */}
-      <section id="prose" className="relative z-10 max-w-7xl mx-auto px-4 md:px-6 py-20 md:py-32">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
-          <motion.div
-            variants={slideInLeft}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.3 }}
-          >
-            <div className="inline-block px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-6">
-              Literature Spotlight
-            </div>
-            <h2 className="text-3xl md:text-5xl font-bold mb-6 leading-tight">Master<br />The Lekki Headmaster</h2>
-            <p className="text-slate-400 mb-8 leading-relaxed text-lg">
-              Don&apos;t lose marks on prose. Our platform has the most comprehensive guide to every UTME literature text.
+        <div className={`${WRAP} relative grid items-center gap-10 pb-28 pt-12 md:pb-36 md:pt-16 lg:grid-cols-[1.15fr_0.85fr]`}>
+          <div>
+            <h1 className="font-display text-[2.7rem] leading-[1.02] font-extrabold tracking-[-0.02em] sm:text-6xl md:text-7xl">
+              Practise JAMB the way you’ll sit it.
+            </h1>
+            <p className="mt-5 max-w-xl text-lg leading-relaxed text-slate-200">
+              {count ? `${count} real past questions with answers, ` : "Real past questions with answers, "}
+              free to read. Then practise them on a timed CBT screen and see your score straight away.
             </p>
-            <ul className="space-y-3 mb-10">
-              {[
-                "Full plot summaries & chapter breakdowns",
-                "In-depth character analysis",
-                "Thematic explorations",
-                "Predicted exam questions with answers",
-              ].map((l, i) => (
-                <li key={i} className="flex items-center gap-3 text-sm text-slate-300">
-                  <span className="w-5 h-5 shrink-0 rounded-full bg-emerald-500/15 text-emerald-400 flex items-center justify-center text-xs">✓</span>
-                  {l}
-                </li>
-              ))}
-            </ul>
-            <Link href="/register" className="inline-block bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-8 py-3.5 rounded-2xl transition-colors">
-              Get Literature Guide
-            </Link>
-          </motion.div>
 
-          <motion.div
-            variants={slideInRight}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.3 }}
-            className="relative"
-          >
-            <div className="relative aspect-4/3 rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
-              <Image
-                src="/images/520596414_739489019062965_5923685459460735498_n.jpg"
-                alt="Students studying literature in a Nigerian exam hall"
-                fill
-                className="object-cover"
-                sizes="(max-width: 1024px) 100vw, 50vw"
-              />
-              <div className="absolute inset-0 bg-linear-to-br from-emerald-900/40 to-transparent" />
-            </div>
-            <div className="absolute -bottom-5 -right-5 bg-navy-950 border border-white/10 rounded-2xl p-5 shadow-xl max-w-55 hidden md:block">
-              <p className="text-sm font-bold text-white mb-1">90%+ Accuracy</p>
-              <p className="text-xs text-slate-400">Predicting JAMB literature questions since 2022.</p>
-            </div>
-          </motion.div>
+            {finderSubjects.length > 0 && (
+              <div className="mt-8 max-w-2xl">
+                <PaperFinder subjects={finderSubjects} />
+              </div>
+            )}
+
+            <p className="mt-5 text-slate-300">
+              Ready for a timed session?{" "}
+              <Link href="/register" className="font-semibold text-white underline decoration-mint-400 decoration-2 underline-offset-4 hover:decoration-white">
+                Start practising free
+              </Link>
+            </p>
+          </div>
+
+          {/* The jubilant figure from the logo, with what's true about the site around it. */}
+          <div className="relative mx-auto hidden w-full max-w-sm lg:block">
+            <div aria-hidden className="absolute inset-8 rounded-full bg-white/10 ring-1 ring-white/15" />
+            <Image src="/brand/mark-dark.svg" alt="" width={360} height={360} priority className="relative mx-auto h-auto w-full p-6" />
+            <Badge className="absolute -left-6 top-10" tone="bg-[#feb12c] text-navy-900">
+              {count ? `${count} questions` : "Real past questions"}
+            </Badge>
+            <Badge className="absolute -right-4 top-1/2" tone="bg-white text-navy-900">
+              Answers free, no account
+            </Badge>
+            <Badge className="absolute bottom-6 left-2" tone="bg-mint-400 text-navy-900">
+              Timed like the real CBT
+            </Badge>
+          </div>
         </div>
       </section>
 
-      {/* ── LATEST FROM THE BLOG ── */}
-      {recentPosts.length > 0 && (
-        <section className="relative z-10 max-w-7xl mx-auto px-4 md:px-6 py-20 md:py-24">
-          <motion.div
-            variants={fadeUp}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.3 }}
-          >
-            <div className="flex items-end justify-between mb-10">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-400 mb-2">The Acadmate Blog</p>
-                <h2 className="text-3xl md:text-4xl font-bold">News, tips &amp; opportunities</h2>
-              </div>
-              <Link href="/blog" className="hidden sm:inline-flex text-sm font-medium text-brand-400 hover:text-brand-300 transition-colors">
-                View all posts →
+      {/* ── WHAT DO YOU WANT TO DO: colourful tiles riding up over the hero ── */}
+      <section aria-label="Ways to study" className={`${WRAP} relative -mt-16 md:-mt-20`}>
+        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {TILES.map((t) => (
+            <li key={t.title}>
+              <Link
+                href={t.href}
+                className={`group flex h-full items-start gap-4 rounded-2xl p-5 shadow-[0_18px_40px_-22px_rgba(13,29,47,0.6)] ring-1 ring-black/5 transition-transform hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 ${t.tone}`}
+              >
+                <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${t.iconTone}`}>{t.icon}</span>
+                <span>
+                  <span className="block font-display text-lg font-bold leading-tight text-slate-900">{t.title}</span>
+                  <span className="mt-1 block text-sm text-slate-600">{t.text}</span>
+                </span>
               </Link>
-            </div>
+            </li>
+          ))}
+        </ul>
+      </section>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-              {recentPosts.map((post) => (
-                <Link
-                  key={post.id}
-                  href={`/blog/${post.slug}`}
-                  className="group rounded-2xl overflow-hidden border border-white/8 bg-white/3 hover:border-brand-500/30 hover:bg-white/6 transition-all flex flex-col"
-                >
-                  <div className="aspect-video bg-slate-900 relative overflow-hidden">
-                    {post.coverImageUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={post.coverImageUrl}
-                        alt={post.title}
-                        className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-brand-600/20 to-mint-600/10" />
-                    )}
-                  </div>
-                  <div className="p-5 flex-1 flex flex-col gap-2">
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-brand-400">
-                      {categoryLabel(post.category)}
-                    </span>
-                    <h3 className="font-bold leading-snug text-slate-200 group-hover:text-white transition-colors">
-                      {post.title}
-                    </h3>
-                    <p className="text-sm text-slate-500 line-clamp-2 flex-1">{post.excerpt}</p>
-                  </div>
-                </Link>
-              ))}
-            </div>
-
-            <div className="mt-8 text-center sm:hidden">
-              <Link href="/blog" className="text-sm font-medium text-brand-400 hover:text-brand-300 transition-colors">
-                View all posts →
-              </Link>
-            </div>
-          </motion.div>
+      {/* ── TRY ONE NOW ── */}
+      {questions.length > 0 && (
+        <section aria-labelledby="try-heading" className={`${WRAP} grid gap-10 pt-24 md:pt-28 lg:grid-cols-[0.8fr_1.2fr] lg:items-center`}>
+          <div>
+            <h2 id="try-heading" className={H2}>
+              Try a real question now.
+            </h2>
+            <p className="mt-4 max-w-md text-lg leading-relaxed text-slate-600 dark:text-slate-400">
+              This is the screen you practise on: a clock, the question grid, and your answer marked the moment you
+              pick it. The keys work like in the real CBT, too.
+            </p>
+            <p className="mt-4 text-sm text-slate-500">Real questions from past JAMB papers. Nothing here is saved.</p>
+          </div>
+          <TryQuestion questions={questions} />
         </section>
       )}
 
-      {/* ── CTA ── */}
-      <section id="demo" className="relative z-10 max-w-7xl mx-auto px-4 md:px-6 py-16 mb-20">
-        <motion.div
-          variants={scaleIn}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, amount: 0.3 }}
-          className="relative overflow-hidden rounded-[2.5rem] bg-brand-600 p-10 md:p-16 text-center"
-        >
-          <div className="absolute inset-0 opacity-10">
-            <Image
-              src="/images/520231975_1062352099320762_1989502761018549539_n.jpg"
-              alt=""
-              fill
-              className="object-cover"
-              aria-hidden="true"
-            />
-          </div>
-          <div className="absolute inset-0 bg-brand-600/80" />
-          <div className="relative z-10">
-            <h2 className="text-3xl md:text-5xl font-extrabold mb-4 text-white">Your student journey starts here.</h2>
-            <p className="text-brand-200 text-lg max-w-2xl mx-auto mb-10">
-              Join Nigerian students who use Acadmate to ace their exams, find scholarships, and build a path beyond admission.
-            </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link href="/register" className="w-full sm:w-auto bg-white text-brand-700 font-bold px-10 py-4 rounded-2xl hover:shadow-xl hover:scale-105 transition-all text-base">
-                Create Free Account
-              </Link>
-              <Link href="/login" className="w-full sm:w-auto bg-white/10 border border-white/20 text-white font-medium px-10 py-4 rounded-2xl hover:bg-white/20 transition-all text-base">
-                Sign In
-              </Link>
-            </div>
-            <p className="mt-6 text-brand-300 text-sm">Free to start — no credit card required.</p>
-          </div>
-        </motion.div>
+      {/* ── SUBJECTS ── */}
+      {subjects.length > 0 && (
+        <section aria-labelledby="subjects-heading" className={`${WRAP} pt-24 md:pt-32`}>
+          <h2 id="subjects-heading" className={H2}>
+            Past questions by subject
+          </h2>
+          <p className="mt-3 max-w-xl text-slate-600 dark:text-slate-400">
+            Every question shows its answer, no account needed. Sign in free to read the worked explanation.
+          </p>
+          <ul className="mt-10 flex flex-wrap items-baseline gap-x-10 gap-y-6">
+            {subjects.map((s) => (
+              <li key={s.id}>
+                <Link href={subjectPath(s.slug)} className="group inline-flex items-baseline gap-2.5">
+                  <span className="font-display text-3xl font-bold tracking-tight decoration-brand-500 decoration-[3px] underline-offset-[6px] group-hover:underline md:text-5xl">
+                    {s.name}
+                  </span>
+                  {s.years.length > 0 && <span className="text-sm tabular-nums text-slate-500">{yearRange(s.years)}</span>}
+                </Link>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-8 text-slate-600 dark:text-slate-400">
+            More papers and subjects are being checked and added.{" "}
+            <Link href={HUB_PATH} className="font-semibold text-brand-600 underline underline-offset-4 dark:text-brand-400">
+              See every paper by year
+            </Link>
+          </p>
+        </section>
+      )}
+
+      {/* ── THE 400 ── */}
+      <section aria-labelledby="score-heading" className={`${WRAP} grid items-center gap-12 pt-24 md:grid-cols-2 md:pt-32`}>
+        <div>
+          <h2 id="score-heading" className={H2}>
+            JAMB marks you out of 400. Know where each mark comes from.
+          </h2>
+          <p className="mt-5 max-w-lg text-lg leading-relaxed text-slate-600 dark:text-slate-400">
+            Four subjects, 100 marks each. Acadmate keeps your score in every subject and every topic inside it, so
+            before exam day you know which topics will give you the most marks for the time you have left.
+          </p>
+        </div>
+        <ResultSlip />
       </section>
 
-      {/* Footer */}
-      <footer className="relative z-10 border-t border-white/5 py-10 px-4 md:px-6 bg-navy-950/80 backdrop-blur-xl">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-8">
-          <div className="flex flex-col items-center md:items-start gap-4">
-            <Link href="/" className="flex items-center gap-2">
-              <BrandMark size={22} tone="dark" />
-              <span className="font-bold text-slate-300 text-lg">Acadmate</span>
+      {/* ── NEWS: a featured post with its picture, the rest as thumbnail rows ── */}
+      {featured && (
+        <section aria-labelledby="blog-heading" className={`${WRAP} pt-24 md:pt-32`}>
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <h2 id="blog-heading" className={H2}>
+              School news and study tips
+            </h2>
+            <Link href="/blog" className="font-semibold text-brand-600 underline underline-offset-4 dark:text-brand-400">
+              All news
             </Link>
-            <p className="text-sm text-slate-500 max-w-xs text-center md:text-left">
-              Helping Nigerian students ace their exams, find opportunities, and build their future.
+          </div>
+          <div className="mt-8 grid gap-6 lg:grid-cols-[1.1fr_1fr]">
+            <Link href={`/blog/${featured.slug}`} className="group block">
+              <Cover post={featured} className="aspect-[16/9] rounded-2xl" sizes="(min-width: 1024px) 560px, 100vw" />
+              <p className="mt-4 text-sm text-slate-500">
+                {categoryLabel(featured.category)}, {formatDate(featured.publishedAt)}
+              </p>
+              <h3 className="mt-1 font-display text-2xl font-bold leading-snug group-hover:text-brand-600 dark:group-hover:text-brand-400">
+                {featured.title}
+              </h3>
+              <p className="mt-2 text-slate-600 line-clamp-2 dark:text-slate-400">{featured.excerpt}</p>
+            </Link>
+            {morePosts.length > 0 && (
+              <ul className="divide-y divide-black/10 dark:divide-white/10">
+                {morePosts.map((post) => (
+                  <li key={post.id} className="py-4 first:pt-0">
+                    <Link href={`/blog/${post.slug}`} className="group grid grid-cols-[7.5rem_1fr] gap-4 sm:grid-cols-[10rem_1fr]">
+                      <Cover post={post} className="aspect-[4/3] rounded-xl" sizes="160px" />
+                      <span>
+                        <span className="block text-sm text-slate-500">
+                          {categoryLabel(post.category)}, {formatDate(post.publishedAt)}
+                        </span>
+                        <span className="mt-1 block font-bold leading-snug group-hover:text-brand-600 dark:group-hover:text-brand-400">
+                          {post.title}
+                        </span>
+                        <span className="mt-1 hidden text-sm text-slate-600 line-clamp-2 sm:block dark:text-slate-400">
+                          {post.excerpt}
+                        </span>
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* ── PRICING: a comparison, so a table ── */}
+      <section id="pricing" aria-labelledby="pricing-heading" className={`${WRAP} scroll-mt-24 pt-24 md:pt-32`}>
+        <h2 id="pricing-heading" className={H2}>
+          Free to start. Premium for everything.
+        </h2>
+        <p className="mt-3 max-w-xl text-slate-600 dark:text-slate-400">
+          Premium is one payment, not a subscription. Message us on WhatsApp for the current price.
+        </p>
+        <div className="mt-8 overflow-x-auto">
+          <table className="w-full min-w-[36rem] border-collapse text-left">
+            <thead>
+              <tr className="border-b-2 border-navy-900 dark:border-white/40">
+                <th scope="col" className="py-3 pr-4">
+                  <span className="sr-only">Feature</span>
+                </th>
+                <th scope="col" className="w-[28%] py-3 pr-4">
+                  <span className="block font-display text-2xl font-extrabold">Free</span>
+                  <span className="text-sm font-normal text-slate-500">₦0</span>
+                </th>
+                <th scope="col" className="w-[28%] py-3">
+                  <span className="block font-display text-2xl font-extrabold text-brand-600 dark:text-brand-400">Premium</span>
+                  <span className="text-sm font-normal text-slate-500">One payment</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {PLAN_ROWS.map(([feature, free, premium]) => (
+                <tr key={feature} className="border-b border-black/10 dark:border-white/10">
+                  <th scope="row" className="py-3.5 pr-4 font-medium">
+                    {feature}
+                  </th>
+                  <td className="py-3.5 pr-4">
+                    <Cell value={free} />
+                  </td>
+                  <td className="py-3.5">
+                    <Cell value={premium} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+          <Link href="/register" className="rounded-lg bg-brand-600 px-6 py-3.5 text-center font-bold text-white hover:bg-brand-700">
+            Create free account
+          </Link>
+          <a
+            href={WHATSAPP_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded-lg border-2 border-black/15 px-6 py-3 text-center font-semibold hover:border-brand-600 dark:border-white/20"
+          >
+            Ask about Premium on WhatsApp
+          </a>
+        </div>
+      </section>
+
+      {/* ── CLOSE: the figure from the logo ── */}
+      <section className="mt-24 bg-navy-900 text-white md:mt-32">
+        <div className={`${WRAP} grid items-center gap-10 py-16 md:grid-cols-[auto_1fr] md:py-20`}>
+          <Image src="/brand/logo-dark.svg" alt="Acadmate" width={220} height={220} className="mx-auto h-44 w-auto md:h-56" />
+          <div>
+            <h2 className={H2}>Start with one subject and twenty questions.</h2>
+            <p className="mt-4 max-w-xl text-lg text-slate-300">
+              That’s a first practice session. Create a free account and you can sit one right now.
             </p>
-          </div>
-
-          <div className="flex flex-col items-center gap-4">
-            <span className="text-xs font-semibold uppercase tracking-widest text-slate-600">Connect with us</span>
-            {footerSocials.map((item) => (
-              <Link
-                key={item.name}
-                href={item.href}
-                className="group flex flex-col items-center gap-2"
-                target={item.href.startsWith("http") ? "_blank" : undefined}
-                rel={item.href.startsWith("http") ? "noopener noreferrer" : undefined}
-                aria-label={item.name}
-              >
-                <div className="p-2.5 rounded-full bg-white/5 border border-white/5 group-hover:border-brand-500/50 group-hover:bg-brand-500/10 transition-all">
-                  <item.icon className="size-5 text-slate-400 group-hover:text-brand-400 transition-colors" />
-                </div>
-              </Link>
-            ))}
-          </div>
-
-          <div className="flex flex-col items-center md:items-end gap-3 text-sm">
-            <nav className="flex gap-4 text-slate-500 text-xs" aria-label="Footer">
-              <Link href="/past-questions" className="hover:text-slate-300 transition-colors">JAMB Past Questions</Link>
-              <Link href="/privacy" className="hover:text-slate-300 transition-colors">Privacy Policy</Link>
-              <Link href="/terms" className="hover:text-slate-300 transition-colors">Terms of Service</Link>
-            </nav>
-            <p className="text-slate-500 text-xs">© {new Date().getFullYear()} Acadmate Business Consult. All rights reserved.</p>
+            <Link href="/register" className="mt-7 inline-block rounded-lg bg-white px-6 py-3.5 font-bold text-navy-900 hover:bg-brand-50">
+              Start practising free
+            </Link>
           </div>
         </div>
-      </footer>
+      </section>
     </div>
   );
+}
+
+// ─── Content ─────────────────────────────────────────────────────────────────
+
+const icon = (d: string) => (
+  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <path d={d} />
+  </svg>
+);
+
+const TILES = [
+  {
+    title: "Past questions",
+    text: "Read papers by subject and year, with answers.",
+    href: HUB_PATH,
+    tone: "bg-[#fff4dc]",
+    iconTone: "bg-[#feb12c] text-navy-900",
+    icon: icon("M4 19.5V5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2.5ZM8 7h7M8 11h5"),
+  },
+  {
+    title: "CBT practice",
+    text: "Timed sessions, marked straight away.",
+    href: "/register",
+    tone: "bg-[#e3f1ff]",
+    iconTone: "bg-brand-600 text-white",
+    icon: icon("M3 4h18v12H3zM8 20h8M12 16v4M7 8h4M7 11h7"),
+  },
+  {
+    title: "Topic drills",
+    text: "Work on one topic until it sticks.",
+    href: "/register",
+    tone: "bg-[#dcf8ec]",
+    iconTone: "bg-mint-600 text-white",
+    icon: icon("M12 2a10 10 0 1 0 10 10M12 6a6 6 0 1 0 6 6M12 10a2 2 0 1 0 2 2M12 12l9-9"),
+  },
+  {
+    title: "Literature guide",
+    text: "Summaries and characters for the UTME novel.",
+    href: "/register",
+    tone: "bg-[#efe9ff]",
+    iconTone: "bg-[#7c5cff] text-white",
+    icon: icon("M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2zM22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"),
+  },
+];
+
+// A cell is a tick, a dash, a tick with a note ("Limited"), or plain text.
+type CellValue = true | false | { tick: true; note: string } | string;
+
+const PLAN_ROWS: [string, CellValue, CellValue][] = [
+  ["Past questions with answers", true, true],
+  ["Worked explanations", true, true],
+  ["CBT practice by subject and topic", { tick: true, note: "Limited" }, { tick: true, note: "Unlimited" }],
+  ["Study notes", { tick: true, note: "Limited" }, { tick: true, note: "All topics" }],
+  ["Full UTME mock: four subjects, two hours", false, true],
+  ["Scores, analytics and leaderboard", true, true],
+  ["Literature guide", true, true],
+  ["Email alerts for new posts", false, true],
+  ["WhatsApp support", false, "Priority"],
+];
+
+function Tick() {
+  return (
+    <svg viewBox="0 0 20 20" width="20" height="20" className="shrink-0 text-mint-600" role="img" aria-label="Included">
+      <path fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" d="m4.5 10.5 3.5 3.5 7.5-8" />
+    </svg>
+  );
+}
+
+function Cell({ value }: { value: CellValue }) {
+  if (value === true) return <Tick />;
+  if (value === false)
+    return (
+      <span className="text-slate-400" aria-label="Not included">
+        –
+      </span>
+    );
+  if (typeof value === "object")
+    return (
+      <span className="inline-flex items-center gap-2">
+        <Tick />
+        <span
+          className={`rounded-md px-2 py-0.5 text-xs font-semibold ${
+            value.note === "Limited"
+              ? "bg-amber-100 text-amber-900 dark:bg-amber-500/15 dark:text-amber-300"
+              : "bg-mint-100 text-mint-800 dark:bg-mint-500/15 dark:text-mint-300"
+          }`}
+        >
+          {value.note}
+        </span>
+      </span>
+    );
+  return <span className="text-sm text-slate-700 dark:text-slate-300">{value}</span>;
+}
+
+// ─── Pieces ──────────────────────────────────────────────────────────────────
+
+function Badge({ children, className, tone }: { children: React.ReactNode; className: string; tone: string }) {
+  return (
+    <span className={`whitespace-nowrap rounded-full px-3.5 py-2 text-sm font-bold shadow-lg shadow-black/25 ${tone} ${className}`}>
+      {children}
+    </span>
+  );
+}
+
+/** A post's cover picture, or the brand mark on a tint when the post has none. */
+function Cover({ post, className, sizes }: { post: RecentBlogPost; className: string; sizes: string }) {
+  return (
+    <span className={`relative block overflow-hidden bg-slate-100 dark:bg-slate-800 ${className}`}>
+      {post.coverImageUrl ? (
+        // Covers are on Cloudinary at assorted sizes; a plain img keeps them uncropped by the optimiser.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={post.coverImageUrl}
+          alt=""
+          loading="lazy"
+          sizes={sizes}
+          className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+        />
+      ) : (
+        <span className="absolute inset-0 flex items-center justify-center bg-linear-to-br from-brand-100 to-mint-100 dark:from-brand-900/40 dark:to-mint-900/30">
+          <Image src="/brand/mark.svg" alt="" width={56} height={56} className="opacity-70" />
+        </span>
+      )}
+    </span>
+  );
+}
+
+/** A made-up practice result laid out like a result slip, to show what the analytics track. */
+function ResultSlip() {
+  const rows = [
+    { subject: "Use of English", score: 71 },
+    { subject: "Physics", score: 64 },
+    { subject: "Chemistry", score: 52 },
+    { subject: "Mathematics", score: 69 },
+  ];
+  const total = rows.reduce((t, r) => t + r.score, 0);
+  return (
+    <figure className="rotate-[-1.2deg] rounded-md border border-black/10 bg-white p-6 text-slate-900 shadow-[0_20px_50px_-24px_rgba(13,29,47,0.45)] md:p-8">
+      <div className="flex items-baseline justify-between border-b-2 border-dashed border-slate-300 pb-3">
+        <span className="font-display text-lg font-bold">Practice results</span>
+        <span className="text-sm text-slate-500">Example</span>
+      </div>
+      <dl className="mt-4 space-y-3">
+        {rows.map((r) => (
+          <div key={r.subject} className="grid grid-cols-[8.5rem_1fr_2.5rem] items-center gap-3 text-sm">
+            <dt>{r.subject}</dt>
+            <dd className="h-2 rounded-full bg-slate-100" aria-hidden>
+              <span
+                className={`block h-full rounded-full ${r.score < 60 ? "bg-[#feb12c]" : "bg-brand-600"}`}
+                style={{ width: `${r.score}%` }}
+              />
+            </dd>
+            <dd className="text-right font-semibold tabular-nums">{r.score}</dd>
+          </div>
+        ))}
+      </dl>
+      <div className="mt-5 flex items-baseline justify-between border-t-2 border-slate-900 pt-3">
+        <span className="font-semibold">Total</span>
+        <span className="font-display text-4xl font-extrabold tabular-nums">
+          {total}
+          <span className="text-lg font-bold text-slate-400">/400</span>
+        </span>
+      </div>
+      <figcaption className="mt-4 rounded bg-[#fff6e5] px-3 py-2 text-sm text-amber-900">
+        Weakest topic: Organic chemistry. 6 of 14 right.
+      </figcaption>
+    </figure>
+  );
+}
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" });
 }
