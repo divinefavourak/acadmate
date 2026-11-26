@@ -12,7 +12,7 @@ function getSecret(): Uint8Array {
 }
 
 // Called after login / OAuth to mirror the JWT as a cookie on the frontend domain
-// so Next.js middleware can read it for route protection.
+// so the Next.js proxy (proxy.ts) can read it for route protection.
 export async function POST(req: NextRequest) {
   const body = await req.json() as { token?: string };
   const token = body?.token;

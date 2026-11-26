@@ -124,7 +124,7 @@ export default function RootLayout({
       <head>
         {/* Sets the theme class before first paint, so there is no light/dark flash.
             Inline on purpose: as a separate file it cost a request, and the auth
-            middleware redirected it to /login for logged-out visitors. */}
+            gate (proxy.ts) redirected it to /login for logged-out visitors. */}
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT }} />
         {/* Resource hints — reduces latency for API and image CDN */}
         {apiOrigin && (

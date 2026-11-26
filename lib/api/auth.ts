@@ -1,6 +1,6 @@
 // Token lives in memory for the current tab session.
 // After any auth event the token is also mirrored via /api/auth/set-cookie so that
-// Next.js middleware (which runs on the Vercel domain) can read it for route protection.
+// the Next.js proxy (proxy.ts, on the Vercel domain) can read it for route protection.
 // The NestJS backend independently sets its own HttpOnly cookie on the Render domain so
 // that cross-origin API calls (credentials: 'include') stay authenticated.
 let _memoryToken: string | null = null;
@@ -38,7 +38,7 @@ export async function ensureToken(): Promise<string | null> {
 }
 
 // Mirrors the JWT as an HttpOnly cookie on the frontend (Vercel) domain.
-// Must be called after every login/OAuth event so middleware can see the token.
+// Must be called after every login/OAuth event so proxy.ts can see the token.
 export class RelayError extends Error {
   constructor(status: number) {
     super(`Session cookie could not be set (${status}). Ensure JWT_SECRET matches between frontend and backend.`);
@@ -47,7 +47,7 @@ export class RelayError extends Error {
 }
 
 // Mirrors the JWT as an HttpOnly cookie on the frontend (Vercel) domain.
-// Must be called after every login/OAuth event so middleware can see the token.
+// Must be called after every login/OAuth event so proxy.ts can see the token.
 export async function relayTokenToFrontend(token: string): Promise<void> {
   try {
     const res = await fetch('/api/auth/set-cookie', {
