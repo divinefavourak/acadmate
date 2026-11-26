@@ -291,7 +291,8 @@ export class SettingsService {
       start: day(v.start),
       end: day(v.end),
       prize: typeof v.prize === 'string' ? v.prize.slice(0, 200) : '',
-      excluded: Array.isArray(v.excluded) ? v.excluded.filter((x): x is string => typeof x === 'string').slice(0, 500) : [],
+      // No cap: a stored disqualification must never be silently dropped.
+      excluded: Array.isArray(v.excluded) ? v.excluded.filter((x): x is string => typeof x === 'string') : [],
     };
   }
 

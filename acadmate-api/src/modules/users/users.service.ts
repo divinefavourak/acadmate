@@ -157,7 +157,9 @@ export class UsersService {
         ? { avatarUrl }
         : {};
 
-    await this.prisma.$transaction(async (tx) => {
+    // The referral is credited in the same transaction as onboarding, so if
+    // either fails neither is saved and the student can simply submit again.
+    const referrerId = await this.prisma.$transaction(async (tx) => {
       await tx.user.update({
         where: { id: userId },
         data: {
@@ -174,9 +176,10 @@ export class UsersService {
       });
 
       await this.syncUtmeSubjects(tx, profile.id, uniqueIds);
+      return dto.referralCode ? this.claimReferral(tx, userId, dto.referralCode) : null;
     });
 
-    if (dto.referralCode) await this.claimReferral(userId, dto.referralCode);
+    if (referrerId) this.events.record('referral_signup', userId, { referrerId });
     return this.getMe(userId);
   }
 
@@ -187,12 +190,13 @@ export class UsersService {
    * nothing for an unknown code, the student's own code, an account that
    * already has a referrer, or one older than the claim window.
    */
-  private async claimReferral(userId: string, rawCode: string): Promise<void> {
+  /** Returns the referrer's id when this call credited them, else null. */
+  private async claimReferral(tx: Prisma.TransactionClient, userId: string, rawCode: string): Promise<string | null> {
     const code = rawCode.trim().toUpperCase().slice(0, 16);
-    if (!code) return;
-    const referrer = await this.prisma.user.findUnique({ where: { referralCode: code }, select: { id: true } });
-    if (!referrer || referrer.id === userId) return;
-    const { count } = await this.prisma.user.updateMany({
+    if (!code) return null;
+    const referrer = await tx.user.findUnique({ where: { referralCode: code }, select: { id: true } });
+    if (!referrer || referrer.id === userId) return null;
+    const { count } = await tx.user.updateMany({
       where: {
         id: userId,
         referredById: null,
@@ -200,7 +204,7 @@ export class UsersService {
       },
       data: { referredById: referrer.id },
     });
-    if (count === 1) this.events.record('referral_signup', userId, { referrerId: referrer.id });
+    return count === 1 ? referrer.id : null;
   }
 
   /** The student's invite code (made on first request) and what it has earned. */
@@ -209,15 +213,17 @@ export class UsersService {
     if (!user) throw new NotFoundException('User not found');
     for (let attempt = 0; !user.referralCode && attempt < 5; attempt++) {
       try {
-        user = await this.prisma.user.update({
-          where: { id: userId },
+        // Only while it's still empty: two first requests at once must not
+        // each write a code, leaving one response with a code that isn't saved.
+        await this.prisma.user.updateMany({
+          where: { id: userId, referralCode: null },
           data: { referralCode: newReferralCode() },
-          select: { referralCode: true },
         });
       } catch (err) {
         // Code already taken by someone else: try another.
         if ((err as { code?: string }).code !== 'P2002') throw err;
       }
+      user = (await this.prisma.user.findUnique({ where: { id: userId }, select: { referralCode: true } })) ?? user;
     }
     if (!user.referralCode) throw new ConflictException('Could not make an invite code. Try again.');
 

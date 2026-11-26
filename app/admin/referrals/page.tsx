@@ -51,10 +51,12 @@ export default function AdminReferralsPage() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
 
-  const load = useCallback(async () => {
+  // resetForm is false for board refreshes (Disqualify / Put back), so an
+  // unsaved edit to the dates or prize isn't wiped.
+  const load = useCallback(async (resetForm = true) => {
     const d = await apiClient<AdminContest>(ENDPOINT);
     setData(d);
-    setForm({ start: d.settings.start ?? "", end: d.settings.end ?? "", prize: d.settings.prize });
+    if (resetForm) setForm({ start: d.settings.start ?? "", end: d.settings.end ?? "", prize: d.settings.prize });
   }, []);
 
   useEffect(() => {
@@ -87,7 +89,7 @@ export default function AdminReferralsPage() {
     setMessage(null);
     try {
       await apiClient(`${ENDPOINT}/exclude`, { method: "POST", body: JSON.stringify({ userId, excluded }) });
-      await load();
+      await load(false);
     } catch (err) {
       setMessage({ tone: "error", text: err instanceof ApiError ? err.message : "Couldn’t update. Try again." });
     } finally {
