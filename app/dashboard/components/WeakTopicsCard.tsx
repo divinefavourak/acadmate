@@ -27,12 +27,18 @@ export default function WeakTopicsCard({
   topics,
   total,
   hasExams,
+  limit,
 }: {
   topics: WeakTopic[];
   total: number;
   hasExams: boolean;
+  /** Show at most this many here, with a link to the rest on Analytics. */
+  limit?: number;
 }) {
+  // Topics the API didn't send (Free gets one): those are the Premium upsell.
   const hidden = Math.max(0, total - topics.length);
+  const shown = limit ? topics.slice(0, limit) : topics;
+  const more = topics.length - shown.length;
   return (
     <section aria-labelledby="weak-heading" className="glass-panel rounded-2xl p-5 sm:p-6 h-full">
       <div className="flex items-baseline justify-between gap-3">
@@ -48,7 +54,7 @@ export default function WeakTopicsCard({
         </p>
       ) : (
         <ul className="mt-4 space-y-3">
-          {topics.map((t) => (
+          {shown.map((t) => (
             <li key={t.topicId} className="flex items-center gap-3">
               <div className="min-w-0 flex-1">
                 <div className="flex items-baseline justify-between gap-2">
@@ -68,6 +74,12 @@ export default function WeakTopicsCard({
             </li>
           ))}
         </ul>
+      )}
+
+      {more > 0 && (
+        <Link href="/analytics" className="mt-3 inline-block text-sm font-medium text-brand-600 dark:text-brand-400 hover:underline">
+          See all {topics.length} on Analytics
+        </Link>
       )}
 
       {hidden > 0 && (

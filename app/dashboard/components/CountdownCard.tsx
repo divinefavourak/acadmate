@@ -24,6 +24,22 @@ export default function CountdownCard({ onHidden }: { onHidden?: () => void }) {
       .catch(() => setDate(null));
   }, []);
 
+  // Re-render at Lagos midnight so the count (and hiding once the date has
+  // passed) stays right on a dashboard left open overnight.
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    let timer = 0;
+    const schedule = () => {
+      const lagosNow = Date.now() + 3_600_000;
+      timer = window.setTimeout(() => {
+        setTick((t) => t + 1);
+        schedule();
+      }, DAY_MS - (lagosNow % DAY_MS) + 1_000);
+    };
+    schedule();
+    return () => window.clearTimeout(timer);
+  }, []);
+
   const days = date ? daysUntil(date) : null;
   const hidden = date === null || (days !== null && days < 0);
   useEffect(() => {

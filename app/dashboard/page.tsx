@@ -96,6 +96,7 @@ export default function DashboardPage() {
           topics={analytics?.weakTopics ?? []}
           total={analytics?.weakTopicsTotal ?? analytics?.weakTopics?.length ?? 0}
           hasExams={(analytics?.totalTests ?? 0) > 0}
+          limit={5}
         />
         {!countdownHidden && <CountdownCard onHidden={hideCountdown} />}
       </motion.div>
