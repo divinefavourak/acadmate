@@ -58,19 +58,26 @@ export default function PaymentCard() {
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
-    if (!form || busy || !priceValid || !accountValid || !whatsappValid) return;
+    if (!form || !saved || busy || !priceValid || !accountValid || !whatsappValid) return;
+    // Send only the fields changed here, so a save can't put back another
+    // admin's older value for a field this admin didn't touch.
+    const before = toForm(saved);
+    const values = {
+      priceNaira: form.priceNaira.trim() === "" ? null : price,
+      bankName: form.bankName,
+      accountName: form.accountName,
+      accountNumber: form.accountNumber.replace(/\s/g, ""),
+      whatsappNumber: form.whatsappNumber.replace(/[\s+]/g, ""),
+    };
+    const patch = Object.fromEntries(
+      (Object.keys(values) as (keyof Form)[]).filter((k) => form[k] !== before[k]).map((k) => [k, values[k]]),
+    );
     setBusy(true);
     setMessage(null);
     try {
       const updated = await apiClient<PaymentDetails>(ENDPOINT, {
         method: "PATCH",
-        body: JSON.stringify({
-          priceNaira: form.priceNaira.trim() === "" ? null : price,
-          bankName: form.bankName,
-          accountName: form.accountName,
-          accountNumber: form.accountNumber.replace(/\s/g, ""),
-          whatsappNumber: form.whatsappNumber.replace(/[\s+]/g, ""),
-        }),
+        body: JSON.stringify(patch),
       });
       setSaved(updated);
       setForm(toForm(updated));

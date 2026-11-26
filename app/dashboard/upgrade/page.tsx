@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useUser } from "@/app/context/UserContext";
 import { apiClient, ApiError } from "@/lib/api/client";
 import Loader from "@/app/components/Loader";
 
@@ -31,16 +32,24 @@ export default function UpgradePage() {
   const [payment, setPayment] = useState<PaymentDetails | null>(null);
   const [freePerSubject, setFreePerSubject] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  // If we can't tell the plan, don't guess "Free": a Premium student would be
+  // shown payment instructions.
+  const [planError, setPlanError] = useState(false);
+  const { refetch: refetchUser } = useUser();
 
-  useEffect(() => {
-    Promise.allSettled([
+  const load = useCallback(() => {
+    return Promise.allSettled([
       apiClient<{ plan: Plan }>("/api/users/me/plan"),
       apiClient<{ email?: string | null }>("/api/users/me"),
       apiClient<PaymentDetails>("/api/settings/payment"),
       apiClient<{ freePerSubject?: number | null }>("/api/users/me/quota"),
     ])
       .then(([p, me, pay, quota]) => {
-        setPlan(p.status === "fulfilled" ? p.value.plan : "FREE");
+        if (p.status !== "fulfilled") {
+          setPlanError(true);
+          return;
+        }
+        setPlan(p.value.plan);
         if (me.status === "fulfilled") setEmail(me.value.email ?? "");
         if (pay.status === "fulfilled") setPayment(pay.value);
         if (quota.status === "fulfilled") setFreePerSubject(quota.value.freePerSubject ?? null);
@@ -48,7 +57,30 @@ export default function UpgradePage() {
       .finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    load();
+  }, [load]);
+
   if (loading) return <Loader className="py-20" />;
+  if (planError || !plan) {
+    return (
+      <div role="alert" className="max-w-2xl glass-panel rounded-2xl p-6 space-y-3">
+        <p className="font-semibold">Couldn’t check your plan.</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400">Check your connection and try again.</p>
+        <button
+          type="button"
+          onClick={() => {
+            setLoading(true);
+            setPlanError(false);
+            load();
+          }}
+          className="btn-secondary px-4 py-2 text-sm"
+        >
+          Try again
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-2xl space-y-8">
@@ -61,7 +93,7 @@ export default function UpgradePage() {
         </p>
       </div>
 
-      <PlanCompare plan={plan ?? "FREE"} freePerSubject={freePerSubject} />
+      <PlanCompare plan={plan} freePerSubject={freePerSubject} />
 
       {plan === "PREMIUM" ? (
         <p className="text-sm text-slate-500 dark:text-slate-400">
@@ -79,7 +111,13 @@ export default function UpgradePage() {
       ) : (
         <>
           <PaySteps payment={payment} email={email} />
-          <RedeemCode onRedeemed={() => setPlan("PREMIUM")} />
+          <RedeemCode
+            onRedeemed={() => {
+              setPlan("PREMIUM");
+              // The rest of the app reads the plan from the shared user.
+              refetchUser();
+            }}
+          />
         </>
       )}
     </div>
