@@ -19,7 +19,8 @@ class UpdatePaymentDetailsDto {
   accountNumber?: string;
 
   @IsOptional() @IsString()
-  @Matches(/^\d{10,15}$/, { message: 'WhatsApp number must be digits in international form, like 2348012345678' })
+  // International form for wa.me: country code first, so no leading 0.
+  @Matches(/^[1-9]\d{9,14}$/, { message: 'WhatsApp number must start with the country code, like 2348012345678 (no leading 0)' })
   whatsappNumber?: string;
 }
 
