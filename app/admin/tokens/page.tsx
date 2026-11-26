@@ -34,12 +34,10 @@ export default function TokensPage() {
   const [granting, setGranting] = useState(false);
   const [grantResult, setGrantResult] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
 
-  // Each refresh gets a number; a token action bumps it, so a refresh that
-  // started before the action can't land afterwards with stale rows.
+  // Each refresh gets a number and only the latest one is applied. Every
+  // token action ends with a fresh refresh, which supersedes any refresh that
+  // started before the action (so stale rows can't land after it).
   const loadSeq = useRef(0);
-  function invalidateLoads() {
-    loadSeq.current++;
-  }
 
   function loadTokens(pin?: Token) {
     const seq = ++loadSeq.current;
@@ -77,6 +75,9 @@ export default function TokensPage() {
       });
       setGrantEmail("");
       setGrantNote("");
+      // Show the granted token now, so it stays reachable even if the
+      // refresh below fails.
+      setTokens((prev) => [data.token, ...prev.filter((t) => t.id !== data.token.id)]);
       await loadTokens(data.token);
     } catch (err) {
       setGrantResult({ tone: "error", text: err instanceof ApiError ? err.message : "Couldn’t grant Premium. Try again." });
@@ -93,9 +94,9 @@ export default function TokensPage() {
         method: "POST",
         body: JSON.stringify({ note: note.trim() || undefined }),
       });
-      invalidateLoads();
       setTokens((prev) => [data.token as Token, ...prev]);
       setTotal((t) => t + 1);
+      void loadTokens();
       setNote("");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to generate token.");
@@ -108,9 +109,9 @@ export default function TokensPage() {
     setBusyId(id);
     try {
       await apiClient(`/api/admin/tokens/${id}`, { method: "DELETE" });
-      invalidateLoads();
       setTokens((prev) => prev.filter((t) => t.id !== id));
       setTotal((c) => c - 1);
+      void loadTokens();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to delete token.");
     } finally {
@@ -123,8 +124,8 @@ export default function TokensPage() {
     setError("");
     try {
       await apiClient(`/api/admin/tokens/${id}/revoke`, { method: "POST" });
-      invalidateLoads();
       setTokens((prev) => prev.map((t) => t.id === id ? { ...t, revokedAt: new Date().toISOString() } : t));
+      void loadTokens();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to revoke token.");
     } finally {
@@ -137,8 +138,8 @@ export default function TokensPage() {
     setError("");
     try {
       await apiClient(`/api/admin/tokens/${id}/reactivate`, { method: "POST" });
-      invalidateLoads();
       setTokens((prev) => prev.map((t) => t.id === id ? { ...t, revokedAt: null } : t));
+      void loadTokens();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to reactivate token.");
     } finally {
