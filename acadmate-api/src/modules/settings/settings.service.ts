@@ -78,6 +78,18 @@ export function isCalendarDate(s: string): boolean {
 // once JAMB announces it; null hides the countdown.
 export const UTME_DATE_KEY = 'utme_date';
 
+// Referral contest: who brings in the most friends between two Lagos dates
+// wins the prize (paid by hand). `excluded` holds referrers an admin has
+// disqualified after checking their friends.
+export const REFERRAL_CONTEST_KEY = 'referral_contest';
+
+export interface ReferralContestSettings {
+  start: string | null; // "YYYY-MM-DD", first day (Lagos)
+  end: string | null; // "YYYY-MM-DD", last day (Lagos), inclusive
+  prize: string;
+  excluded: string[];
+}
+
 // Fail open: if nothing has ever been configured, everything is available.
 const DEFAULT_EXAM_AVAILABILITY: ExamAvailability = { utme: true, postUtme: true };
 
@@ -255,6 +267,40 @@ export class SettingsService {
       update: { value },
     });
     return { date };
+  }
+
+  // ─── Referral contest ──────────────────────────────────────────────────────
+
+  async getReferralContest(): Promise<ReferralContestSettings> {
+    const row = await this.prisma.appSetting.findUnique({ where: { key: REFERRAL_CONTEST_KEY } });
+    const v = (row?.value ?? {}) as Record<string, unknown>;
+    const day = (x: unknown) => (typeof x === 'string' && isCalendarDate(x) ? x : null);
+    return {
+      start: day(v.start),
+      end: day(v.end),
+      prize: typeof v.prize === 'string' ? v.prize.slice(0, 200) : '',
+      excluded: Array.isArray(v.excluded) ? v.excluded.filter((x): x is string => typeof x === 'string').slice(0, 500) : [],
+    };
+  }
+
+  async setReferralContest(input: Partial<ReferralContestSettings>): Promise<ReferralContestSettings> {
+    const current = await this.getReferralContest();
+    const next = { ...current, ...input };
+    for (const d of [next.start, next.end]) {
+      if (d !== null && !isCalendarDate(d)) throw new BadRequestException('Use real dates like 2026-12-09.');
+    }
+    if (next.start && next.end && next.end < next.start) {
+      throw new BadRequestException('The contest has to end on or after the day it starts.');
+    }
+    next.prize = (next.prize ?? '').trim().slice(0, 200);
+    next.excluded = [...new Set(next.excluded)];
+    const value = next as unknown as Prisma.InputJsonObject;
+    await this.prisma.appSetting.upsert({
+      where: { key: REFERRAL_CONTEST_KEY },
+      create: { key: REFERRAL_CONTEST_KEY, value },
+      update: { value },
+    });
+    return next;
   }
 
   // ─── Email reminders ───────────────────────────────────────────────────────

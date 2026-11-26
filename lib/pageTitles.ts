@@ -17,6 +17,8 @@ const ROUTES: [RegExp, string][] = [
   // ── Dashboard ──────────────────────────────────────────────────────
   [/^\/dashboard\/profile$/, "Profile"],
   [/^\/dashboard\/upgrade$/, "Upgrade"],
+  [/^\/dashboard\/invite$/, "Invite & win"],
+  [/^\/admin\/referrals$/, "Referral contest"],
   [/^\/dashboard\/leaderboard\/post-utme$/, "Post-UTME Leaderboard"],
   [/^\/dashboard\/leaderboard$/, "Leaderboard"],
   [/^\/dashboard$/, "Dashboard"],

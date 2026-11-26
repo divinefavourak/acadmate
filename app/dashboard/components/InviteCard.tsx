@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { apiClient } from "@/lib/api/client";
 import { track } from "@/lib/track";
 
@@ -20,14 +21,29 @@ interface Referral {
  * Invite friends. Free students get bonus questions for each friend who joins
  * and finishes setting up; Premium students just get a link to share.
  */
-export default function InviteCard({ premium }: { premium: boolean }) {
+// The bits of GET /api/referrals/contest the teaser needs.
+interface ContestTeaser {
+  state: "none" | "upcoming" | "live" | "ended";
+  end: string | null;
+  start: string | null;
+  prize: string;
+  you: { rank: number | null } | null;
+}
+
+function shortDay(day: string | null) {
+  return day ? new Date(`${day}T12:00:00Z`).toLocaleDateString("en-NG", { day: "numeric", month: "short" }) : "";
+}
+
+export default function InviteCard({ premium, showContest = true }: { premium: boolean; showContest?: boolean }) {
   const [ref, setRef] = useState<Referral | null>(null);
+  const [contest, setContest] = useState<ContestTeaser | null>(null);
   const [failed, setFailed] = useState(false);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     apiClient<Referral>("/api/users/me/referral").then(setRef).catch(() => setFailed(true));
-  }, []);
+    if (showContest) apiClient<ContestTeaser>("/api/referrals/contest").then(setContest).catch(() => {});
+  }, [showContest]);
 
   // Older API without referrals: no card.
   if (failed) return null;
@@ -53,6 +69,18 @@ export default function InviteCard({ premium }: { premium: boolean }) {
   return (
     <section aria-labelledby="invite-heading" className="glass-panel rounded-2xl p-5 sm:p-6 grid gap-4 sm:grid-cols-[1fr_auto] sm:items-center">
       <div className="min-w-0">
+        {contest && (contest.state === "live" || contest.state === "upcoming") && (
+          <Link
+            href="/dashboard/invite"
+            className="mb-2 inline-flex flex-wrap items-center gap-x-2 rounded-full bg-amber-400/15 px-3 py-1 text-xs font-semibold text-amber-800 dark:text-amber-200 hover:bg-amber-400/25"
+          >
+            <span aria-hidden="true">🏆</span>
+            {contest.state === "live"
+              ? <>Referral contest{contest.prize ? `: ${contest.prize}` : ""} · ends {shortDay(contest.end)}{contest.you?.rank ? ` · you’re #${contest.you.rank}` : ""}</>
+              : <>Referral contest starts {shortDay(contest.start)}{contest.prize ? `: ${contest.prize}` : ""}</>}
+            <span aria-hidden="true">→</span>
+          </Link>
+        )}
         <h2 id="invite-heading" className="text-lg font-bold">Invite friends</h2>
         <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
           {premium
