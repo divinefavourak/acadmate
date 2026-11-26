@@ -1,9 +1,11 @@
-/** Display names for the backend's ExamMode enum (MOCK, PRACTICE, TOPIC, POST_UTME). */
+/** Display names for the backend's ExamMode enum. */
 const MODE_LABELS: Record<string, string> = {
   MOCK: "Full UTME Mock",
   PRACTICE: "Practice Session",
   TOPIC: "Topic Practice",
   POST_UTME: "Post-UTME",
+  DAILY: "Daily Challenge",
+  RETRY: "Retry: missed questions",
 };
 
 /** Human label for an exam mode. Unknown modes are title-cased rather than shown raw. */

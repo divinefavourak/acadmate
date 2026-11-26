@@ -12,7 +12,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
-import { IsInt, IsOptional, Min, Max } from 'class-validator';
+import { IsInt, IsOptional, IsString, Min, Max } from 'class-validator';
 import { Type } from 'class-transformer';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser, JwtUser } from '../../common/decorators/current-user.decorator';
@@ -20,6 +20,10 @@ import { ExamsService } from './exams.service';
 import { CreateExamDto } from './dto/create-exam.dto';
 import { SaveAnswersDto } from './dto/save-answers.dto';
 import { MarkReviewDto } from './dto/mark-review.dto';
+
+class RetryDto {
+  @IsString() resultId!: string;
+}
 
 class PaginationQuery {
   @IsOptional() @IsInt() @Min(1) @Max(50) @Type(() => Number) limit?: number = 20;
@@ -41,6 +45,14 @@ export class ExamsController {
     @Body() dto: CreateExamDto,
   ) {
     return this.examsService.createSession(user.id, dto as any);
+  }
+
+  @Post('retry')
+  @HttpCode(HttpStatus.CREATED)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @ApiOperation({ summary: 'New session with the questions missed in one result' })
+  createRetry(@CurrentUser() user: JwtUser, @Body() dto: RetryDto) {
+    return this.examsService.createRetry(user.id, dto.resultId);
   }
 
   @Get()

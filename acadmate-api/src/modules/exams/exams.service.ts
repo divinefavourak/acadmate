@@ -392,6 +392,84 @@ export class ExamsService {
     return { saved: dto.answers.length };
   }
 
+  // ─── POST /exams/retry ────────────────────────────────────────────────────
+  // A new session with just the questions missed (wrong or skipped) in one of
+  // the student's results. They've all been served before, so retries don't
+  // touch the free quota (see seenByUser) and are open to every plan.
+  async createRetry(userId: string, resultId: string) {
+    const result = await this.prisma.result.findUnique({
+      where: { id: resultId },
+      select: {
+        userId: true,
+        examSession: {
+          select: {
+            mode: true,
+            subjectId: true,
+            topicId: true,
+            school: true,
+            questions: { orderBy: { position: 'asc' }, select: { questionId: true } },
+            userAnswers: { select: { questionId: true, isCorrect: true } },
+          },
+        },
+      },
+    });
+    if (!result) throw new NotFoundException('Result not found');
+    if (result.userId !== userId) throw new ForbiddenException();
+
+    const availability = await this.settings.getExamAvailability();
+    // A retry keeps its source's school (only Post-UTME papers have one), so a
+    // retry of a retry still answers to the Post-UTME switch.
+    const isPostUtme =
+      result.examSession.mode === 'POST_UTME' ||
+      (result.examSession.mode === 'RETRY' && result.examSession.school != null);
+    if (!(isPostUtme ? availability.postUtme : availability.utme)) {
+      throw new ForbiddenException('These exams are turned off right now. Please check back soon.');
+    }
+
+    const right = new Set(
+      result.examSession.userAnswers.filter((a) => a.isCorrect === true).map((a) => a.questionId),
+    );
+    const missed = result.examSession.questions.map((q) => q.questionId).filter((id) => !right.has(id));
+    if (missed.length === 0) {
+      throw new BadRequestException('You got every question right, so there is nothing to retry.');
+    }
+
+    // Only questions that can still be answered (an admin may have unpublished
+    // or flagged some since).
+    const usable = new Set(
+      (
+        await this.prisma.question.findMany({
+          where: {
+            id: { in: missed },
+            isPublished: true,
+            isFlagged: false,
+            options: { some: { isCorrect: true } },
+          },
+          select: { id: true },
+        })
+      ).map((q) => q.id),
+    );
+    const questionIds = missed.filter((id) => usable.has(id));
+    if (questionIds.length === 0) {
+      throw new HttpException('Those questions are no longer available.', HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
+    const examSession = await this.prisma.examSession.create({
+      data: {
+        userId,
+        mode: 'RETRY',
+        subjectId: result.examSession.subjectId,
+        topicId: result.examSession.topicId,
+        school: result.examSession.school,
+        totalQuestions: questionIds.length,
+        durationMinutes: Math.max(5, Math.ceil(questionIds.length * 1.5)),
+        questions: { create: questionIds.map((questionId, position) => ({ questionId, position })) },
+      },
+      select: { id: true, mode: true, totalQuestions: true, durationMinutes: true, expiresAt: true, startedAt: true },
+    });
+    return { examSession };
+  }
+
   // ─── POST /exams/:id/submit ───────────────────────────────────────────────
   async submitExam(userId: string, sessionId: string) {
     const examSession = await this.prisma.examSession.findUnique({

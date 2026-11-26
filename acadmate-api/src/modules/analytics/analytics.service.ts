@@ -37,7 +37,9 @@ export class AnalyticsService {
     if (cached) return cached;
 
     const results = await this.prisma.result.findMany({
-      where: { userId },
+      // Retries are second attempts at questions already seen; leaving them
+      // out keeps averages and weak topics honest.
+      where: { userId, examSession: { mode: { not: 'RETRY' } } },
       orderBy: { createdAt: 'asc' },
       take: limit,
       select: {

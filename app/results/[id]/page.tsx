@@ -3,8 +3,9 @@
 import { useEffect, useState, use } from "react";
 import Link from "next/link";
 import MathText from "@/app/components/MathText";
-import { useSearchParams } from "next/navigation";
-import { apiClient } from "@/lib/api/client";
+import { useRouter, useSearchParams } from "next/navigation";
+import { apiClient, ApiError } from "@/lib/api/client";
+import ShareScoreButton from "@/app/components/ShareScoreButton";
 import Loader from "@/app/components/Loader";
 import { modeLabel } from "@/lib/examModes";
 
@@ -268,6 +269,25 @@ export default function ResultDetailPage({ params }: { params: Promise<{ id: str
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [filter, setFilter] = useState<"all" | "correct" | "incorrect" | "unanswered">("all");
+  const router = useRouter();
+  const [retrying, setRetrying] = useState(false);
+  const [retryError, setRetryError] = useState("");
+  const [streak, setStreak] = useState<number | undefined>(undefined);
+
+  async function retryMissed() {
+    setRetrying(true);
+    setRetryError("");
+    try {
+      const data = await apiClient<{ examSession: { id: string } }>("/api/exams/retry", {
+        method: "POST",
+        body: JSON.stringify({ resultId: id }),
+      });
+      router.push(`/exam/${data.examSession.id}`);
+    } catch (err) {
+      setRetryError(err instanceof ApiError ? err.message : "Couldn’t start the retry. Try again.");
+      setRetrying(false);
+    }
+  }
 
   useEffect(() => {
     type RawQuestion = QuestionAnswer["question"];
@@ -318,6 +338,15 @@ export default function ResultDetailPage({ params }: { params: Promise<{ id: str
       .finally(() => setLoading(false));
   }, [id]);
 
+  // A daily challenge's share card shows the streak.
+  const isDaily = result?.examSession.mode === "DAILY";
+  useEffect(() => {
+    if (!isDaily) return;
+    apiClient<{ streak: { current: number } }>("/api/daily")
+      .then((d) => setStreak(d.streak.current))
+      .catch(() => {});
+  }, [isDaily]);
+
   if (loading) {
     return (
       <Loader className="h-screen" />
@@ -346,6 +375,9 @@ export default function ResultDetailPage({ params }: { params: Promise<{ id: str
   });
 
   const pct = Math.round(result.score);
+  const missed = result.incorrect + result.unanswered;
+  const subjectNames = subjectEntries.map((s) => s.name).slice(0, 4).join(", ");
+  const dateLabel = new Date(result.createdAt).toLocaleDateString("en-NG", { day: "numeric", month: "short" });
   const answered = result.correct + result.incorrect;
   // startedAt is when the session was created, so cap at the exam length to
   // avoid counting time spent on the briefing screen as over-time.
@@ -421,6 +453,40 @@ export default function ResultDetailPage({ params }: { params: Promise<{ id: str
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Next steps: retry what was missed, share the score */}
+      <div className="grid gap-3 sm:grid-cols-2">
+        {missed > 0 ? (
+          <div>
+            <button
+              type="button"
+              onClick={retryMissed}
+              disabled={retrying}
+              className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-60"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+              {retrying ? "Starting…" : `Retry the ${missed} you missed`}
+            </button>
+            {retryError && <p role="alert" className="mt-2 text-sm text-red-600 dark:text-red-400">{retryError}</p>}
+          </div>
+        ) : (
+          <p className="rounded-xl bg-mint-500/10 border border-mint-500/30 px-4 py-2.5 text-center text-sm font-semibold text-mint-700 dark:text-mint-300">
+            Every question right. Nothing to retry.
+          </p>
+        )}
+        <ShareScoreButton
+          card={{
+            headline: isDaily ? `${result.correct}/${result.totalQuestions}` : `${pct}%`,
+            label: isDaily ? "Daily challenge" : modeLabel(result.examSession.mode),
+            detail: [subjectNames, dateLabel].filter(Boolean).join(" · "),
+            streak,
+            text: (url) =>
+              isDaily
+                ? `I got ${result.correct}/${result.totalQuestions} on the Acadmate daily challenge${streak && streak >= 2 ? `, ${streak} days in a row 🔥` : ""}. Can you beat it? ${url}`
+                : `I scored ${pct}% (${result.correct}/${result.totalQuestions}) in a ${modeLabel(result.examSession.mode).toLowerCase()}${subjectNames ? ` on ${subjectNames}` : ""} on Acadmate. Can you beat it? ${url}`,
+          }}
+        />
       </div>
 
       {/* Breakdowns */}

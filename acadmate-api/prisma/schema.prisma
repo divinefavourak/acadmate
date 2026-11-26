@@ -655,6 +655,8 @@ enum ExamMode {
   PRACTICE
   TOPIC
   POST_UTME
+  DAILY     // daily challenge: 5 questions, outside the free quota
+  RETRY     // re-take of the questions missed in one result
 }
 
 enum ExamType {

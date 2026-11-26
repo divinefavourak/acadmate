@@ -96,7 +96,12 @@ export class LeaderboardService {
   private resultWhere(type: LeaderboardType, period?: number) {
     return {
       examSession: {
-        mode: type === 'POST_UTME' ? ('POST_UTME' as const) : { not: 'POST_UTME' as const },
+        // Retries re-answer questions the student has already seen, so they
+        // never count towards a board.
+        mode:
+          type === 'POST_UTME'
+            ? ('POST_UTME' as const)
+            : { notIn: ['POST_UTME' as const, 'RETRY' as const] },
       },
       ...(period != null && { createdAt: lagosYearBounds(period) }),
     };
