@@ -67,6 +67,14 @@ export default function DailyCard() {
           // A request sent just before midnight can answer after the one
           // sent at midnight: never step back to yesterday.
           if (shownDay && d.date < shownDay) return;
+          // Even the first answer can be yesterday's if it was sent just before
+          // midnight: don't show it, ask again for today's.
+          if (d.date < lagosToday()) {
+            window.setTimeout(() => {
+              if (live) load();
+            }, 1_500);
+            return;
+          }
           shownDay = d.date;
           setDaily(d);
           setLoadError(false);
@@ -129,7 +137,7 @@ export default function DailyCard() {
   if (!daily) return <div className="glass-panel rounded-2xl h-40 animate-pulse" aria-hidden="true" />;
 
   const { streak } = daily;
-  const dateLabel = new Date(`${daily.date}T12:00:00Z`).toLocaleDateString("en-NG", { day: "numeric", month: "short" });
+  const dateLabel = new Date(`${daily.date}T12:00:00Z`).toLocaleDateString("en-NG", { day: "numeric", month: "short", timeZone: "Africa/Lagos" });
 
   return (
     <section aria-labelledby="daily-heading" className="glass-panel rounded-2xl p-5 sm:p-6 grid gap-5 sm:grid-cols-[1fr_auto] sm:items-center">
