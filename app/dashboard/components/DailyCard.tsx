@@ -117,7 +117,9 @@ export default function DailyCard() {
 
   // Older API without /daily: show nothing rather than a broken card.
   if (unsupported) return null;
-  if (!daily && loadError) {
+  // Nothing loaded, or only yesterday's challenge (the midnight refresh
+  // failed): offer a retry rather than yesterday's answers.
+  if (loadError && (!daily || daily.date < lagosToday())) {
     return (
       <div role="status" className="glass-panel rounded-2xl p-5 flex items-center justify-between gap-3 text-sm">
         <span className="text-slate-600 dark:text-slate-400">Couldn’t load today’s challenge.</span>

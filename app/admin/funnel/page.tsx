@@ -38,7 +38,18 @@ function pct(part: number, whole: number) {
 }
 
 function dayLabel(day: string) {
-  return new Date(`${day}T12:00:00Z`).toLocaleDateString("en-NG", { weekday: "short", day: "numeric", month: "short" });
+  return new Date(`${day}T12:00:00Z`).toLocaleDateString("en-NG", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    timeZone: "Africa/Lagos",
+  });
+}
+
+// Event names and sources come from stored data, so only read our own keys
+// (a source of "__proto__" would otherwise return an object and crash the page).
+function labelFor(labels: Record<string, string>, key: string) {
+  return Object.hasOwn(labels, key) ? labels[key] : key;
 }
 
 export default function FunnelPage() {
@@ -109,9 +120,10 @@ export default function FunnelPage() {
                           style={{ width: s.users ? `max(${width}%, 3px)` : 0 }}
                         />
                       </div>
-                      <span className="w-28 shrink-0 text-right text-sm tabular-nums">
+                      <span className="w-32 shrink-0 text-right text-sm tabular-nums leading-tight">
                         <span className="font-semibold text-slate-900 dark:text-white">{s.users.toLocaleString()}</span>
                         {prev !== null && <span className="ml-1.5 text-slate-500 dark:text-slate-400">{pct(s.users, prev)}</span>}
+                        <span className="block text-xs text-slate-500 dark:text-slate-400">{s.events.toLocaleString()} times</span>
                       </span>
                     </div>
                     {/* Hover details over the bar area, clear of the value labels; the whole row is the hit area */}
@@ -149,7 +161,7 @@ export default function FunnelPage() {
                   <tbody>
                     {report.upgradeSources.map((r) => (
                       <tr key={r.source} className="border-t border-slate-200 dark:border-slate-800">
-                        <td className="py-2">{SOURCE_LABELS[r.source] ?? r.source}</td>
+                        <td className="py-2">{labelFor(SOURCE_LABELS, r.source)}</td>
                         <td className="py-2 text-right tabular-nums">{r.users}</td>
                         <td className="py-2 text-right tabular-nums">{r.events}</td>
                       </tr>
@@ -175,7 +187,7 @@ export default function FunnelPage() {
                   <tbody>
                     {report.others.map((r) => (
                       <tr key={r.name} className="border-t border-slate-200 dark:border-slate-800">
-                        <td className="py-2">{OTHER_LABELS[r.name] ?? r.name}</td>
+                        <td className="py-2">{labelFor(OTHER_LABELS, r.name)}</td>
                         <td className="py-2 text-right tabular-nums">{r.users}</td>
                         <td className="py-2 text-right tabular-nums">{r.events}</td>
                       </tr>

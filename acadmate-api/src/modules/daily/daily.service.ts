@@ -2,7 +2,6 @@ import { ForbiddenException, HttpException, HttpStatus, Injectable } from '@nest
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SettingsService } from '../settings/settings.service';
-import { EventsService } from '../events/events.service';
 import { computeStreak, lagosDay, lagosDayStart, Streak } from '../../common/utils/lagos-day.util';
 
 // Five questions a day, outside the free quota: English plus the student's
@@ -29,7 +28,6 @@ export class DailyService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly settings: SettingsService,
-    private readonly events: EventsService,
   ) {}
 
   async status(userId: string): Promise<DailyStatus> {
@@ -58,12 +56,14 @@ export class DailyService {
     if (!availability.utme) {
       throw new ForbiddenException('Practice is turned off right now. Please check back soon.');
     }
-    const today = lagosDay();
 
     return this.prisma.$transaction(
       async (tx) => {
         // Two taps on "Start" must not make two challenges.
         await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${'daily:' + userId}))`;
+        // Read the day after the lock: a request that waited across midnight
+        // must get today's challenge, not yesterday's.
+        const today = lagosDay();
         const existing = await this.todaysSession(userId, today, tx);
         if (existing) return { sessionId: existing.id };
 
@@ -81,7 +81,6 @@ export class DailyService {
           },
           select: { id: true },
         });
-        this.events.record('exam_start', userId, { mode: 'DAILY' });
         return { sessionId: session.id };
       },
       { timeout: 15_000 },
