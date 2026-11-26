@@ -150,14 +150,17 @@ export default function BlogList({
   const posts = isFiltered ? fetchedPosts : initialPosts;
   const total = isFiltered ? fetchedTotal : initialTotal;
 
-  useEffect(() => {
-    if (!isFiltered) {
-      setError("");
-      return;
-    }
-    let cancelled = false;
-    setLoading(true);
+  // Loading and error are reset where the view changes, not inside the fetch effect.
+  const showView = (nextCategory: BlogCategory | "", nextPage: number) => {
+    setLoading(nextPage !== 0 || nextCategory !== "");
     setError("");
+    setActiveCategory(nextCategory);
+    setPage(nextPage);
+  };
+
+  useEffect(() => {
+    if (!isFiltered) return;
+    let cancelled = false;
     const qs = new URLSearchParams({
       limit: String(LIMIT),
       offset: String(page * LIMIT),
@@ -189,14 +192,14 @@ export default function BlogList({
         <CategoryChip
           label="All"
           active={activeCategory === ""}
-          onClick={() => { setActiveCategory(""); setPage(0); }}
+          onClick={() => showView("", 0)}
         />
         {BLOG_CATEGORIES.map((cat) => (
           <CategoryChip
             key={cat}
             label={categoryLabel(cat)}
             active={activeCategory === cat}
-            onClick={() => { setActiveCategory(cat); setPage(0); }}
+            onClick={() => showView(cat, 0)}
           />
         ))}
       </div>
@@ -231,14 +234,14 @@ export default function BlogList({
               <p className="text-sm text-slate-500">Page {page + 1} of {totalPages}</p>
               <div className="flex gap-2">
                 <button
-                  onClick={() => setPage((p) => p - 1)}
+                  onClick={() => showView(activeCategory, page - 1)}
                   disabled={page === 0}
                   className="px-3 py-1.5 rounded-lg text-sm font-medium border border-slate-200 dark:border-white/10 disabled:opacity-40 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"
                 >
                   Previous
                 </button>
                 <button
-                  onClick={() => setPage((p) => p + 1)}
+                  onClick={() => showView(activeCategory, page + 1)}
                   disabled={page >= totalPages - 1}
                   className="px-3 py-1.5 rounded-lg text-sm font-medium border border-slate-200 dark:border-white/10 disabled:opacity-40 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"
                 >

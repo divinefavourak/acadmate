@@ -63,6 +63,13 @@ export default function ResultsPage() {
   const [error, setError] = useState("");
   const limit = 10;
 
+  // Loading and error are reset where the page changes, not inside the fetch effect.
+  const goToPage = (next: number) => {
+    setLoading(true);
+    setError("");
+    setPage(next);
+  };
+
   useEffect(() => {
     apiClient<{ sessions: ActiveSession[] }>("/api/exams/active")
       .then((data) => setActiveSessions(data?.sessions ?? []))
@@ -70,8 +77,6 @@ export default function ResultsPage() {
   }, []);
 
   useEffect(() => {
-    setLoading(true);
-    setError("");
     apiClient<{ results: ResultEntry[]; total: number }>(`/api/results?limit=${limit}&offset=${page * limit}`)
       .then((data) => {
         setResults(data?.results ?? []);
@@ -228,14 +233,14 @@ export default function ResultsPage() {
                 </p>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => setPage((p) => p - 1)}
+                    onClick={() => goToPage(page - 1)}
                     disabled={page === 0}
                     className="px-3 py-1.5 rounded-lg text-sm font-medium border border-slate-200 dark:border-slate-800 disabled:opacity-40 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                   >
                     Previous
                   </button>
                   <button
-                    onClick={() => setPage((p) => p + 1)}
+                    onClick={() => goToPage(page + 1)}
                     disabled={page >= totalPages - 1}
                     className="px-3 py-1.5 rounded-lg text-sm font-medium border border-slate-200 dark:border-slate-800 disabled:opacity-40 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                   >

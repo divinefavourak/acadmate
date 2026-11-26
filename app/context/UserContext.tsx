@@ -32,9 +32,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState(false);
   const fetchedRef = useRef(false);
 
-  const fetch = useCallback(async () => {
-    setLoading(true);
-    setError(false);
+  // Loads the user without touching loading/error: the first load starts from loading=true, and
+  // refetch (called from event handlers) resets them first. So the effect never sets state itself.
+  const load = useCallback(async () => {
     fetchedRef.current = true;
 
     // After a page refresh the in-memory token is gone. Restore it from the
@@ -52,12 +52,18 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       });
   }, []);
 
+  const refetch = useCallback(() => {
+    setLoading(true);
+    setError(false);
+    void load();
+  }, [load]);
+
   useEffect(() => {
-    if (!fetchedRef.current) fetch();
-  }, [fetch]);
+    if (!fetchedRef.current) void load();
+  }, [load]);
 
   return (
-    <UserContext.Provider value={{ user, loading, error, refetch: fetch }}>
+    <UserContext.Provider value={{ user, loading, error, refetch }}>
       {children}
     </UserContext.Provider>
   );

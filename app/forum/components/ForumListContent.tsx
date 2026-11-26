@@ -221,25 +221,41 @@ export default function ForumListContent({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showCreate, setShowCreate] = useState(false);
-  const mounted = useRef(false);
 
-  useEffect(() => {
-    if (!mounted.current) { mounted.current = true; return; }
-    if (page === 0 && category === "") {
+  // The first page of every category is server-rendered, so the unfiltered view needs no fetch.
+  // State that depends on the view is reset here, where the view changes, not in the effect.
+  const showView = (nextCategory: ForumCategory | "", nextPage: number) => {
+    if (nextPage === 0 && nextCategory === "") {
       setThreads(initialThreads);
       setTotal(initialTotal);
-      return;
+      setLoading(false);
+    } else {
+      setLoading(true);
     }
-    setLoading(true);
     setError("");
+    setCategory(nextCategory);
+    setPage(nextPage);
+  };
+
+  useEffect(() => {
+    if (page === 0 && category === "") return;
+    let cancelled = false; // a slower earlier request must not overwrite a newer view
     listThreads({ category: category || undefined, limit: LIMIT, offset: page * LIMIT })
       .then((data) => {
+        if (cancelled) return;
         setThreads(data.threads);
         setTotal(data.total);
       })
-      .catch(() => setError("Could not load threads. Please refresh."))
-      .finally(() => setLoading(false));
-  }, [category, page, initialThreads, initialTotal]);
+      .catch(() => {
+        if (!cancelled) setError("Could not load threads. Please refresh.");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [category, page]);
 
   const totalPages = Math.max(1, Math.ceil(total / LIMIT));
 
@@ -251,7 +267,7 @@ export default function ForumListContent({
           {CATEGORIES.map((cat) => (
             <button
               key={cat.value}
-              onClick={() => { setCategory(cat.value as ForumCategory | ""); setPage(0); }}
+              onClick={() => showView(cat.value as ForumCategory | "", 0)}
               className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all ${
                 category === cat.value
                   ? "bg-brand-600 text-white"
@@ -297,14 +313,14 @@ export default function ForumListContent({
           <p className="text-sm text-slate-500">Page {page + 1} of {totalPages}</p>
           <div className="flex gap-2">
             <button
-              onClick={() => setPage((p) => p - 1)}
+              onClick={() => showView(category, page - 1)}
               disabled={page === 0}
               className="px-3 py-1.5 rounded-lg text-sm font-medium border border-slate-200 dark:border-white/10 disabled:opacity-40 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"
             >
               Previous
             </button>
             <button
-              onClick={() => setPage((p) => p + 1)}
+              onClick={() => showView(category, page + 1)}
               disabled={page >= totalPages - 1}
               className="px-3 py-1.5 rounded-lg text-sm font-medium border border-slate-200 dark:border-white/10 disabled:opacity-40 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"
             >

@@ -48,6 +48,7 @@ interface ExamSession {
   startedAt: string;
   questions: SessionQuestion[];
   userAnswers: { questionId: string; optionId: string | null }[];
+  result?: { id: string } | null;
 }
 
 // ─── Page ────────────────────────────────────────────────────────────────────
@@ -80,12 +81,7 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
       .then(({ examSession: s }) => {
         // Already finished — send to results page instead of showing exam UI
         if (s.status === "SUBMITTED" || s.status === "TIMED_OUT") {
-          apiClient<{ result: { id: string } }>(`/api/results?examSessionId=${id}&limit=1`)
-            .then((d) => {
-              const resultId = (d as any)?.results?.[0]?.id;
-              router.replace(resultId ? `/results/${resultId}` : "/results");
-            })
-            .catch(() => router.replace("/results"));
+          router.replace(s.result?.id ? `/results/${s.result.id}` : "/results");
           return;
         }
         if (s.status === "ABANDONED") {

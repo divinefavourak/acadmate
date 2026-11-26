@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { BrandMark } from "@/app/components/BrandMark";
 import { usePathname, useRouter } from "next/navigation";
@@ -114,24 +114,44 @@ export const navItems: { href: string; label: string; icon: React.ReactNode; exa
   },
 ];
 
+// The collapsed preference is kept in localStorage and read as external state: expanded during
+// server render and hydration (no mismatch), then the saved value. The width transition smooths
+// the catch-up. Other tabs follow via the storage event; this tab via SIDEBAR_EVENT.
+const SIDEBAR_KEY = "sidebarCollapsed";
+const SIDEBAR_EVENT = "acadmate:sidebar-collapsed";
+let collapsedInMemory = false; // used when localStorage is blocked
+
+function readCollapsed(): boolean {
+  try {
+    return localStorage.getItem(SIDEBAR_KEY) === "true";
+  } catch {
+    return collapsedInMemory;
+  }
+}
+
+function subscribeCollapsed(onChange: () => void) {
+  window.addEventListener("storage", onChange);
+  window.addEventListener(SIDEBAR_EVENT, onChange);
+  return () => {
+    window.removeEventListener("storage", onChange);
+    window.removeEventListener(SIDEBAR_EVENT, onChange);
+  };
+}
+
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [signOutError, setSignOutError] = useState(false);
-  const [collapsed, setCollapsed] = useState(false);
-
-  // Restore the collapsed preference on mount (kept out of the initial render to
-  // avoid an SSR/client hydration mismatch — the width transition smooths the catch-up).
-  useEffect(() => {
-    setCollapsed(localStorage.getItem("sidebarCollapsed") === "true");
-  }, []);
+  const collapsed = useSyncExternalStore(subscribeCollapsed, readCollapsed, () => false);
 
   const toggleCollapsed = () => {
-    setCollapsed((prev) => {
-      const next = !prev;
-      localStorage.setItem("sidebarCollapsed", String(next));
-      return next;
-    });
+    collapsedInMemory = !collapsed;
+    try {
+      localStorage.setItem(SIDEBAR_KEY, String(collapsedInMemory));
+    } catch {
+      // storage blocked: the in-memory value is used instead
+    }
+    window.dispatchEvent(new Event(SIDEBAR_EVENT));
   };
 
   return (

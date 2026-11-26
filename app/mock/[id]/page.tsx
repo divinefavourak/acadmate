@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiClient } from "@/lib/api/client";
@@ -44,12 +44,29 @@ function fmt(iso: string) {
   return new Date(iso).toLocaleString("en-NG", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 }
 
+// The participant's token lives in localStorage (not the site cookie). Read it as external state:
+// false during server render and hydration, then the real value, and kept in sync across tabs.
+function subscribeStorage(onChange: () => void) {
+  window.addEventListener("storage", onChange);
+  return () => window.removeEventListener("storage", onChange);
+}
+
+function hasStoredToken(examId: string): boolean {
+  try {
+    return !!localStorage.getItem(`mock_token_${examId}`);
+  } catch {
+    return false; // storage blocked (e.g. some private modes)
+  }
+}
+
 export default function MockLandingPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const [exam, setExam] = useState<ExamInfo | null>(null);
   const [error, setError] = useState("");
-  const [hasToken, setHasToken] = useState(false);
+  const storedToken = useSyncExternalStore(subscribeStorage, () => hasStoredToken(id), () => false);
+  const [loggedOut, setLoggedOut] = useState(false);
+  const hasToken = storedToken && !loggedOut;
 
   const [now, setNow] = useState(() => Date.now());
   const countdown = useCountdown(exam ? exam.startsAt : null);
@@ -63,8 +80,6 @@ export default function MockLandingPage() {
   }, []);
 
   useEffect(() => {
-    const token = localStorage.getItem(`mock_token_${id}`);
-    setHasToken(!!token);
     apiClient<ExamInfo>(`/api/mock/${id}/info`, { skipAuth: true })
       .then(setExam)
       .catch(() => setError("Exam not found or is not currently active."));
@@ -184,7 +199,7 @@ export default function MockLandingPage() {
           <button
             onClick={() => {
               localStorage.removeItem(`mock_token_${id}`);
-              setHasToken(false);
+              setLoggedOut(true);
             }}
             className="block w-full text-center text-sm text-slate-500 hover:text-red-400 transition-colors"
           >

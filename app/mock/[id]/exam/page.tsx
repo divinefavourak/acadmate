@@ -415,7 +415,7 @@ export default function MockExamPage() {
             ) : (
               <>
                 <h3 className="font-bold text-lg">Report an Issue</h3>
-                <p className="text-sm text-slate-400">Describe the problem you're facing. An admin will be alerted.</p>
+                <p className="text-sm text-slate-400">Describe the problem you’re facing. An admin will be alerted.</p>
                 <textarea
                   rows={3}
                   value={panicMessage}

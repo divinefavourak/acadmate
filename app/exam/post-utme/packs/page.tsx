@@ -61,6 +61,8 @@ function PackCard({
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
+const NO_PACKS: YearPack[] = [];
+
 function PacksContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -68,9 +70,13 @@ function PacksContent() {
   const schoolId = searchParams.get("school") ?? "";
   const school = SCHOOLS.find((s) => s.id === schoolId);
 
-  const [packs, setPacks] = useState<YearPack[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [fetchError, setFetchError] = useState("");
+  // What was last loaded, and for which school. Loading and errors are derived from whether that is
+  // the school in the URL, so nothing has to be reset inside the fetch effect.
+  const [loaded, setLoaded] = useState<{ schoolId: string; packs: YearPack[]; error: string } | null>(null);
+  const current = loaded?.schoolId === schoolId ? loaded : null;
+  const loading = !current;
+  const packs = current?.packs ?? NO_PACKS;
+  const fetchError = current?.error ?? "";
 
   // null = all years selected
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
@@ -88,9 +94,7 @@ function PacksContent() {
   // ── Fetch questions and extract year packs ────────────────────────────────
   useEffect(() => {
     if (!schoolId) return;
-
-    setLoading(true);
-    setFetchError("");
+    let cancelled = false;
 
     fetchPostUtmeQuestions(schoolId)
       .then(({ questions }) => {
@@ -106,14 +110,19 @@ function PacksContent() {
           .map(([year, questionCount]) => ({ year, questionCount }))
           .sort((a, b) => b.year - a.year); // newest first
 
-        setPacks(sorted);
+        if (!cancelled) setLoaded({ schoolId, packs: sorted, error: "" });
       })
       .catch((err) => {
-        setFetchError(
-          err instanceof ApiError ? err.message : "Failed to load packs. Please try again."
-        );
-      })
-      .finally(() => setLoading(false));
+        if (cancelled) return;
+        setLoaded({
+          schoolId,
+          packs: [],
+          error: err instanceof ApiError ? err.message : "Failed to load packs. Please try again.",
+        });
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [schoolId]);
 
   async function handleStart() {
@@ -162,7 +171,7 @@ function PacksContent() {
             </p>
             <h2 className="text-2xl font-bold">{school.name}</h2>
             <p className="text-slate-500 dark:text-slate-400 text-sm">
-              We're working on adding past papers for this school. Check back soon!
+              We’re working on adding past papers for this school. Check back soon!
             </p>
           </div>
           <Link
@@ -219,7 +228,7 @@ function PacksContent() {
           <div>
             <h2 className="font-semibold text-lg">Choose a Pack</h2>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-              Practice with a specific year's paper or mix questions from all years.
+              Practice with a specific year’s paper or mix questions from all years.
             </p>
           </div>
 

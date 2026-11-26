@@ -325,6 +325,9 @@ export class ExamsService {
         startedAt: true,
         submittedAt: true,
         currentQuestion: true,
+        // Set once the exam is submitted or timed out: lets the exam page send a returning student
+        // straight to this exam's result.
+        result: { select: { id: true } },
         questions: {
           orderBy: { position: 'asc' },
           select: {
