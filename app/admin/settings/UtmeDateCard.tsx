@@ -61,6 +61,7 @@ export default function UtmeDateCard() {
             <input
               type="date"
               value={input}
+              disabled={busy}
               onChange={(e) => setInput(e.target.value)}
               className="px-3 py-2 rounded-lg bg-white/60 dark:bg-black/30 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500/50"
             />
