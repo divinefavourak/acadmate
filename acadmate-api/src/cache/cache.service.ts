@@ -1,11 +1,28 @@
-import { Injectable, OnModuleDestroy, Logger } from '@nestjs/common';
+import { Injectable, OnModuleDestroy, OnModuleInit, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import Redis from 'ioredis';
+import Redis, { RedisOptions } from 'ioredis';
+
+// The cache is optional: every caller treats a miss as "read the database". So a Redis that is down,
+// restarting or unreachable must fail fast, never hold a request. ioredis's defaults do the opposite:
+// commands wait in an offline queue while it reconnects, and each is retried up to 20 times, so a page
+// hung for many seconds instead of falling back to Postgres.
+const FAIL_FAST: RedisOptions = {
+  lazyConnect: true, // connected in onModuleInit, without blocking boot
+  enableOfflineQueue: false, // not connected → reject at once (the caller reads the DB)
+  maxRetriesPerRequest: 1,
+  commandTimeout: 1000, // a connected but stalled Redis can't hold a request either
+  connectTimeout: 5000,
+  // Keep reconnecting in the background (every 2s at most), so the cache comes back on its own.
+  retryStrategy: (times) => Math.min(times * 200, 2000),
+};
+
+const ERROR_LOG_INTERVAL_MS = 60_000;
 
 @Injectable()
-export class CacheService implements OnModuleDestroy {
+export class CacheService implements OnModuleInit, OnModuleDestroy {
   private readonly redis: Redis;
   private readonly logger = new Logger(CacheService.name);
+  private lastErrorLog = 0;
 
   constructor(config: ConfigService) {
     // REDIS_URL takes precedence — most cloud Redis providers (Railway, Render,
@@ -14,22 +31,34 @@ export class CacheService implements OnModuleDestroy {
     const url = config.get<string>('REDIS_URL');
 
     this.redis = url
-      ? new Redis(url, { lazyConnect: true })
+      ? new Redis(url, FAIL_FAST)
       : new Redis({
           host: config.get<string>('REDIS_HOST', 'localhost'),
           port: config.get<number>('REDIS_PORT', 6379),
           ...(config.get('REDIS_PASSWORD') && {
             password: config.get<string>('REDIS_PASSWORD'),
           }),
-          lazyConnect: true,
+          ...FAIL_FAST,
         });
 
-    this.redis.on('error', (err: Error) =>
-      this.logger.error(`Redis error: ${err.message}`),
-    );
+    // While Redis is down this fires on every reconnect attempt; log it at most once a minute.
+    this.redis.on('error', (err: Error) => {
+      const now = Date.now();
+      if (now - this.lastErrorLog < ERROR_LOG_INTERVAL_MS) return;
+      this.lastErrorLog = now;
+      this.logger.error(`Redis error (serving from the database until it's back): ${err.message}`);
+    });
 
-    this.redis.on('connect', () => this.logger.log('Redis connected ✓'));
+    this.redis.on('ready', () => {
+      this.lastErrorLog = 0;
+      this.logger.log('Redis connected ✓');
+    });
     this.redis.on('close', () => this.logger.warn('Redis connection closed'));
+  }
+
+  onModuleInit() {
+    // Not awaited: the API starts and serves from the database even if Redis never answers.
+    this.redis.connect().catch(() => undefined);
   }
 
   // ── Read ───────────────────────────────────────────────────────────────────
@@ -54,7 +83,7 @@ export class CacheService implements OnModuleDestroy {
     try {
       await this.redis.setex(key, ttlSeconds, JSON.stringify(value));
     } catch (err) {
-      this.logger.warn(`Cache set failed for "${key}": ${(err as Error).message}`);
+      this.logger.debug(`Cache set failed for "${key}": ${(err as Error).message}`);
     }
   }
 
@@ -92,6 +121,11 @@ export class CacheService implements OnModuleDestroy {
   }
 
   async onModuleDestroy() {
-    await this.redis.quit();
+    // QUIT needs a live connection; with Redis down it would reject, so just drop the socket.
+    try {
+      await this.redis.quit();
+    } catch {
+      this.redis.disconnect();
+    }
   }
 }
