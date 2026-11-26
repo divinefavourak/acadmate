@@ -21,11 +21,19 @@ const NAVY = "#08111f";
 const BLUE = "#1a91f0";
 const MINT = "#16b985";
 
-function loadImage(src: string): Promise<HTMLImageElement | null> {
+/** The logo is optional: give up after a few seconds and draw without it. */
+function loadImage(src: string, timeoutMs = 3000): Promise<HTMLImageElement | null> {
   return new Promise((resolve) => {
     const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = () => resolve(null);
+    const timer = window.setTimeout(() => resolve(null), timeoutMs);
+    img.onload = () => {
+      window.clearTimeout(timer);
+      resolve(img);
+    };
+    img.onerror = () => {
+      window.clearTimeout(timer);
+      resolve(null);
+    };
     img.src = src;
   });
 }
