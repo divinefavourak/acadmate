@@ -218,14 +218,22 @@ export class SettingsService {
   }
 
   async setPaymentDetails(input: Partial<PaymentDetails>): Promise<PaymentDetails> {
-    const next = this.normalizePayment({ ...(await this.getPaymentDetails()), ...input });
-    const value = next as unknown as Prisma.InputJsonObject;
-    await this.prisma.appSetting.upsert({
-      where: { key: PAYMENT_DETAILS_KEY },
-      create: { key: PAYMENT_DETAILS_KEY, value },
-      update: { value },
+    return this.lockedUpdate(PAYMENT_DETAILS_KEY, (raw) => this.normalizePayment({ ...this.normalizePayment(raw), ...input }));
+  }
+
+  /**
+   * Read, merge and write one setting under a per-key lock, so two saves at
+   * the same moment can't each write back a stale copy of the other's field.
+   */
+  private lockedUpdate<T>(key: string, merge: (stored: unknown) => T): Promise<T> {
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${'setting:' + key}))`;
+      const row = await tx.appSetting.findUnique({ where: { key } });
+      const next = merge(row?.value);
+      const value = next as unknown as Prisma.InputJsonObject;
+      await tx.appSetting.upsert({ where: { key }, create: { key, value }, update: { value } });
+      return next;
     });
-    return next;
   }
 
   private normalizePayment(raw: unknown): PaymentDetails {

@@ -11,6 +11,17 @@ function generateCode(): string {
   return `ACM-${seg()}-${seg()}`;
 }
 
+const TOKEN_LIST_SELECT = {
+  id: true,
+  code: true,
+  note: true,
+  createdAt: true,
+  usedAt: true,
+  revokedAt: true,
+  usedBy: { select: { id: true, name: true, email: true } },
+  generatedBy: { select: { id: true, name: true } },
+} as const;
+
 @Injectable()
 export class AdminTokensService {
   constructor(
@@ -63,24 +74,26 @@ export class AdminTokensService {
       // A student can hold one redeemed token (usedById is unique). If an
       // earlier one was revoked, switch that back on instead of adding another.
       const existing = await tx.accessToken.findUnique({ where: { usedById: user.id } });
-      if (existing) {
-        await tx.accessToken.update({
-          where: { id: existing.id },
-          data: { revokedAt: null, note: existing.note ? `${existing.note} · ${label}` : label },
-        });
-      } else {
-        await tx.accessToken.create({
-          data: {
-            code: await this.freeCode(tx),
-            note: label,
-            generatedById: adminId,
-            usedById: user.id,
-            usedAt: new Date(),
-          },
-        });
-      }
+      // Same fields as listTokens, so the page can show this token even when
+      // it's an old one outside the newest-first list.
+      const token = existing
+        ? await tx.accessToken.update({
+            where: { id: existing.id },
+            data: { revokedAt: null, note: existing.note ? `${existing.note} · ${label}` : label },
+            select: TOKEN_LIST_SELECT,
+          })
+        : await tx.accessToken.create({
+            data: {
+              code: await this.freeCode(tx),
+              note: label,
+              generatedById: adminId,
+              usedById: user.id,
+              usedAt: new Date(),
+            },
+            select: TOKEN_LIST_SELECT,
+          });
       await tx.user.update({ where: { id: user.id }, data: { plan: 'PREMIUM' } });
-      return { granted: true, user: { id: user.id, name: user.name, email: user.email } };
+      return { granted: true, user: { id: user.id, name: user.name, email: user.email }, token };
     }).then((r) => {
       this.events.record('premium_granted', user.id, { via: 'grant' });
       return r;
@@ -102,16 +115,7 @@ export class AdminTokensService {
         take: safeLimit,
         skip: offset,
         orderBy: { createdAt: 'desc' },
-        select: {
-          id: true,
-          code: true,
-          note: true,
-          createdAt: true,
-          usedAt: true,
-          revokedAt: true,
-          usedBy: { select: { id: true, name: true, email: true } },
-          generatedBy: { select: { id: true, name: true } },
-        },
+        select: TOKEN_LIST_SELECT,
       }),
       this.prisma.accessToken.count(),
     ]);
