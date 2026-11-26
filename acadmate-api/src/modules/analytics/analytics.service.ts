@@ -20,9 +20,6 @@ export interface AnalyticsResult {
 
 // The full weak-topic report is a Premium feature; Free sees the weakest one.
 const FREE_WEAK_TOPICS = 1;
-// Every qualifying topic is counted; the list sent is bounded only to keep
-// the response small (far more than a student will have).
-const MAX_WEAK_TOPICS = 100;
 
 const CACHE_TTL = 60; // 60 s — matches the old in-memory TTL
 
@@ -137,8 +134,9 @@ export class AnalyticsService {
         ...t,
         percentage: Math.round((t.correct / t.total) * 100),
       }))
-      .sort((a, b) => a.percentage - b.percentage)
-      .slice(0, MAX_WEAK_TOPICS);
+      // No cap: Premium's report is every qualifying topic, and the total
+      // must count them all. It can't exceed the number of topics there are.
+      .sort((a, b) => a.percentage - b.percentage);
     // The subject lets the dashboard link straight to a topic drill.
     const topicSubjects = new Map(
       (
