@@ -49,7 +49,7 @@ export default function CountdownCard({ onHidden }: { onHidden?: () => void }) {
   if (date === undefined) return <div className="glass-panel rounded-2xl h-full min-h-32 animate-pulse" aria-hidden="true" />;
   if (hidden || days === null) return null;
 
-  const label = new Date(`${date}T12:00:00Z`).toLocaleDateString("en-NG", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  const label = new Date(`${date}T12:00:00Z`).toLocaleDateString("en-NG", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "Africa/Lagos" });
   return (
     <section aria-labelledby="countdown-heading" className="glass-panel rounded-2xl p-5 sm:p-6 h-full flex flex-col justify-center">
       <h2 id="countdown-heading" className="text-sm font-semibold text-slate-500 dark:text-slate-400">UTME countdown</h2>

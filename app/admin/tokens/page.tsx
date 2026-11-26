@@ -38,16 +38,31 @@ export default function TokensPage() {
   // token action ends with a fresh refresh, which supersedes any refresh that
   // started before the action (so stale rows can't land after it).
   const loadSeq = useRef(0);
+  // Tokens granted on this page. A re-granted token can be older than the
+  // newest 50, so it's kept on top across every later refresh (with its
+  // current status) to keep its Revoke / Reactivate button reachable.
+  const pinned = useRef(new Map<string, Token>());
 
-  function loadTokens(pin?: Token) {
+  function pin(token: Token) {
+    pinned.current.set(token.id, token);
+  }
+
+  function updatePinned(id: string, change: Partial<Token>) {
+    const t = pinned.current.get(id);
+    if (t) pinned.current.set(id, { ...t, ...change });
+  }
+
+  function loadTokens(newPin?: Token) {
+    if (newPin) pin(newPin);
     const seq = ++loadSeq.current;
     return apiClient<{ tokens: Token[]; total: number }>("/api/admin/tokens")
       .then((data) => {
         if (seq !== loadSeq.current) return;
         const list = data.tokens ?? [];
-        // A re-granted token can be older than the newest 50: keep it on top
-        // so its Revoke button is reachable.
-        setTokens(pin && !list.some((t) => t.id === pin.id) ? [pin, ...list] : list);
+        // A pinned token in the list takes the server's fresh copy.
+        for (const t of list) updatePinned(t.id, t);
+        const extra = [...pinned.current.values()].filter((p) => !list.some((t) => t.id === p.id));
+        setTokens([...extra, ...list]);
         setTotal(data.total ?? 0);
       })
       .catch(() => {
@@ -109,6 +124,7 @@ export default function TokensPage() {
     setBusyId(id);
     try {
       await apiClient(`/api/admin/tokens/${id}`, { method: "DELETE" });
+      pinned.current.delete(id);
       setTokens((prev) => prev.filter((t) => t.id !== id));
       setTotal((c) => c - 1);
       void loadTokens();
@@ -124,6 +140,7 @@ export default function TokensPage() {
     setError("");
     try {
       await apiClient(`/api/admin/tokens/${id}/revoke`, { method: "POST" });
+      updatePinned(id, { revokedAt: new Date().toISOString() });
       setTokens((prev) => prev.map((t) => t.id === id ? { ...t, revokedAt: new Date().toISOString() } : t));
       void loadTokens();
     } catch (err) {
@@ -138,6 +155,7 @@ export default function TokensPage() {
     setError("");
     try {
       await apiClient(`/api/admin/tokens/${id}/reactivate`, { method: "POST" });
+      updatePinned(id, { revokedAt: null });
       setTokens((prev) => prev.map((t) => t.id === id ? { ...t, revokedAt: null } : t));
       void loadTokens();
     } catch (err) {

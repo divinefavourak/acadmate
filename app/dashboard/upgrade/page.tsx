@@ -280,9 +280,11 @@ function CopyRow({ label, value, display, mono }: { label: string; value: string
       .catch(() => {});
   }
   return (
-    <div className="flex items-center gap-3 px-4 py-3">
-      <dt className="w-32 shrink-0 text-sm text-slate-500 dark:text-slate-400">{label}</dt>
-      <dd className={`min-w-0 flex-1 truncate font-semibold ${mono ? "font-mono tracking-wider" : ""}`}>{display ?? value}</dd>
+    // On narrow phones the label sits above the value, so the whole account
+    // number fits instead of being cut off.
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3">
+      <dt className="w-full sm:w-32 shrink-0 text-sm text-slate-500 dark:text-slate-400">{label}</dt>
+      <dd className={`min-w-0 flex-1 break-all sm:truncate font-semibold ${mono ? "font-mono tracking-wider" : ""}`}>{display ?? value}</dd>
       <button
         type="button"
         onClick={copy}
