@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { renderScoreCard, shareScoreCard, whatsappShareLink, type ScoreCard } from "@/lib/shareScore";
+import { track } from "@/lib/track";
 
 type CardInput = Omit<ScoreCard, "text"> & { text: (url: string) => string };
 
@@ -14,7 +15,16 @@ type CardInput = Omit<ScoreCard, "text"> & { text: (url: string) => string };
  * has nowhere to share, or files can't be shared at all (most desktops), the
  * WhatsApp message and a download of the image are shown instead.
  */
-export default function ShareScoreButton({ card, className = "" }: { card: CardInput; className?: string }) {
+export default function ShareScoreButton({
+  card,
+  kind = "result",
+  className = "",
+}: {
+  card: CardInput;
+  /** For the funnel: which share button this was. */
+  kind?: "daily" | "result";
+  className?: string;
+}) {
   const [prepared, setPrepared] = useState<{ key: string; full: ScoreCard; image: Blob } | null>(null);
   // Tied to the card it was made from: if the card changes (the streak can
   // load later), the old WhatsApp text and image are no longer offered.
@@ -61,6 +71,7 @@ export default function ShareScoreButton({ card, className = "" }: { card: CardI
     setError("");
     // No await before this call: the share sheet needs the tap to be fresh.
     const outcome = await shareScoreCard(ready.full, ready.image);
+    track("share_click", { kind, outcome });
     // The card may have changed while the share sheet was open.
     if (outcome !== "shared" && ready.key === keyRef.current) {
       setFallback({ key: ready.key, url: URL.createObjectURL(ready.image), text: ready.full.text });

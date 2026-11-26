@@ -26,6 +26,7 @@ import { ScoringService } from './scoring.service';
 import { AnalyticsService } from '../analytics/analytics.service';
 import { CacheService } from '../../cache/cache.service';
 import { SettingsService } from '../settings/settings.service';
+import { EventsService } from '../events/events.service';
 import { SaveAnswersDto } from './dto/save-answers.dto';
 import { MarkReviewDto } from './dto/mark-review.dto';
 
@@ -46,6 +47,7 @@ export class ExamsService {
     private readonly cache: CacheService,
     private readonly settings: SettingsService,
     private readonly quota: QuotaService,
+    private readonly events: EventsService,
   ) {}
 
   // ─── POST /exams ──────────────────────────────────────────────────────────
@@ -71,6 +73,7 @@ export class ExamsService {
     const isFree = user?.plan === 'FREE';
 
     if (isFree && (input.mode === 'MOCK' || input.mode === 'POST_UTME')) {
+      this.events.record('quota_hit', userId, { reason: 'premium_mode', mode: input.mode });
       throw new HttpException(
         {
           message: 'Full mock exams and Post-UTME papers are part of Premium.',
@@ -139,38 +142,50 @@ export class ExamsService {
     }
 
     try {
-      if (isFree && freeLimit !== null) {
-        // Free accounts: count, draw and create under a per-user lock, so
-        // sessions started at the same moment can't both spend the same
-        // allowance.
-        return await this.prisma.$transaction(
-          async (tx) => {
-            await this.quota.lockUser(tx, userId);
-            const used = await this.quota.usedInSubject(userId, factoryInput.subjectId, tx);
-            const remaining = freeLimit - used;
-            if (remaining <= 0) {
-              throw new HttpException(
-                {
-                  message: `You've used your ${freeLimit} free questions in this subject. Premium unlocks every question.`,
-                  error: PAYWALL_CODES.quotaExhausted,
-                },
-                HttpStatus.PAYMENT_REQUIRED,
-              );
-            }
-            factoryInput.questionCount = Math.min(factoryInput.questionCount, remaining);
-            factoryInput.excludeSeenBy = userId;
-            return this.createFromFactory(userId, input, factoryInput, tx);
-          },
-          { timeout: 15_000 },
-        );
-      }
-      return await this.createFromFactory(userId, input, factoryInput, this.prisma);
+      return await this.startSession(userId, input, factoryInput, isFree, freeLimit);
     } catch (err) {
       if (err instanceof ExamFactoryError) {
         throw new HttpException(err.message, err.statusHint);
       }
       throw err;
     }
+  }
+
+  // Free accounts with the quota on go through the per-user lock.
+  private async startSession(
+    userId: string,
+    input: CreateExamInput,
+    factoryInput: any,
+    isFree: boolean,
+    freeLimit: number | null,
+  ) {
+    if (isFree && freeLimit !== null) {
+      // Free accounts: count, draw and create under a per-user lock, so
+      // sessions started at the same moment can't both spend the same
+      // allowance.
+      return await this.prisma.$transaction(
+        async (tx) => {
+          await this.quota.lockUser(tx, userId);
+          const used = await this.quota.usedInSubject(userId, factoryInput.subjectId, tx);
+          const remaining = freeLimit - used;
+          if (remaining <= 0) {
+            this.events.record('quota_hit', userId, { reason: 'quota', mode: input.mode });
+            throw new HttpException(
+              {
+                message: `You've used your ${freeLimit} free questions in this subject. Premium unlocks every question.`,
+                error: PAYWALL_CODES.quotaExhausted,
+              },
+              HttpStatus.PAYMENT_REQUIRED,
+            );
+          }
+          factoryInput.questionCount = Math.min(factoryInput.questionCount, remaining);
+          factoryInput.excludeSeenBy = userId;
+          return this.createFromFactory(userId, input, factoryInput, tx);
+        },
+        { timeout: 15_000 },
+      );
+    }
+    return await this.createFromFactory(userId, input, factoryInput, this.prisma);
   }
 
   // Draws the questions and saves the session. `db` is the transaction when a
@@ -217,7 +232,7 @@ export class ExamsService {
   async startExam(userId: string, id: string) {
     const session = await this.prisma.examSession.findUnique({
       where: { id },
-      select: { id: true, userId: true, status: true, durationMinutes: true, expiresAt: true },
+      select: { id: true, userId: true, status: true, durationMinutes: true, expiresAt: true, mode: true, totalQuestions: true },
     });
     if (!session) throw new NotFoundException('Session not found');
     if (session.userId !== userId) throw new ForbiddenException();
@@ -227,7 +242,15 @@ export class ExamsService {
     if (session.expiresAt) return { expiresAt: session.expiresAt };
 
     const expiresAt = new Date(Date.now() + session.durationMinutes * 60_000);
-    await this.prisma.examSession.update({ where: { id }, data: { expiresAt } });
+    // Only the request that actually starts the clock counts as a start, so
+    // two taps on Begin record one funnel event. Students who open the
+    // briefing and leave never get here.
+    const { count } = await this.prisma.examSession.updateMany({ where: { id, expiresAt: null }, data: { expiresAt } });
+    if (count === 0) {
+      const current = await this.prisma.examSession.findUnique({ where: { id }, select: { expiresAt: true } });
+      return { expiresAt: current?.expiresAt ?? expiresAt };
+    }
+    this.events.record('exam_start', userId, { mode: session.mode, questions: session.totalQuestions });
     return { expiresAt };
   }
 
@@ -474,7 +497,7 @@ export class ExamsService {
   async submitExam(userId: string, sessionId: string) {
     const examSession = await this.prisma.examSession.findUnique({
       where: { id: sessionId, userId },
-      select: { id: true, status: true, totalQuestions: true, expiresAt: true },
+      select: { id: true, status: true, totalQuestions: true, expiresAt: true, mode: true },
     });
 
     if (!examSession) throw new NotFoundException('Exam session not found');
@@ -599,6 +622,7 @@ export class ExamsService {
     // New result means analytics and results list are stale — bust both caches.
     void this.analyticsService.invalidateCache(userId);
     void this.cache.delByPrefix(`results:list:${userId}:`);
+    this.events.record('exam_finish', userId, { mode: examSession.mode, score: Math.round(result.score) });
 
     return { result };
   }

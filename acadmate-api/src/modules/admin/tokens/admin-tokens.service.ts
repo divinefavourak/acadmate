@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { EventsService } from '../../events/events.service';
 
 function generateCode(): string {
   // Avoids visually ambiguous chars (0/O, 1/I)
@@ -23,7 +24,10 @@ const TOKEN_LIST_SELECT = {
 
 @Injectable()
 export class AdminTokensService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly events: EventsService,
+  ) {}
 
   async generateToken(adminId: string, note?: string) {
     let code: string;
@@ -90,6 +94,9 @@ export class AdminTokensService {
           });
       await tx.user.update({ where: { id: user.id }, data: { plan: 'PREMIUM' } });
       return { granted: true, user: { id: user.id, name: user.name, email: user.email }, token };
+    }).then((r) => {
+      this.events.record('premium_granted', user.id, { via: 'grant' });
+      return r;
     });
   }
 

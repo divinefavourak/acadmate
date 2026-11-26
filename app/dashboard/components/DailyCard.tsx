@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { apiClient, ApiError } from "@/lib/api/client";
 import ShareScoreButton from "@/app/components/ShareScoreButton";
+import { track } from "@/lib/track";
 
 // GET /api/daily
 export interface DailyStatus {
@@ -116,7 +117,9 @@ export default function DailyCard() {
 
   // Older API without /daily: show nothing rather than a broken card.
   if (unsupported) return null;
-  if (!daily && loadError) {
+  // Nothing loaded, or only yesterday's challenge (the midnight refresh
+  // failed): offer a retry rather than yesterday's answers.
+  if (loadError && (!daily || daily.date < lagosToday())) {
     return (
       <div role="status" className="glass-panel rounded-2xl p-5 flex items-center justify-between gap-3 text-sm">
         <span className="text-slate-600 dark:text-slate-400">Couldn’t load today’s challenge.</span>
@@ -148,6 +151,7 @@ export default function DailyCard() {
               See answers
             </Link>
             <ShareScoreButton
+              kind="daily"
               card={{
                 headline: `${daily.correct}/${daily.total}`,
                 label: "Today’s daily challenge",
@@ -178,7 +182,7 @@ export default function DailyCard() {
               {streak.freezeUsedThisWeek ? "Streak freeze used this week" : "Streak freeze ready this week"}
             </p>
           ) : (
-            <Link href="/dashboard/upgrade" className="mt-1 inline-block text-xs font-medium text-brand-600 dark:text-brand-400 hover:underline">
+            <Link href="/dashboard/upgrade" onClick={() => track("upgrade_click", { from: "streak_freeze" })} className="mt-1 inline-block text-xs font-medium text-brand-600 dark:text-brand-400 hover:underline">
               Premium forgives one missed day a week
             </Link>
           )}

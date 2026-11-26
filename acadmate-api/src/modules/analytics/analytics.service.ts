@@ -134,8 +134,9 @@ export class AnalyticsService {
         ...t,
         percentage: Math.round((t.correct / t.total) * 100),
       }))
-      .sort((a, b) => a.percentage - b.percentage)
-      .slice(0, 10);
+      // No cap: Premium's report is every qualifying topic, and the total
+      // must count them all. It can't exceed the number of topics there are.
+      .sort((a, b) => a.percentage - b.percentage);
     // The subject lets the dashboard link straight to a topic drill.
     const topicSubjects = new Map(
       (

@@ -56,12 +56,14 @@ export class DailyService {
     if (!availability.utme) {
       throw new ForbiddenException('Practice is turned off right now. Please check back soon.');
     }
-    const today = lagosDay();
 
     return this.prisma.$transaction(
       async (tx) => {
         // Two taps on "Start" must not make two challenges.
         await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${'daily:' + userId}))`;
+        // Read the day after the lock: a request that waited across midnight
+        // must get today's challenge, not yesterday's.
+        const today = lagosDay();
         const existing = await this.todaysSession(userId, today, tx);
         if (existing) return { sessionId: existing.id };
 

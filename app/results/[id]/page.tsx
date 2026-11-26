@@ -476,6 +476,7 @@ export default function ResultDetailPage({ params }: { params: Promise<{ id: str
           </p>
         )}
         <ShareScoreButton
+          kind={isDaily ? "daily" : "result"}
           card={{
             headline: isDaily ? `${result.correct}/${result.totalQuestions}` : `${pct}%`,
             label: isDaily ? "Daily challenge" : modeLabel(result.examSession.mode),

@@ -908,3 +908,20 @@ enum MockSessionStatus {
   SUBMITTED
   TIMED_OUT
 }
+
+// ─── Funnel events ────────────────────────────────────────────────────────────
+// One row per step a student takes towards paying (signup, exam start/finish,
+// quota hit, upgrade views and clicks, Premium granted). Written fire-and-
+// forget; read by Admin → Funnel. userId is a plain id, not a relation, so
+// counts survive an account being deleted.
+model FunnelEvent {
+  id        String   @id @default(cuid())
+  name      String
+  userId    String?
+  props     Json?
+  createdAt DateTime @default(now())
+
+  @@index([name, createdAt])
+  @@index([userId])
+  @@map("funnel_events")
+}
