@@ -443,6 +443,9 @@ export class ExamsService {
             id: { in: missed },
             isPublished: true,
             isFlagged: false,
+            // Comprehension questions need their passage, which the exam
+            // screen doesn't show, so they're left out (as in the daily draw).
+            proseTextId: null,
             options: { some: { isCorrect: true } },
           },
           select: { id: true },
