@@ -144,3 +144,15 @@ body {
     transform: rotate(90deg);
   }
 }
+
+/* Launch countdown flip cards (app/(public)/components/LaunchCountdown.tsx).
+   The top flap folds down out of view, then the bottom flap folds into place. */
+@keyframes acm-flip-top {
+  from { transform: rotateX(0deg); }
+  to { transform: rotateX(-90deg); }
+}
+
+@keyframes acm-flip-bottom {
+  from { transform: rotateX(90deg); }
+  to { transform: rotateX(0deg); }
+}
