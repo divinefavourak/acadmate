@@ -43,6 +43,9 @@ export interface QuotaSummary {
   plan: Plan;
   /** Null when there's no per-subject limit: Premium, or the quota is off. */
   perSubject: number | null;
+  /** The Free plan's limit whatever this user's plan, for "Free vs Premium"
+   *  comparisons. Null while the quota is off. */
+  freePerSubject: number | null;
   /** Distinct questions already served, by subject id. Empty for Premium. */
   used: Record<string, number>;
 }
@@ -75,8 +78,9 @@ export class QuotaService {
       select: { plan: true },
     });
     const plan = user?.plan ?? 'FREE';
-    const limit = plan === 'FREE' ? await this.freeLimit() : null;
-    if (limit === null) return { plan, perSubject: null, used: {} };
+    const freePerSubject = await this.freeLimit();
+    const limit = plan === 'FREE' ? freePerSubject : null;
+    if (limit === null) return { plan, perSubject: null, freePerSubject, used: {} };
 
     const rows = await this.prisma.$queryRaw<{ subjectId: string; used: number }[]>`
       SELECT q."subjectId" AS "subjectId", COUNT(DISTINCT esq."questionId")::int AS used
@@ -89,6 +93,7 @@ export class QuotaService {
     return {
       plan,
       perSubject: limit,
+      freePerSubject,
       used: Object.fromEntries(rows.map((r) => [r.subjectId, r.used])),
     };
   }

@@ -29,12 +29,44 @@ export default function TokensPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
 
-  useEffect(() => {
-    apiClient<{ tokens: Token[]; total: number }>("/api/admin/tokens")
+  const [grantEmail, setGrantEmail] = useState("");
+  const [grantNote, setGrantNote] = useState("");
+  const [granting, setGranting] = useState(false);
+  const [grantResult, setGrantResult] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
+
+  function loadTokens() {
+    return apiClient<{ tokens: Token[]; total: number }>("/api/admin/tokens")
       .then((data) => { setTokens(data.tokens ?? []); setTotal(data.total ?? 0); })
-      .catch(() => setError("Failed to load tokens."))
-      .finally(() => setLoading(false));
+      .catch(() => setError("Failed to load tokens."));
+  }
+
+  useEffect(() => {
+    loadTokens().finally(() => setLoading(false));
   }, []);
+
+  async function handleGrant(e: React.FormEvent) {
+    e.preventDefault();
+    if (!grantEmail.trim() || granting) return;
+    setGranting(true);
+    setGrantResult(null);
+    try {
+      const data = await apiClient<{ user: { email: string; name: string | null } }>("/api/admin/tokens/grant", {
+        method: "POST",
+        body: JSON.stringify({ email: grantEmail.trim(), note: grantNote.trim() || undefined }),
+      });
+      setGrantResult({
+        tone: "ok",
+        text: `${data.user.name ? `${data.user.name} (${data.user.email})` : data.user.email} now has Premium. It shows in the list below, where Revoke undoes it.`,
+      });
+      setGrantEmail("");
+      setGrantNote("");
+      await loadTokens();
+    } catch (err) {
+      setGrantResult({ tone: "error", text: err instanceof ApiError ? err.message : "Couldn’t grant Premium. Try again." });
+    } finally {
+      setGranting(false);
+    }
+  }
 
   async function handleGenerate() {
     setGenerating(true);
@@ -104,8 +136,54 @@ export default function TokensPage() {
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold tracking-tight mb-2">Access Tokens</h1>
-        <p className="text-slate-500 dark:text-slate-400">Generate and manage premium access codes for students.</p>
+        <p className="text-slate-500 dark:text-slate-400">Grant Premium, or generate access codes for students to redeem.</p>
       </div>
+
+      {/* Grant by email: the usual route after a bank transfer */}
+      <form
+        onSubmit={handleGrant}
+        className="bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 space-y-4"
+      >
+        <h2 className="font-semibold text-lg">Grant Premium by email</h2>
+        <p className="text-sm text-slate-500 dark:text-slate-400">
+          After you&apos;ve checked a student&apos;s receipt on WhatsApp, enter the email in their message. Their
+          account becomes Premium straight away. No code to send.
+        </p>
+        <div className="flex gap-3 flex-wrap">
+          <input
+            type="email"
+            required
+            value={grantEmail}
+            onChange={(e) => setGrantEmail(e.target.value)}
+            placeholder="student@example.com"
+            aria-label="Student email"
+            className="flex-1 min-w-64 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-brand-500"
+          />
+          <input
+            type="text"
+            value={grantNote}
+            onChange={(e) => setGrantNote(e.target.value)}
+            placeholder="Note (optional, e.g. ₦3,000 Moniepoint 25 Nov)"
+            aria-label="Note"
+            className="flex-1 min-w-64 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-brand-500"
+          />
+          <button
+            type="submit"
+            disabled={granting || !grantEmail.trim()}
+            className="px-5 py-2.5 bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors"
+          >
+            {granting ? "Granting…" : "Grant Premium"}
+          </button>
+        </div>
+        {grantResult && (
+          <p
+            role={grantResult.tone === "error" ? "alert" : "status"}
+            className={`text-sm ${grantResult.tone === "ok" ? "text-emerald-600 dark:text-emerald-400" : "text-red-500 dark:text-red-400"}`}
+          >
+            {grantResult.text}
+          </p>
+        )}
+      </form>
 
       {/* Generate panel */}
       <div className="bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 space-y-4">

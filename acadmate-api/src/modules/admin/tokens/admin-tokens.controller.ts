@@ -3,7 +3,7 @@ import {
   UseGuards, HttpCode, HttpStatus,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
-import { IsOptional, IsString, IsInt, Min, Max } from 'class-validator';
+import { IsOptional, IsString, IsInt, IsEmail, MaxLength, Min, Max } from 'class-validator';
 import { Type } from 'class-transformer';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../common/guards/roles.guard';
@@ -13,6 +13,11 @@ import { AdminTokensService } from './admin-tokens.service';
 
 class GenerateTokenDto {
   @IsOptional() @IsString() note?: string;
+}
+
+class GrantPremiumDto {
+  @IsEmail() email!: string;
+  @IsOptional() @IsString() @MaxLength(200) note?: string;
 }
 
 class ListTokensQuery {
@@ -31,6 +36,13 @@ export class AdminTokensController {
   @Post()
   generateToken(@CurrentUser() admin: JwtUser, @Body() dto: GenerateTokenDto) {
     return this.adminTokensService.generateToken(admin.id, dto.note);
+  }
+
+  // Before the ':id' routes so "grant" is never read as a token id.
+  @Post('grant')
+  @HttpCode(HttpStatus.OK)
+  grantByEmail(@CurrentUser() admin: JwtUser, @Body() dto: GrantPremiumDto) {
+    return this.adminTokensService.grantByEmail(admin.id, dto.email, dto.note);
   }
 
   @Get()
