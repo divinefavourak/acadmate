@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { lagosDay, lagosDayStart, previousDay } from '../../common/utils/lagos-day.util';
 
 // Steps a student takes towards paying, in funnel order. Server-side events
 // are recorded where they happen; the client ones arrive via POST /api/events
@@ -26,8 +27,6 @@ export type EventName =
 
 type Props = Record<string, string | number | boolean | null>;
 
-const DAY_MS = 86_400_000;
-const LAGOS_OFFSET_MS = 3_600_000;
 
 @Injectable()
 export class EventsService {
@@ -50,7 +49,11 @@ export class EventsService {
    * per-day count of every event name for the table under it.
    */
   async report(days: number) {
-    const since = new Date(Date.now() - days * DAY_MS);
+    // Whole Lagos days, today included: the same window for the totals and
+    // the day-by-day rows, so nothing is counted that the table doesn't show.
+    const dayKeys: string[] = [lagosDay()];
+    while (dayKeys.length < days) dayKeys.push(previousDay(dayKeys[dayKeys.length - 1]));
+    const since = lagosDayStart(dayKeys[dayKeys.length - 1]);
     const [byName, daily, upgradeSources] = await Promise.all([
       this.prisma.$queryRaw<{ name: string; users: number; events: number }[]>`
         SELECT name, COUNT(DISTINCT "userId")::int AS users, COUNT(*)::int AS events
@@ -86,12 +89,6 @@ export class EventsService {
       .filter((r) => !FUNNEL_STEPS.some((s) => s.name === r.name))
       .sort((a, b) => b.events - a.events);
 
-    // Every Lagos day in the window, newest first, zero-filled.
-    const dayKeys: string[] = [];
-    const today = new Date(Date.now() + LAGOS_OFFSET_MS);
-    for (let i = 0; i < days; i++) {
-      dayKeys.push(new Date(today.getTime() - i * DAY_MS).toISOString().slice(0, 10));
-    }
     const perDay = new Map<string, Record<string, number>>();
     for (const r of daily) {
       const row = perDay.get(r.day) ?? {};

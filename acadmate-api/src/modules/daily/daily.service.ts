@@ -2,7 +2,6 @@ import { ForbiddenException, HttpException, HttpStatus, Injectable } from '@nest
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SettingsService } from '../settings/settings.service';
-import { EventsService } from '../events/events.service';
 import { computeStreak, lagosDay, lagosDayStart, Streak } from '../../common/utils/lagos-day.util';
 
 // Five questions a day, outside the free quota: English plus the student's
@@ -29,7 +28,6 @@ export class DailyService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly settings: SettingsService,
-    private readonly events: EventsService,
   ) {}
 
   async status(userId: string): Promise<DailyStatus> {
@@ -83,7 +81,6 @@ export class DailyService {
           },
           select: { id: true },
         });
-        this.events.record('exam_start', userId, { mode: 'DAILY' });
         return { sessionId: session.id };
       },
       { timeout: 15_000 },

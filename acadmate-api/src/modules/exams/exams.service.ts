@@ -142,9 +142,7 @@ export class ExamsService {
     }
 
     try {
-      const created = await this.startSession(userId, input, factoryInput, isFree, freeLimit);
-      this.events.record('exam_start', userId, { mode: input.mode, questions: created.examSession.totalQuestions });
-      return created;
+      return await this.startSession(userId, input, factoryInput, isFree, freeLimit);
     } catch (err) {
       if (err instanceof ExamFactoryError) {
         throw new HttpException(err.message, err.statusHint);
@@ -234,7 +232,7 @@ export class ExamsService {
   async startExam(userId: string, id: string) {
     const session = await this.prisma.examSession.findUnique({
       where: { id },
-      select: { id: true, userId: true, status: true, durationMinutes: true, expiresAt: true },
+      select: { id: true, userId: true, status: true, durationMinutes: true, expiresAt: true, mode: true, totalQuestions: true },
     });
     if (!session) throw new NotFoundException('Session not found');
     if (session.userId !== userId) throw new ForbiddenException();
@@ -244,7 +242,15 @@ export class ExamsService {
     if (session.expiresAt) return { expiresAt: session.expiresAt };
 
     const expiresAt = new Date(Date.now() + session.durationMinutes * 60_000);
-    await this.prisma.examSession.update({ where: { id }, data: { expiresAt } });
+    // Only the request that actually starts the clock counts as a start, so
+    // two taps on Begin record one funnel event. Students who open the
+    // briefing and leave never get here.
+    const { count } = await this.prisma.examSession.updateMany({ where: { id, expiresAt: null }, data: { expiresAt } });
+    if (count === 0) {
+      const current = await this.prisma.examSession.findUnique({ where: { id }, select: { expiresAt: true } });
+      return { expiresAt: current?.expiresAt ?? expiresAt };
+    }
+    this.events.record('exam_start', userId, { mode: session.mode, questions: session.totalQuestions });
     return { expiresAt };
   }
 
@@ -484,7 +490,6 @@ export class ExamsService {
       },
       select: { id: true, mode: true, totalQuestions: true, durationMinutes: true, expiresAt: true, startedAt: true },
     });
-    this.events.record('exam_start', userId, { mode: 'RETRY', questions: examSession.totalQuestions });
     return { examSession };
   }
 
