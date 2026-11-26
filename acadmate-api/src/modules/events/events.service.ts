@@ -17,7 +17,7 @@ export const FUNNEL_STEPS = [
 ] as const;
 
 /** Events the browser may record (anything else is rejected). */
-export const CLIENT_EVENTS = ['upgrade_view', 'upgrade_click', 'paid_click', 'ask_click', 'share_click'] as const;
+export const CLIENT_EVENTS = ['upgrade_view', 'upgrade_click', 'paid_click', 'ask_click', 'share_click', 'invite_click'] as const;
 export type ClientEvent = (typeof CLIENT_EVENTS)[number];
 
 export type EventName =

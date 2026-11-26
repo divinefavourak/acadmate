@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -8,9 +8,22 @@ import { apiClient, ApiError } from "@/lib/api/client";
 import { setToken } from "@/lib/api/auth";
 import { scaleIn } from "@/lib/motion";
 import { GoogleButton } from "../components/GoogleButton";
+import { storeReferral } from "@/lib/referral";
+
+const noSubscribe = () => () => {};
+
+/** The ?ref= invite code, remembered for onboarding. Null on the server. */
+function useInviteCode() {
+  return useSyncExternalStore(
+    noSubscribe,
+    () => storeReferral(new URLSearchParams(window.location.search).get("ref")),
+    () => null,
+  );
+}
 
 export default function RegisterPage() {
   const router = useRouter();
+  const invited = useInviteCode();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -56,6 +69,12 @@ export default function RegisterPage() {
         <h1 className="text-2xl font-bold mb-2">Create an Account</h1>
         <p className="text-slate-500 dark:text-slate-400 text-sm">Start your premium UTME practice today.</p>
       </div>
+
+      {invited && (
+        <p role="status" className="mb-5 rounded-xl border border-mint-500/30 bg-mint-500/10 px-4 py-3 text-center text-sm text-mint-800 dark:text-mint-200">
+          A friend invited you. Sign up and finish setting up your account, and they get bonus questions.
+        </p>
+      )}
 
       <GoogleButton />
 

@@ -8,6 +8,7 @@ import Loader from "@/app/components/Loader";
 import AvatarPicker from "@/app/components/AvatarPicker";
 import UserAvatar from "@/app/components/UserAvatar";
 import type { AvatarFullConfig } from "react-nice-avatar";
+import { clearReferral, readReferral } from "@/lib/referral";
 
 interface Subject {
   id: string;
@@ -166,10 +167,14 @@ export default function OnboardingPage() {
         if (avatarUrl) payload.avatarUrl = avatarUrl;
         else if (avatarConfig) payload.avatarConfig = avatarConfig;
       }
+      // A friend's invite code from their link, if this student came through one.
+      const referralCode = readReferral();
+      if (referralCode) payload.referralCode = referralCode;
       await apiClient("/api/users/me/onboarding", {
         method: "POST",
         body: JSON.stringify(payload),
       });
+      clearReferral();
       router.replace("/dashboard");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not save onboarding. Please try again.");

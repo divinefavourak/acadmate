@@ -166,19 +166,23 @@ export class ExamsService {
       return await this.prisma.$transaction(
         async (tx) => {
           await this.quota.lockUser(tx, userId);
-          const used = await this.quota.usedInSubject(userId, factoryInput.subjectId, tx);
-          const remaining = freeLimit - used;
+          // The subject's own free questions, then any referral bonus.
+          const { remaining, bonusTotal } = await this.quota.allowance(userId, factoryInput.subjectId, freeLimit, tx);
           if (remaining <= 0) {
             this.events.record('quota_hit', userId, { reason: 'quota', mode: input.mode });
             throw new HttpException(
               {
-                message: `You've used your ${freeLimit} free questions in this subject. Premium unlocks every question.`,
+                message: bonusTotal > 0
+                  ? `You've used your ${freeLimit} free questions in this subject and your bonus questions. Premium unlocks every question.`
+                  : `You've used your ${freeLimit} free questions in this subject. Premium unlocks every question.`,
                 error: PAYWALL_CODES.quotaExhausted,
               },
               HttpStatus.PAYMENT_REQUIRED,
             );
           }
-          factoryInput.questionCount = Math.min(factoryInput.questionCount, remaining);
+          // At most one subject's worth a session, so bonus questions are
+          // spent ten at a time rather than all in one go.
+          factoryInput.questionCount = Math.min(factoryInput.questionCount, remaining, freeLimit);
           factoryInput.excludeSeenBy = userId;
           return this.createFromFactory(userId, input, factoryInput, tx);
         },
@@ -466,6 +470,9 @@ export class ExamsService {
             id: { in: missed },
             isPublished: true,
             isFlagged: false,
+            // Comprehension questions need their passage, which the exam
+            // screen doesn't show, so they're left out (as in the daily draw).
+            proseTextId: null,
             options: { some: { isCorrect: true } },
           },
           select: { id: true },

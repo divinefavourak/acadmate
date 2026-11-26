@@ -1,7 +1,7 @@
 import { apiClient } from "@/lib/api/client";
 
 /** Funnel events the browser may send (the API rejects anything else). */
-export type ClientEvent = "upgrade_view" | "upgrade_click" | "paid_click" | "ask_click" | "share_click";
+export type ClientEvent = "upgrade_view" | "upgrade_click" | "paid_click" | "ask_click" | "share_click" | "invite_click";
 
 /**
  * Records a funnel event. Fire-and-forget: never awaited, never throws, and

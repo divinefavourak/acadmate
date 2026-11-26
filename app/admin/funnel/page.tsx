@@ -21,6 +21,7 @@ const OTHER_LABELS: Record<string, string> = {
   ask_click: "Tapped “Ask on WhatsApp”",
   share_click: "Shared a score",
   referral_signup: "Signed up from a friend’s link",
+  invite_click: "Shared their invite link",
 };
 
 const SOURCE_LABELS: Record<string, string> = {

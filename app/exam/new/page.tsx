@@ -57,6 +57,8 @@ interface Quota {
   plan: "FREE" | "PREMIUM";
   perSubject: number | null;
   used: Record<string, number>;
+  /** Referral bonus questions, usable in any subject once its own run out. */
+  bonus?: { total: number; left: number };
 }
 
 type Paywall = { kind: "premium" | "quota" } | null;
@@ -181,7 +183,7 @@ export default function NewExamPage() {
   // Free questions left in a subject, or null when there's no limit.
   function freeLeft(subjectId: string): number | null {
     if (!limited || !quota || quota.perSubject == null) return null;
-    return Math.max(0, quota.perSubject - (quota.used[subjectId] ?? 0));
+    return Math.max(0, quota.perSubject - (quota.used[subjectId] ?? 0)) + (quota.bonus?.left ?? 0);
   }
 
   const selectedLeft = mode === "PRACTICE" || mode === "TOPIC" ? freeLeft(selectedSubject) : null;
@@ -274,7 +276,12 @@ export default function NewExamPage() {
           // started elsewhere). Mark the requested subject as used up.
           setQuota((q) =>
             q && q.perSubject != null
-              ? { ...q, used: { ...q.used, [requested.subjectId]: q.perSubject } }
+              ? {
+                  ...q,
+                  used: { ...q.used, [requested.subjectId]: q.perSubject },
+                  // The server only says "used up" once the bonus is gone too.
+                  bonus: q.bonus ? { ...q.bonus, left: 0 } : q.bonus,
+                }
               : q,
           );
         } else {
@@ -732,7 +739,7 @@ function FreeSessionNote({ left, subject }: { left: number | null; subject?: str
         {left} free question{left === 1 ? "" : "s"} left{subject ? ` in ${subject}` : ""}
       </p>
       <p className="mt-0.5 text-slate-600 dark:text-slate-400">
-        Each one is new to you. Premium has no limit and lets you choose how many to take.
+        Each one is new to you, up to 10 a session. Premium has no limit and lets you choose how many to take.
       </p>
     </div>
   );

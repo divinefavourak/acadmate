@@ -30,6 +30,10 @@ model User {
   // Where we send mail when the sign-in address can't receive it (e.g. an
   // admin who signs in as admin@acadmate.ng). Sign-in always uses `email`.
   deliveryEmail  String?
+  // Referrals: a student's own invite code, and who invited them (set once,
+  // when they finish onboarding with a friend's code).
+  referralCode   String?   @unique
+  referredById   String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -48,9 +52,12 @@ model User {
   forumThreads      ForumThread[] @relation("AuthoredThreads")
   forumReplies      ForumReply[]  @relation("AuthoredReplies")
   liveSessions      LiveSession[] @relation("CreatedLiveSessions")
+  referredBy        User?         @relation("Referrals", fields: [referredById], references: [id], onDelete: SetNull)
+  referrals         User[]        @relation("Referrals")
 
   @@index([email])
   @@index([phone])
+  @@index([referredById])
   @@map("users")
 }
 

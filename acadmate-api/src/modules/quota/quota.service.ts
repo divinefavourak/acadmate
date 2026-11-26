@@ -10,6 +10,13 @@ import { SettingsService } from '../settings/settings.service';
 // at most 20 questions a session.
 export const LEGACY_FREE_SESSION_CAP = 20;
 
+// Referrals: every friend who signs up with a student's link and finishes
+// onboarding adds this many bonus questions, usable in any subject, up to
+// MAX_REWARDED_REFERRALS friends. There's no email verification, so the cap
+// limits what fake sign-ups could farm.
+export const REFERRAL_BONUS = 10;
+export const MAX_REWARDED_REFERRALS = 20;
+
 // The `error` code on a 402 from POST /exams, so the exam picker can tell
 // "this mode is Premium" from "you've used your free questions here".
 export const PAYWALL_CODES = {
@@ -50,6 +57,8 @@ export interface QuotaSummary {
   freePerSubject: number | null;
   /** Distinct questions already served, by subject id. Empty for Premium. */
   used: Record<string, number>;
+  /** Referral bonus questions: earned, and still unused. */
+  bonus: { total: number; left: number };
 }
 
 @Injectable()
@@ -65,13 +74,39 @@ export class QuotaService {
     return q.enabled ? q.perSubject : null;
   }
 
-  /** Distinct questions this user has been served in one subject. */
-  async usedInSubject(userId: string, subjectId: string, db: Db = this.prisma): Promise<number> {
-    const rows = await db.$queryRaw<{ used: number }[]>`
-      SELECT COUNT(*)::int AS used FROM questions q
-      WHERE q."subjectId" = ${subjectId} AND ${seenByUser(userId)}
+  /** Distinct questions this user has been served, by subject id. */
+  async usedBySubject(userId: string, db: Db = this.prisma): Promise<Record<string, number>> {
+    const rows = await db.$queryRaw<{ subjectId: string; used: number }[]>`
+      SELECT q."subjectId" AS "subjectId", COUNT(DISTINCT esq."questionId")::int AS used
+      FROM exam_session_questions esq
+      JOIN exam_sessions es ON es.id = esq."examSessionId"
+      JOIN questions q ON q.id = esq."questionId"
+      WHERE es."userId" = ${userId} AND es."liveSessionId" IS NULL
+        AND es.mode NOT IN ('DAILY'::"ExamMode", 'RETRY'::"ExamMode")
+      GROUP BY q."subjectId"
     `;
-    return rows[0]?.used ?? 0;
+    return Object.fromEntries(rows.map((r) => [r.subjectId, r.used]));
+  }
+
+  /** Bonus questions earned from friends who joined and finished onboarding. */
+  async bonusTotal(userId: string, db: Db = this.prisma): Promise<number> {
+    const friends = await db.user.count({ where: { referredById: userId, onboardedAt: { not: null } } });
+    return Math.min(friends, MAX_REWARDED_REFERRALS) * REFERRAL_BONUS;
+  }
+
+  /**
+   * Free questions left in one subject: what's left of that subject's own
+   * allowance, plus whatever bonus hasn't been spent anywhere. Bonus is spent
+   * only once a subject's own allowance is used up.
+   */
+  async allowance(userId: string, subjectId: string, limit: number, db: Db = this.prisma) {
+    const [used, bonus] = await Promise.all([this.usedBySubject(userId, db), this.bonusTotal(userId, db)]);
+    const bonusLeft = bonusRemaining(used, limit, bonus);
+    return {
+      remaining: Math.max(0, limit - (used[subjectId] ?? 0)) + bonusLeft,
+      bonusTotal: bonus,
+      bonusLeft,
+    };
   }
 
   async summary(userId: string): Promise<QuotaSummary> {
@@ -82,22 +117,16 @@ export class QuotaService {
     const plan = user?.plan ?? 'FREE';
     const freePerSubject = await this.freeLimit();
     const limit = plan === 'FREE' ? freePerSubject : null;
-    if (limit === null) return { plan, perSubject: null, freePerSubject, used: {} };
+    const bonus = await this.bonusTotal(userId);
+    if (limit === null) return { plan, perSubject: null, freePerSubject, used: {}, bonus: { total: bonus, left: bonus } };
 
-    const rows = await this.prisma.$queryRaw<{ subjectId: string; used: number }[]>`
-      SELECT q."subjectId" AS "subjectId", COUNT(DISTINCT esq."questionId")::int AS used
-      FROM exam_session_questions esq
-      JOIN exam_sessions es ON es.id = esq."examSessionId"
-      JOIN questions q ON q.id = esq."questionId"
-      WHERE es."userId" = ${userId} AND es."liveSessionId" IS NULL
-        AND es.mode NOT IN ('DAILY'::"ExamMode", 'RETRY'::"ExamMode")
-      GROUP BY q."subjectId"
-    `;
+    const used = await this.usedBySubject(userId);
     return {
       plan,
       perSubject: limit,
       freePerSubject,
-      used: Object.fromEntries(rows.map((r) => [r.subjectId, r.used])),
+      used,
+      bonus: { total: bonus, left: bonusRemaining(used, limit, bonus) },
     };
   }
 
@@ -110,4 +139,10 @@ export class QuotaService {
   async lockUser(tx: Prisma.TransactionClient, userId: string): Promise<void> {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${'quota:' + userId}))`;
   }
+}
+
+/** Bonus not yet spent: questions served beyond each subject's own limit use it up. */
+export function bonusRemaining(used: Record<string, number>, limit: number, bonus: number): number {
+  const spent = Object.values(used).reduce((sum, n) => sum + Math.max(0, n - limit), 0);
+  return Math.max(0, bonus - spent);
 }
