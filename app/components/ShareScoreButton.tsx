@@ -36,7 +36,10 @@ export default function ShareScoreButton({
   });
 
   // Redraw only when what's on the card changes (the streak can arrive late).
-  const key = JSON.stringify([card.headline, card.label, card.detail ?? "", card.streak ?? 0]);
+  // The message is part of the identity: two cards can look the same (50%)
+  // but need different text (5/10 vs 10/20).
+  const message = typeof window === "undefined" ? "" : card.text(window.location.origin);
+  const key = JSON.stringify([card.headline, card.label, card.detail ?? "", card.streak ?? 0, message]);
   const keyRef = useRef(key);
   useEffect(() => {
     keyRef.current = key;
@@ -47,7 +50,7 @@ export default function ShareScoreButton({
     // After the page has settled, so drawing doesn't compete with first paint.
     const timer = window.setTimeout(() => {
       const c = cardRef.current;
-      const full: ScoreCard = { ...c, text: c.text(window.location.origin) };
+      const full: ScoreCard = { ...c, text: message };
       renderScoreCard(full, window.location.host)
         .then((image) => {
           if (live) setPrepared({ key, full, image });
@@ -60,7 +63,7 @@ export default function ShareScoreButton({
       live = false;
       window.clearTimeout(timer);
     };
-  }, [key]);
+  }, [key, message]);
 
   useEffect(() => () => { if (fallback) URL.revokeObjectURL(fallback.url); }, [fallback]);
 
