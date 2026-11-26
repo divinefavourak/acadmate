@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Loader from "@/app/components/Loader";
 import { apiClient, ApiError } from "@/lib/api/client";
 
@@ -34,10 +34,27 @@ export default function TokensPage() {
   const [granting, setGranting] = useState(false);
   const [grantResult, setGrantResult] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
 
-  function loadTokens() {
+  // Each refresh gets a number; a token action bumps it, so a refresh that
+  // started before the action can't land afterwards with stale rows.
+  const loadSeq = useRef(0);
+  function invalidateLoads() {
+    loadSeq.current++;
+  }
+
+  function loadTokens(pin?: Token) {
+    const seq = ++loadSeq.current;
     return apiClient<{ tokens: Token[]; total: number }>("/api/admin/tokens")
-      .then((data) => { setTokens(data.tokens ?? []); setTotal(data.total ?? 0); })
-      .catch(() => setError("Failed to load tokens."));
+      .then((data) => {
+        if (seq !== loadSeq.current) return;
+        const list = data.tokens ?? [];
+        // A re-granted token can be older than the newest 50: keep it on top
+        // so its Revoke button is reachable.
+        setTokens(pin && !list.some((t) => t.id === pin.id) ? [pin, ...list] : list);
+        setTotal(data.total ?? 0);
+      })
+      .catch(() => {
+        if (seq === loadSeq.current) setError("Failed to load tokens.");
+      });
   }
 
   useEffect(() => {
@@ -50,7 +67,7 @@ export default function TokensPage() {
     setGranting(true);
     setGrantResult(null);
     try {
-      const data = await apiClient<{ user: { email: string; name: string | null } }>("/api/admin/tokens/grant", {
+      const data = await apiClient<{ user: { email: string; name: string | null }; token: Token }>("/api/admin/tokens/grant", {
         method: "POST",
         body: JSON.stringify({ email: grantEmail.trim(), note: grantNote.trim() || undefined }),
       });
@@ -60,7 +77,7 @@ export default function TokensPage() {
       });
       setGrantEmail("");
       setGrantNote("");
-      await loadTokens();
+      await loadTokens(data.token);
     } catch (err) {
       setGrantResult({ tone: "error", text: err instanceof ApiError ? err.message : "Couldn’t grant Premium. Try again." });
     } finally {
@@ -76,6 +93,7 @@ export default function TokensPage() {
         method: "POST",
         body: JSON.stringify({ note: note.trim() || undefined }),
       });
+      invalidateLoads();
       setTokens((prev) => [data.token as Token, ...prev]);
       setTotal((t) => t + 1);
       setNote("");
@@ -90,6 +108,7 @@ export default function TokensPage() {
     setBusyId(id);
     try {
       await apiClient(`/api/admin/tokens/${id}`, { method: "DELETE" });
+      invalidateLoads();
       setTokens((prev) => prev.filter((t) => t.id !== id));
       setTotal((c) => c - 1);
     } catch (err) {
@@ -104,6 +123,7 @@ export default function TokensPage() {
     setError("");
     try {
       await apiClient(`/api/admin/tokens/${id}/revoke`, { method: "POST" });
+      invalidateLoads();
       setTokens((prev) => prev.map((t) => t.id === id ? { ...t, revokedAt: new Date().toISOString() } : t));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to revoke token.");
@@ -117,6 +137,7 @@ export default function TokensPage() {
     setError("");
     try {
       await apiClient(`/api/admin/tokens/${id}/reactivate`, { method: "POST" });
+      invalidateLoads();
       setTokens((prev) => prev.map((t) => t.id === id ? { ...t, revokedAt: null } : t));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to reactivate token.");

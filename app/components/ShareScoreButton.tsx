@@ -26,7 +26,9 @@ export default function ShareScoreButton({
   className?: string;
 }) {
   const [prepared, setPrepared] = useState<{ key: string; full: ScoreCard; image: Blob } | null>(null);
-  const [fallback, setFallback] = useState<{ url: string; text: string } | null>(null);
+  // Tied to the card it was made from: if the card changes (the streak can
+  // load later), the old WhatsApp text and image are no longer offered.
+  const [fallback, setFallback] = useState<{ key: string; url: string; text: string } | null>(null);
   const [error, setError] = useState("");
   const cardRef = useRef(card);
   useEffect(() => {
@@ -35,6 +37,10 @@ export default function ShareScoreButton({
 
   // Redraw only when what's on the card changes (the streak can arrive late).
   const key = JSON.stringify([card.headline, card.label, card.detail ?? "", card.streak ?? 0]);
+  const keyRef = useRef(key);
+  useEffect(() => {
+    keyRef.current = key;
+  });
 
   useEffect(() => {
     let live = true;
@@ -66,8 +72,9 @@ export default function ShareScoreButton({
     // No await before this call: the share sheet needs the tap to be fresh.
     const outcome = await shareScoreCard(ready.full, ready.image);
     track("share_click", { kind, outcome });
-    if (outcome !== "shared") {
-      setFallback({ url: URL.createObjectURL(ready.image), text: ready.full.text });
+    // The card may have changed while the share sheet was open.
+    if (outcome !== "shared" && ready.key === keyRef.current) {
+      setFallback({ key: ready.key, url: URL.createObjectURL(ready.image), text: ready.full.text });
     }
   }
 
@@ -86,7 +93,7 @@ export default function ShareScoreButton({
         {ready ? "Share my score" : error ? "Share unavailable" : "Preparing…"}
       </button>
       {error && <p role="alert" className="mt-2 text-xs text-red-600 dark:text-red-400">{error}</p>}
-      {fallback && (
+      {fallback && fallback.key === key && (
         <div role="status" className="mt-3 grid grid-cols-2 gap-2">
           <a
             href={whatsappShareLink(fallback.text)}
