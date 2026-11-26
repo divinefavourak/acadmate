@@ -163,11 +163,7 @@ export class ReferralContestService {
   async setExcluded(userId: string, excluded: boolean) {
     const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { id: true } });
     if (!user) throw new NotFoundException('User not found');
-    const c = await this.settings.getReferralContest();
-    const set = new Set(c.excluded);
-    if (excluded) set.add(userId);
-    else set.delete(userId);
-    await this.settings.setReferralContest({ excluded: [...set] });
+    await this.settings.setContestExcluded(userId, excluded);
     return { userId, excluded };
   }
 }

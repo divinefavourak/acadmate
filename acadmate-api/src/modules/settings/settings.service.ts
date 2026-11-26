@@ -281,7 +281,11 @@ export class SettingsService {
 
   async getReferralContest(): Promise<ReferralContestSettings> {
     const row = await this.prisma.appSetting.findUnique({ where: { key: REFERRAL_CONTEST_KEY } });
-    const v = (row?.value ?? {}) as Record<string, unknown>;
+    return this.normalizeContest(row?.value);
+  }
+
+  private normalizeContest(raw: unknown): ReferralContestSettings {
+    const v = (raw ?? {}) as Record<string, unknown>;
     const day = (x: unknown) => (typeof x === 'string' && isCalendarDate(x) ? x : null);
     return {
       start: day(v.start),
@@ -291,24 +295,34 @@ export class SettingsService {
     };
   }
 
+  /** Dates and prize (and the excluded list, for whole-list writes). */
   async setReferralContest(input: Partial<ReferralContestSettings>): Promise<ReferralContestSettings> {
-    const current = await this.getReferralContest();
-    const next = { ...current, ...input };
-    for (const d of [next.start, next.end]) {
-      if (d !== null && !isCalendarDate(d)) throw new BadRequestException('Use real dates like 2026-12-09.');
-    }
-    if (next.start && next.end && next.end < next.start) {
-      throw new BadRequestException('The contest has to end on or after the day it starts.');
-    }
-    next.prize = (next.prize ?? '').trim().slice(0, 200);
-    next.excluded = [...new Set(next.excluded)];
-    const value = next as unknown as Prisma.InputJsonObject;
-    await this.prisma.appSetting.upsert({
-      where: { key: REFERRAL_CONTEST_KEY },
-      create: { key: REFERRAL_CONTEST_KEY, value },
-      update: { value },
+    return this.lockedUpdate(REFERRAL_CONTEST_KEY, (raw) => {
+      const next = { ...this.normalizeContest(raw), ...input };
+      for (const d of [next.start, next.end]) {
+        if (d !== null && !isCalendarDate(d)) throw new BadRequestException('Use real dates like 2026-12-09.');
+      }
+      if (next.start && next.end && next.end < next.start) {
+        throw new BadRequestException('The contest has to end on or after the day it starts.');
+      }
+      next.prize = (next.prize ?? '').trim().slice(0, 200);
+      next.excluded = [...new Set(next.excluded)];
+      return next;
     });
-    return next;
+  }
+
+  /**
+   * Disqualify or reinstate one referrer, inside the setting's lock, so two
+   * admins acting at once can't each write back the other's stale list.
+   */
+  async setContestExcluded(userId: string, excluded: boolean): Promise<ReferralContestSettings> {
+    return this.lockedUpdate(REFERRAL_CONTEST_KEY, (raw) => {
+      const c = this.normalizeContest(raw);
+      const set = new Set(c.excluded);
+      if (excluded) set.add(userId);
+      else set.delete(userId);
+      return { ...c, excluded: [...set] };
+    });
   }
 
   // ─── Email reminders ───────────────────────────────────────────────────────
