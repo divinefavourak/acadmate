@@ -52,7 +52,8 @@ export default function PaymentCard() {
   const price = form ? Number(form.priceNaira.replace(/[,\s₦]/g, "")) : NaN;
   const priceValid = !form || form.priceNaira.trim() === "" || (Number.isInteger(price) && price > 0);
   const accountValid = !form || /^(\d{10})?$/.test(form.accountNumber.replace(/\s/g, ""));
-  const whatsappValid = !form || /^\d{10,15}$/.test(form.whatsappNumber.replace(/[\s+]/g, ""));
+  // wa.me needs the international form: country code first, no leading 0.
+  const whatsappValid = !form || /^[1-9]\d{9,14}$/.test(form.whatsappNumber.replace(/[\s+]/g, ""));
   const dirty = Boolean(saved && form && JSON.stringify(toForm(saved)) !== JSON.stringify(form));
 
   async function save(e: React.FormEvent) {
@@ -99,7 +100,8 @@ export default function PaymentCard() {
         message ? <p className="text-sm text-red-600 dark:text-red-400">{message.text}</p> : <Loader className="py-4" />
       ) : (
         <form onSubmit={save} className="glass-panel p-5 rounded-2xl space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
+          {/* Locked while saving, so the reply can't overwrite edits made in the meantime */}
+          <fieldset disabled={busy} className="grid gap-4 sm:grid-cols-2 disabled:opacity-70">
             <label className="block">
               <span className="block text-sm font-medium mb-1">Price (₦)</span>
               <input inputMode="numeric" value={form.priceNaira} onChange={(e) => set("priceNaira", e.target.value)} placeholder="e.g. 3000" className={input} aria-invalid={!priceValid} />
@@ -109,7 +111,7 @@ export default function PaymentCard() {
               <span className="block text-sm font-medium mb-1">WhatsApp number</span>
               <input inputMode="tel" value={form.whatsappNumber} onChange={(e) => set("whatsappNumber", e.target.value)} placeholder="2348012345678" className={input} aria-invalid={!whatsappValid} />
               <span className={`mt-1 block text-xs ${whatsappValid ? "text-slate-500" : "text-red-600 dark:text-red-400"}`}>
-                Country code first, no + or leading 0.
+                {form.whatsappNumber.trim().startsWith("0") ? "Drop the leading 0 and start with 234." : "Country code first, no + or leading 0."}
               </span>
             </label>
             <label className="block">
@@ -125,7 +127,7 @@ export default function PaymentCard() {
               <span className="block text-sm font-medium mb-1">Account name</span>
               <input value={form.accountName} onChange={(e) => set("accountName", e.target.value)} className={input} />
             </label>
-          </div>
+          </fieldset>
           <div className="flex items-center gap-3 flex-wrap">
             <button type="submit" disabled={busy || !dirty || !priceValid || !accountValid || !whatsappValid} className="px-4 py-2 rounded-lg bg-brand-600 text-white font-semibold disabled:opacity-50">
               {busy ? "Saving…" : "Save"}

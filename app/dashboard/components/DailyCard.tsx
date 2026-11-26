@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { apiClient, ApiError } from "@/lib/api/client";
@@ -46,7 +46,11 @@ function streakNote(s: DailyStatus["streak"]) {
 export default function DailyCard() {
   const router = useRouter();
   const [daily, setDaily] = useState<DailyStatus | null>(null);
-  const [failed, setFailed] = useState(false);
+  // Hidden only when the API has no /daily (404). Other failures keep what's
+  // shown, or offer a retry when there's nothing yet.
+  const [unsupported, setUnsupported] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const loadRef = useRef<() => void>(() => {});
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState("");
 
@@ -60,12 +64,19 @@ export default function DailyCard() {
       apiClient<DailyStatus>("/api/daily")
         .then((d) => {
           if (!live) return;
+          // A request sent just before midnight can answer after the one
+          // sent at midnight: never step back to yesterday.
+          if (shownDay && d.date < shownDay) return;
           shownDay = d.date;
           setDaily(d);
+          setLoadError(false);
         })
-        .catch(() => {
-          if (live) setFailed(true);
+        .catch((err) => {
+          if (!live) return;
+          if (err instanceof ApiError && err.status === 404) setUnsupported(true);
+          else setLoadError(true);
         });
+    loadRef.current = load;
     const schedule = () => {
       window.clearTimeout(timer);
       timer = window.setTimeout(() => {
@@ -74,7 +85,8 @@ export default function DailyCard() {
       }, msToLagosMidnight() + 1_000);
     };
     const onVisible = () => {
-      if (document.visibilityState === "visible" && shownDay && shownDay !== lagosToday()) load();
+      // Also retries when the first load failed (nothing shown yet).
+      if (document.visibilityState === "visible" && (!shownDay || shownDay !== lagosToday())) load();
     };
     load();
     schedule();
@@ -103,7 +115,15 @@ export default function DailyCard() {
   }
 
   // Older API without /daily: show nothing rather than a broken card.
-  if (failed) return null;
+  if (unsupported) return null;
+  if (!daily && loadError) {
+    return (
+      <div role="status" className="glass-panel rounded-2xl p-5 flex items-center justify-between gap-3 text-sm">
+        <span className="text-slate-600 dark:text-slate-400">Couldn’t load today’s challenge.</span>
+        <button type="button" onClick={() => loadRef.current()} className="btn-secondary px-4 py-2 text-sm">Try again</button>
+      </div>
+    );
+  }
   if (!daily) return <div className="glass-panel rounded-2xl h-40 animate-pulse" aria-hidden="true" />;
 
   const { streak } = daily;
