@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Loader from "@/app/components/Loader";
 import { apiClient } from "@/lib/api/client";
+import WeakTopicsCard, { type WeakTopic } from "@/app/dashboard/components/WeakTopicsCard";
 
 interface AnalyticsData {
   totalTests: number;
@@ -10,7 +11,8 @@ interface AnalyticsData {
   bestScore: number;
   recentTrend: { id: string; score: number; mode: string; date: string }[];
   subjectPerformance: { subjectId: string; name: string; correct: number; total: number; percentage: number }[];
-  weakTopics: { topicId: string; name: string; correct: number; total: number; percentage: number }[];
+  weakTopics: WeakTopic[];
+  weakTopicsTotal?: number;
 }
 
 function ScoreBar({ percentage, color = "bg-brand-500" }: { percentage: number; color?: string }) {
@@ -111,30 +113,16 @@ export default function AnalyticsPage() {
           )}
         </div>
 
-        {/* Weak Topics */}
-        <div className="glass-panel p-6 rounded-2xl">
-          <h2 className="text-xl font-bold mb-6">Topics to Improve</h2>
-          {loading ? (
-            <Loader className="py-4" />
-          ) : !data || data.weakTopics.length === 0 ? (
-            <p className="text-slate-500 text-sm text-center py-4">
-              {data?.totalTests ? "No weak topics detected — great work!" : "Complete more exams to see weak topics."}
-            </p>
-          ) : (
-            <div className="space-y-5">
-              {data.weakTopics.map((t) => (
-                <div key={t.topicId}>
-                  <div className="flex justify-between mb-1.5">
-                    <span className="text-sm font-medium">{t.name}</span>
-                    <span className="text-sm font-bold text-red-500">{t.percentage}%</span>
-                  </div>
-                  <ScoreBar percentage={t.percentage} color="bg-red-500" />
-                  <p className="text-xs text-slate-500 mt-1">{t.correct}/{t.total} correct</p>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        {/* Weak topics: the full list is Premium (the API sends Free one) */}
+        {loading ? (
+          <div className="glass-panel p-6 rounded-2xl"><Loader className="py-4" /></div>
+        ) : (
+          <WeakTopicsCard
+            topics={data?.weakTopics ?? []}
+            total={data?.weakTopicsTotal ?? data?.weakTopics.length ?? 0}
+            hasExams={(data?.totalTests ?? 0) > 0}
+          />
+        )}
       </div>
     </div>
   );

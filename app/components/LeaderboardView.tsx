@@ -6,6 +6,7 @@ import { apiClient } from "@/lib/api/client";
 import UserAvatar from "@/app/components/UserAvatar";
 import Loader from "@/app/components/Loader";
 import { useUser } from "@/app/context/UserContext";
+import { PremiumCrown } from "@/app/components/PremiumBadge";
 import LeaderboardYearFilter, { useLeaderboardYears } from "@/app/components/LeaderboardYearFilter";
 
 interface LeaderboardEntry {
@@ -16,6 +17,8 @@ interface LeaderboardEntry {
   avatarConfig: Record<string, unknown> | null;
   avatarUrl: string | null;
   points: number;
+  /** Premium students show a small gold crown by their name. */
+  premium?: boolean;
 }
 
 const RANK_CFG = {
@@ -167,6 +170,10 @@ function RankRow({
           style={{ color: textColor }}
         >
           {displayName}
+          {/* White on the solid gold/silver/bronze rows, where gold would vanish */}
+          {entry.premium && (
+            <PremiumCrown size={13} className={`ml-1.5 inline-block align-baseline ${isSolidRow ? "!text-white" : ""}`} />
+          )}
         </p>
 
         <p
@@ -271,6 +278,7 @@ export default function LeaderboardView({
                           {user && entry.email === user.email
                             ? "You"
                             : (entry.name ?? entry.email.split("@")[0])}
+                          {entry.premium && <PremiumCrown size={12} className="ml-1 inline-block align-baseline" />}
                         </p>
                         <p
                           className="font-bold tabular-nums text-sm mt-0.5"

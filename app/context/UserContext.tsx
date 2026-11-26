@@ -8,6 +8,8 @@ export interface UserMe {
   name: string | null;
   email: string;
   role: string;
+  /** FREE or PREMIUM (GET /api/users/me returns it). */
+  plan?: "FREE" | "PREMIUM";
   onboardedAt: string | null;
   studentProfile: {
     avatarConfig: Record<string, unknown> | null;

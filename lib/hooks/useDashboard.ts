@@ -8,6 +8,9 @@ export interface AnalyticsData {
   averageScore: number;
   bestScore: number;
   subjectPerformance: { subjectId: string; name: string; percentage: number }[];
+  weakTopics?: import("@/app/dashboard/components/WeakTopicsCard").WeakTopic[];
+  /** All weak topics found; Free accounts receive only the first. */
+  weakTopicsTotal?: number;
 }
 
 export interface ResultEntry {
