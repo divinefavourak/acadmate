@@ -14,7 +14,7 @@ import {
 import { Breadcrumbs, breadcrumbJsonLd, type Crumb } from "../../components/Breadcrumbs";
 import { PracticeCta } from "../../components/PracticeCta";
 
-export const revalidate = 3600;
+export const revalidate = 86400; // daily, matches INDEX_REVALIDATE
 
 // Rendered on first visit, then cached (ISR). An empty list is what enables that.
 export async function generateStaticParams() {

@@ -16,7 +16,7 @@ import { Breadcrumbs, breadcrumbJsonLd, type Crumb } from "@/app/past-questions/
 import { PastQuestionCard } from "@/app/past-questions/components/QuestionBody";
 import { PracticeCta } from "@/app/past-questions/components/PracticeCta";
 
-export const revalidate = 3600;
+export const revalidate = 2592000; // 30 days, matches PQ_REVALIDATE
 
 // Rendered on first visit, then cached (ISR). An empty list is what enables that.
 export async function generateStaticParams() {

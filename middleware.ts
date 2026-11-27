@@ -46,6 +46,9 @@ const ROUTE_POLICY = {
     // leaderboard. Participants authenticate with a separate localStorage token
     // (not the acadmate_token cookie), so these must never hit the cookie gate.
     "/mock",
+    // Cache purge for the past-question pages. The handler checks its own
+    // REVALIDATE_SECRET, so it must skip the cookie gate.
+    "/api/revalidate",
   ],
 
   // Public routes where a logged-in user should be redirected to their home.

@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/seo";
 import { getSitemapPage, questionPath } from "@/lib/pastQuestions";
 
-export const revalidate = 3600;
+export const revalidate = 86400; // daily, matches INDEX_REVALIDATE
 
 /**
  * One sitemap per 5,000 past questions. Next serves them at

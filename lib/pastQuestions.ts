@@ -5,8 +5,24 @@
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 
-/** ISR window for every past-question page and sitemap, in seconds. */
-export const PQ_REVALIDATE = 3600;
+/**
+ * Cache windows, in seconds. Every re-render on Vercel costs ISR writes, and
+ * crawlers visit every question page, so the thousands of question and year
+ * pages cache for 30 days. The handful of index pages (hub, subject pages,
+ * sitemaps) refresh daily so new papers show up quickly.
+ *
+ * A deploy does NOT refresh this data: fetch responses live in Vercel's Data
+ * Cache, which survives deployments. After fixing or importing questions,
+ * purge with POST /api/revalidate (see app/api/revalidate/route.ts).
+ *
+ * The page files repeat these numbers as literals, because Next only reads
+ * statically analyzable `revalidate` values. Keep them in sync.
+ */
+export const PQ_REVALIDATE = 2592000;
+export const INDEX_REVALIDATE = 86400;
+
+/** Cache tag on every past-question fetch, purged by /api/revalidate. */
+export const PQ_TAG = "past-questions";
 
 export const EXAM_LABEL = "JAMB";
 
@@ -80,10 +96,10 @@ export interface SitemapData {
  * null only for a real 404. Any other failure throws, so ISR keeps serving the
  * last good page instead of caching an API blip as "not found".
  */
-async function getJson<T>(path: string): Promise<T | null> {
+async function getJson<T>(path: string, revalidate = PQ_REVALIDATE): Promise<T | null> {
   if (!API_URL) throw new Error("NEXT_PUBLIC_API_URL is not set");
   const res = await fetch(`${API_URL}/api/public/past-questions${path}`, {
-    next: { revalidate: PQ_REVALIDATE },
+    next: { revalidate, tags: [PQ_TAG] },
   });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`Past questions API returned ${res.status} for ${path}`);
@@ -91,13 +107,13 @@ async function getJson<T>(path: string): Promise<T | null> {
 }
 
 export async function getHub(): Promise<HubData> {
-  const hub = await getJson<HubData>("");
+  const hub = await getJson<HubData>("", INDEX_REVALIDATE);
   if (!hub) throw new Error("Past questions hub not found");
   return hub;
 }
 
 export const getSubject = (subject: string) =>
-  getJson<SubjectData>(`/jamb/${encodeURIComponent(subject)}`);
+  getJson<SubjectData>(`/jamb/${encodeURIComponent(subject)}`, INDEX_REVALIDATE);
 
 export const getYear = (subject: string, year: number, page: number) =>
   getJson<YearData>(`/jamb/${encodeURIComponent(subject)}/${year}?page=${page}`);
@@ -106,7 +122,7 @@ export const getQuestion = (slug: string) =>
   getJson<QuestionData>(`/questions/${encodeURIComponent(slug)}`);
 
 export const getSitemapPage = (page: number) =>
-  getJson<SitemapData>(`/sitemap?page=${page}`);
+  getJson<SitemapData>(`/sitemap?page=${page}`, INDEX_REVALIDATE);
 
 // ─── Paths ───────────────────────────────────────────────────────────────────
 
