@@ -152,6 +152,9 @@ export default function BlogList({
 
   // Loading and error are reset where the view changes, not inside the fetch effect.
   const showView = (nextCategory: BlogCategory | "", nextPage: number) => {
+    // Clicking the view that's already showing changes nothing, so the fetch
+    // effect wouldn't run: don't start a loading state it would never clear.
+    if (nextCategory === activeCategory && nextPage === page) return;
     setLoading(nextPage !== 0 || nextCategory !== "");
     setError("");
     setActiveCategory(nextCategory);

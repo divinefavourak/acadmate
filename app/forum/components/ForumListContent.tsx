@@ -225,6 +225,9 @@ export default function ForumListContent({
   // The first page of every category is server-rendered, so the unfiltered view needs no fetch.
   // State that depends on the view is reset here, where the view changes, not in the effect.
   const showView = (nextCategory: ForumCategory | "", nextPage: number) => {
+    // Clicking the view that's already showing changes nothing, so the fetch
+    // effect wouldn't run: don't start a loading state it would never clear.
+    if (nextCategory === category && nextPage === page) return;
     if (nextPage === 0 && nextCategory === "") {
       setThreads(initialThreads);
       setTotal(initialTotal);
