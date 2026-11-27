@@ -11,7 +11,7 @@ import {
 import { Breadcrumbs, breadcrumbJsonLd, type Crumb } from "./components/Breadcrumbs";
 import { PracticeCta } from "./components/PracticeCta";
 
-export const revalidate = 3600;
+export const revalidate = 2592000; // 30 days, matches PQ_REVALIDATE
 
 const CRUMBS: Crumb[] = [{ name: "Home", href: "/" }, { name: "JAMB past questions" }];
 

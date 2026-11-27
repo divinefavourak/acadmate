@@ -5,8 +5,17 @@
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 
-/** ISR window for every past-question page and sitemap, in seconds. */
-export const PQ_REVALIDATE = 3600;
+/**
+ * ISR window for past-question pages, in seconds (30 days). Past questions
+ * rarely change, and on Vercel every re-render counts as ISR writes, so a page
+ * renders once and is then served from cache for a month (or until the next
+ * deploy). The literal must stay a plain number: Next only reads statically
+ * analyzable `revalidate` values.
+ */
+export const PQ_REVALIDATE = 2592000;
+
+/** Sitemaps and robots.txt refresh daily so new questions get listed quickly. */
+export const SITEMAP_REVALIDATE = 86400;
 
 export const EXAM_LABEL = "JAMB";
 
@@ -80,10 +89,10 @@ export interface SitemapData {
  * null only for a real 404. Any other failure throws, so ISR keeps serving the
  * last good page instead of caching an API blip as "not found".
  */
-async function getJson<T>(path: string): Promise<T | null> {
+async function getJson<T>(path: string, revalidate = PQ_REVALIDATE): Promise<T | null> {
   if (!API_URL) throw new Error("NEXT_PUBLIC_API_URL is not set");
   const res = await fetch(`${API_URL}/api/public/past-questions${path}`, {
-    next: { revalidate: PQ_REVALIDATE },
+    next: { revalidate },
   });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`Past questions API returned ${res.status} for ${path}`);
@@ -106,7 +115,7 @@ export const getQuestion = (slug: string) =>
   getJson<QuestionData>(`/questions/${encodeURIComponent(slug)}`);
 
 export const getSitemapPage = (page: number) =>
-  getJson<SitemapData>(`/sitemap?page=${page}`);
+  getJson<SitemapData>(`/sitemap?page=${page}`, SITEMAP_REVALIDATE);
 
 // ─── Paths ───────────────────────────────────────────────────────────────────
 
