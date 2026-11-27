@@ -114,6 +114,7 @@ export class ResultsService {
                     imageUrl: true,
                     subject: { select: { id: true, name: true } },
                     topic: { select: { id: true, name: true } },
+                    proseText: { select: { title: true, author: true } },
                     options: {
                       select: { id: true, label: true, text: true, isCorrect: true, sortOrder: true },
                       orderBy: { sortOrder: 'asc' },

@@ -447,12 +447,12 @@ export default function NewExamPage() {
                 </div>
               </div>
 
-              {/* Prose / Comprehension text picker */}
+              {/* Set novel picker (JAMB's recommended text for Use of English) */}
               {proseTexts.length > 0 && (
                 <div>
-                  <h3 className="text-sm font-semibold mb-1">Prose / Comprehension Text</h3>
+                  <h3 className="text-sm font-semibold mb-1">Set novel</h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
-                    10 comprehension questions will be drawn from this text as part of Use of English.
+                    10 Use of English questions will be on this novel, and each one names it.
                   </p>
                   <div className="space-y-2">
                     {/* Random option */}
@@ -465,7 +465,7 @@ export default function NewExamPage() {
                       }`}
                     >
                       <div className="font-medium text-sm">Random</div>
-                      <div className="text-xs text-slate-500 mt-0.5">System picks a prose text for you</div>
+                      <div className="text-xs text-slate-500 mt-0.5">We pick one of the set novels for you</div>
                     </button>
 
                     {proseTexts.map((pt) => (

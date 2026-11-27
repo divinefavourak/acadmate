@@ -29,6 +29,8 @@ interface Question {
   imageUrl: string | null;
   subject: { id: string; name: string; code: string };
   topic: { id: string; name: string } | null;
+  /** The set novel a question is about (there is no passage to show). */
+  proseText?: { title: string; author: string | null } | null;
   options: Option[];
 }
 
@@ -488,6 +490,12 @@ export default function ExamPage({ params }: { params: Promise<{ id: string }> }
                 </p>
               </div>
               <div className="my-4 sm:my-5 border-t border-dashed border-white/25" />
+              {currentQ.proseText && (
+                <p className="mb-2 text-sm text-brand-100/90">
+                  From <cite className="not-italic font-semibold text-white">{currentQ.proseText.title}</cite>
+                  {currentQ.proseText.author ? ` by ${currentQ.proseText.author}` : ""}
+                </p>
+              )}
               <h2 className="text-lg sm:text-xl font-medium leading-relaxed">
                 <MathText text={currentQ.text} />
               </h2>
