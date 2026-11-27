@@ -337,6 +337,9 @@ export class ExamsService {
                 imageUrl: true,
                 subject: { select: { id: true, name: true, code: true } },
                 topic: { select: { id: true, name: true } },
+                // Questions on a set novel name it in the CBT, as the public
+                // past-question pages do (there is no passage to show).
+                proseText: { select: { title: true, author: true } },
                 options: {
                   select: { id: true, label: true, text: true, sortOrder: true },
                   orderBy: { sortOrder: 'asc' },
@@ -470,9 +473,6 @@ export class ExamsService {
             id: { in: missed },
             isPublished: true,
             isFlagged: false,
-            // Comprehension questions need their passage, which the exam
-            // screen doesn't show, so they're left out (as in the daily draw).
-            proseTextId: null,
             options: { some: { isCorrect: true } },
           },
           select: { id: true },

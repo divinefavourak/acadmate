@@ -27,6 +27,7 @@ interface QuestionAnswer {
     text: string;
     subject: { id: string; name: string };
     topic: { id: string; name: string } | null;
+    proseText?: { title: string; author: string | null } | null;
     options: Option[];
     explanation: { text: string } | null;
   };
@@ -209,7 +210,13 @@ function QuestionCard({ qa, index }: { qa: QuestionAnswer; index: number }) {
 
       {open && (
         <div className="px-5 pb-5 space-y-4 border-t border-inherit">
-          {/* Full question text */}
+          {/* Full question text, with the set novel it's about */}
+          {qa.question.proseText && (
+            <p className="pt-4 -mb-2 text-sm text-slate-500 dark:text-slate-400">
+              From <cite className="not-italic font-medium text-slate-700 dark:text-slate-200">{qa.question.proseText.title}</cite>
+              {qa.question.proseText.author ? ` by ${qa.question.proseText.author}` : ""}
+            </p>
+          )}
           <p className="pt-4 text-slate-800 dark:text-slate-100 font-medium leading-relaxed"><MathText text={qa.question.text} /></p>
 
           {/* Options */}

@@ -118,8 +118,9 @@ export class DailyService {
   /**
    * English first, then the student's subjects in random order, one question
    * each, round and round until there are five. Within a subject, questions the
-   * student has never been given come first. Comprehension questions are left
-   * out because they need their passage.
+   * student has never been given come first. Questions on the set novel
+   * (proseTextId) are left out: the challenge is a quick mix across subjects,
+   * and the novel has its own practice from the Prose page.
    */
   private async draw(userId: string, tx: Prisma.TransactionClient): Promise<string[]> {
     const [english, profile] = await Promise.all([
