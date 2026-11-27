@@ -63,7 +63,7 @@ export default function MyFlagsPage() {
         <div className="glass-panel p-12 rounded-2xl text-center space-y-2">
           <p className="text-2xl">🚩</p>
           <p className="font-semibold">No reported questions</p>
-          <p className="text-sm text-slate-500">If you spot a bad question during an exam, hit Report and we'll look into it.</p>
+          <p className="text-sm text-slate-500">If you spot a bad question during an exam, hit Report and we’ll look into it.</p>
         </div>
       ) : (
         <div className="space-y-8">

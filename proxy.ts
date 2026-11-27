@@ -6,7 +6,7 @@ import type { NextRequest } from "next/server";
 //
 // Design principles:
 //   1. The backend (NestJS guards) is the authoritative source for authorization.
-//      This middleware provides only UX routing — it redirects before the page
+//      This proxy provides only UX routing — it redirects before the page
 //      shell loads, preventing a flash of protected content.
 //   2. Matching is prefix-based (startsWith) so child routes inherit the policy
 //      of their parent without individual entries.
@@ -29,7 +29,7 @@ const ROUTE_POLICY = {
     // Legal pages must be reachable without auth — Google API verification
     // (and most app-store / OAuth reviews) require the privacy policy URL to
     // load without a login wall. These live in the (public) route group, but
-    // that folder name is a Next.js routing convention only; this middleware
+    // that folder name is a Next.js routing convention only; this proxy
     // gate is independent and must list them explicitly.
     "/privacy",
     "/terms",
@@ -84,7 +84,7 @@ function isBetaHost(req: NextRequest): boolean {
   return (req.headers.get("host") ?? "").toLowerCase().startsWith("beta.");
 }
 
-export default async function middleware(req: NextRequest) {
+export default async function proxy(req: NextRequest) {
   const res = await gate(req);
   // A header rather than robots.txt: a crawler blocked by robots.txt never
   // sees noindex, and can still list the bare URLs.

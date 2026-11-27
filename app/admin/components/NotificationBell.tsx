@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { apiClient } from "@/lib/api/client";
@@ -9,19 +9,23 @@ export default function NotificationBell() {
   const [unreadCount, setUnreadCount] = useState(0);
   const pathname = usePathname();
 
-  const fetchCount = useCallback(async () => {
-    try {
-      const data = await apiClient<{ unreadCount: number }>("/api/admin/notifications");
-      setUnreadCount(data.unreadCount ?? 0);
-    } catch { /* silent */ }
-  }, []);
-
-  // Refresh count on mount + every 30s + when navigating away from notifications page
+  // Refresh count on mount + every 30s + when navigating away from notifications page.
+  // The count is only set from the request's callback, never synchronously in the effect.
   useEffect(() => {
+    let cancelled = false;
+    const fetchCount = () =>
+      apiClient<{ unreadCount: number }>("/api/admin/notifications")
+        .then((data) => {
+          if (!cancelled) setUnreadCount(data.unreadCount ?? 0);
+        })
+        .catch(() => { /* silent */ });
     fetchCount();
     const interval = setInterval(fetchCount, 30000);
-    return () => clearInterval(interval);
-  }, [fetchCount, pathname]);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [pathname]);
 
   const active = pathname === "/admin/notifications";
 

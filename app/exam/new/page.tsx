@@ -73,13 +73,16 @@ function modeAvailable(mode: Mode, availability: ExamAvailability | null): boole
   return mode === "POST_UTME" ? availability.postUtme : availability.utme;
 }
 
+const NO_TOPICS: Topic[] = [];
+
 export default function NewExamPage() {
   const router = useRouter();
   const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [topics, setTopics] = useState<Topic[]>([]);
+  // Topics and the chosen topic are stored with the subject they belong to, so a subject change
+  // needs no reset: anything for another subject simply reads as "not loaded" / "none chosen".
+  const [topicData, setTopicData] = useState<{ subjectId: string; topics: Topic[] } | null>(null);
   const [proseTexts, setProseTexts] = useState<ProseText[]>([]);
   const [loadingData, setLoadingData] = useState(true);
-  const [loadingTopics, setLoadingTopics] = useState(false);
 
   const [mode, setMode] = useState<Mode>("MOCK");
 
@@ -89,7 +92,7 @@ export default function NewExamPage() {
 
   // PRACTICE / TOPIC state
   const [selectedSubject, setSelectedSubject] = useState<string>("");
-  const [selectedTopic, setSelectedTopic] = useState<string>("");
+  const [topicChoice, setTopicChoice] = useState<{ subjectId: string; topicId: string } | null>(null);
   const [questionCount, setQuestionCount] = useState(40);
 
   const [starting, setStarting] = useState(false);
@@ -150,21 +153,32 @@ export default function NewExamPage() {
 
   const utmeComboMissing = utmeComboCount !== null && utmeComboCount < 2;
 
+  const topicsReady = topicData?.subjectId === selectedSubject;
+  const topics = topicsReady ? topicData.topics : NO_TOPICS;
+  const loadingTopics = mode === "TOPIC" && !!selectedSubject && !topicsReady;
+  const selectedTopic = topicChoice?.subjectId === selectedSubject ? topicChoice.topicId : "";
+  const setSelectedTopic = (topicId: string) => setTopicChoice({ subjectId: selectedSubject, topicId });
+
   // Fetch topics when subject changes (TOPIC mode)
   useEffect(() => {
     if (mode !== "TOPIC" || !selectedSubject) return;
-    setLoadingTopics(true);
-    setSelectedTopic("");
-    apiClient<{ topics: Topic[] }>(`/api/subjects/${selectedSubject}/topics`)
+    const subjectId = selectedSubject;
+    let cancelled = false; // a slower request for an earlier subject must not win
+    apiClient<{ topics: Topic[] }>(`/api/subjects/${subjectId}/topics`)
       .then((data) => {
+        if (cancelled) return;
         const list = data.topics ?? [];
-        setTopics(list);
+        setTopicData({ subjectId, topics: list });
         const preferred = list.find((t) => t.id === preferredTopicRef.current);
         preferredTopicRef.current = null;
-        if (list.length > 0) setSelectedTopic((preferred ?? list[0]).id);
+        setTopicChoice(list.length > 0 ? { subjectId, topicId: (preferred ?? list[0]).id } : null);
       })
-      .catch(() => setTopics([]))
-      .finally(() => setLoadingTopics(false));
+      .catch(() => {
+        if (!cancelled) setTopicData({ subjectId, topics: [] });
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [mode, selectedSubject]);
 
   function toggleSubject(id: string) {

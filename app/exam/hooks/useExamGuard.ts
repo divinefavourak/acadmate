@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useSyncExternalStore } from "react";
 
 const MAX_STRIKES = 2;
 
@@ -23,6 +23,22 @@ function unlockKeys() {
   }
 }
 
+// Fullscreen is browser state the page doesn't own, so it's read with useSyncExternalStore rather
+// than copied into React state from an effect. Safari still uses the webkit-prefixed names.
+function inFullscreen(): boolean {
+  const doc = document as Document & { webkitFullscreenElement?: Element | null };
+  return !!(document.fullscreenElement ?? doc.webkitFullscreenElement);
+}
+
+function subscribeFullscreen(onChange: () => void) {
+  document.addEventListener("fullscreenchange", onChange);
+  document.addEventListener("webkitfullscreenchange", onChange);
+  return () => {
+    document.removeEventListener("fullscreenchange", onChange);
+    document.removeEventListener("webkitfullscreenchange", onChange);
+  };
+}
+
 export type ViolationType = "tab" | "fullscreen";
 
 export interface StrikeWarning {
@@ -42,7 +58,7 @@ export function useExamGuard(
   const requireFullscreen = options?.requireFullscreen ?? true;
   const [strikes, setStrikes] = useState(0);
   const [warning, setWarning] = useState<StrikeWarning | null>(null);
-  const [isFullscreen, setIsFullscreen] = useState(false);
+  const isFullscreen = useSyncExternalStore(subscribeFullscreen, inFullscreen, () => false);
 
   const strikesRef = useRef(0);
   const dedupeRef = useRef(false);
@@ -100,10 +116,8 @@ export function useExamGuard(
   // otherwise request it now.
   useEffect(() => {
     if (!enabled || !requireFullscreen) return;
-    const alreadyFs = !!(document.fullscreenElement ?? (document as any).webkitFullscreenElement);
-    if (alreadyFs) {
+    if (inFullscreen()) {
       fullscreenEverRef.current = true;
-      setIsFullscreen(true);
       lockEscape();
     } else {
       requestFullscreen();
@@ -114,9 +128,7 @@ export function useExamGuard(
   useEffect(() => {
     if (!enabled || !requireFullscreen) return;
     const onChange = () => {
-      const fs = !!(document.fullscreenElement ?? (document as any).webkitFullscreenElement);
-      setIsFullscreen(fs);
-      if (fs) {
+      if (inFullscreen()) {
         fullscreenEverRef.current = true;
         lockEscape();
       } else {

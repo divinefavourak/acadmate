@@ -110,7 +110,7 @@ export default function PanicsPage() {
                   <div className="flex items-center justify-between gap-4">
                     <div>
                       <p className="font-medium text-sm">{r.participant.name ?? "Unknown"} · Attempt {r.session.attemptNumber}</p>
-                      {r.message && <p className="text-xs text-slate-400 mt-0.5">"{r.message}"</p>}
+                      {r.message && <p className="text-xs text-slate-400 mt-0.5">“{r.message}”</p>}
                     </div>
                     <span className="text-xs text-slate-400 shrink-0">{fmt(r.createdAt)}</span>
                   </div>
