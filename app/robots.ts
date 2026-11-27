@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/seo";
 import { getSitemapPage } from "@/lib/pastQuestions";
 
-export const revalidate = 86400; // daily, matches SITEMAP_REVALIDATE
+export const revalidate = 3600;
 
 /** How many /sitemap-questions-N.xml files exist; 1 if the API can't say right now. */
 async function questionSitemapCount(): Promise<number> {
